@@ -6,19 +6,8 @@ use std::io::BufWriter;
 
 use crate::shared::{Cost, EdgePT, EdgeWalk, LeavingTime, NodeID};
 
-pub fn serialise_files_all_years() {
-    for year in 2016..2023 {
-        serialise_files(year);
-    }
-}
 
-pub fn serialise_sparse_node_values_2d_all_years() {
-    for year in 2016..2023 {
-        serialise_sparse_node_values_2d(year);
-    }
-}
-
-fn serialise_sparse_node_values_2d(year: i32) {
+pub fn serialise_sparse_node_values_2d(year: i32) {
     
     let inpath = format!("data/sparse_node_values_6am_{}_2d.json", year);
     let contents = fs_err::read_to_string(&inpath).unwrap();

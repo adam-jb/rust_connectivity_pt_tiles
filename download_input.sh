@@ -14,7 +14,7 @@ do
     wget https://storage.googleapis.com/hack-bucket-8204707942/$x
 done
 
-for YEAR in 2016 2017 2018 2019 2020 2021 2022
+for YEAR in 2022
 do
     for x in p1_main_nodes_list_6am_$YEAR.json \
         p2_main_nodes_list_6am_$YEAR.json \

@@ -126,30 +126,18 @@ fn get_pt_connections(
 
 
 
-pub fn get_all_scores_and_time_to_target_destinations(
+pub fn get_all_scores_links_and_key_destinations(
     travel_times: &(u32, Vec<u32>, Vec<u16>), // nodeID, destination node IDs, travel times to destinations
     node_values_2d: &Vec<Vec<[i32; 2]>>, //&Vec<i32>,
     travel_time_relationships: &[i32], //&Vec<i32>,
     subpurpose_purpose_lookup: &[i8; 32],
     count_original_nodes: u32,
     node_values_padding_row_count: u32,
-    target_destinations_vector: &[u32], //&Vec<u32>,
-) -> (i32, u32, [i64; 32], Vec<u32>, Vec<u16>) {
+) -> (i32, u32, [i64; 32]) {
 
     let subpurposes_count: usize = 32;
     let count_nodes_no_value = node_values_padding_row_count / 32;
     
-    // replacing set below with binary vec for faster lookup than set. Assumes only original nodes can be target destinations
-    let mut target_destinations_binary_vec = vec![false; count_original_nodes as usize];
-    for id in target_destinations_vector.into_iter() {
-        target_destinations_binary_vec[*id as usize] = true;
-    }
-    //let target_destinations_set: HashSet<u32> = target_destinations_vector.iter().cloned().collect();
-    // replacing the 4 lines below with the line above on the advice of gpt4
-    /*let mut target_destinations_set: HashSet<u32> = HashSet::new();
-    for node_id in target_destinations_vector {
-        target_destinations_set.insert(*node_id);
-    }*/
     
     let mut scores: [i64; 32] = [0; 32];
     
@@ -177,34 +165,13 @@ pub fn get_all_scores_and_time_to_target_destinations(
                 scores[subpurpose_ix as usize] += (subpurpose_score_pair[1] as i64) * (multiplier as i64);
             }
         }
-        
-        // the above replaces the below chunk
-        /*
-        if count_original_nodes >= current_node && current_node >= count_nodes_no_value {
 
-            // this replaces get_scores()
-            let start_pos = current_node * 32;
-            for i in 0..subpurposes_count {
-                let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[i] as i32) * 3601;
-                let multiplier = travel_time_relationships[(vec_start_pos_this_purpose + current_cost as i32) as usize];
-                scores[i] += (node_values_1d[(start_pos as usize) + i] as i64) * (multiplier as i64);
-            }            
-        }
-        */
-            
-        if target_destinations_binary_vec[current_node as usize] {
-        //if target_destinations_set.contains(&current_node) {
-            target_destination_ids.push(current_node);
-            target_destination_travel_times.push(current_cost);
-        }
     }
     
     return (
         travel_times.1.len() as i32,
         start,
         scores,
-        target_destination_ids,
-        target_destination_travel_times,
     );
 
 }
