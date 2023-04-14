@@ -2,6 +2,7 @@ use actix_web::{get, post, web, App, HttpServer};
 use rayon::prelude::*;
 use smallvec::SmallVec;
 use std::time::Instant;
+use std::collections::HashMap;
 
 use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID, UserInputJSON};
 use floodfill::{get_travel_times, get_all_scores_links_and_key_destinations};
@@ -13,6 +14,7 @@ use read_files::{
     create_graph_walk_len,
     read_sparse_node_values_2d_serial,
 };
+use make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s;
 
 mod floodfill;
 mod get_time_of_day_index;
@@ -20,6 +22,7 @@ mod priority_queue;
 mod read_files;
 mod serialise_files;
 mod shared;
+mod make_and_serialise_nodes_within_120s;
 
 struct AppState {
     travel_time_relationships_all: Vec<Vec<i32>>,
@@ -30,7 +33,7 @@ fn get_travel_times_multicore(
     graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
     graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     input: &web::Json<UserInputJSON>
-) -> Vec<(u32, Vec<u32>, Vec<u16>)> {
+) -> Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>)> {
         
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
     
@@ -43,21 +46,24 @@ fn get_travel_times_multicore(
                 NodeID(*&input.start_nodes_user_input[*i] as u32),
                 *&input.trip_start_seconds,
                 Cost(*&input.init_travel_times_user_input[*i] as u16),
+                false,
+                3600,
             )
         })
         .collect(); 
 }
 
 
-fn parallel_node_values_read_and_floodfill(graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
+fn parallel_node_values_read_and_floodfill_and_nearby_nodes(graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
     graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     input: &web::Json<UserInputJSON>
 ) -> (
     Vec<Vec<[i32;2]>>, 
-    Vec<(u32, Vec<u32>, Vec<u16>)>
+    Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>)>,
+    Vec<Vec<u32>>,
 ) {
         
-    let (node_values_2d, travel_times) = rayon::join(
+    let (node_values_2d, get_travel_times_multicore_output, nodes_to_neighbouring_nodes) = rayon::join(
             || {
                 read_sparse_node_values_2d_serial(input.year)
             },
@@ -68,8 +74,11 @@ fn parallel_node_values_read_and_floodfill(graph_walk: &Vec<SmallVec<[EdgeWalk; 
                     &input,
                 )
             },
+            || {
+                deserialize_bincoded_file::vec::<vec<u32>>("nodes_to_neighbouring_nodes")
+            },
         );
-    (node_values_2d, travel_times)
+    (node_values_2d, get_travel_times_multicore_output, nodes_to_neighbouring_nodes)
 }
 
 
@@ -80,16 +89,15 @@ async fn index() -> String {
 
 #[get("/get_node_id_count/")]
 async fn get_node_id_count() -> String {
-    //let count_original_nodes = data.graph_walk_len;
     let year: i32 = 2022;   //// TODO change this dynamically depending on when user hits this api... OR drop this from Rust api and store in py
     let graph_walk_len: i32 = deserialize_bincoded_file(&format!("graph_walk_len_{year}"));
     return serde_json::to_string(&graph_walk_len).unwrap();
 }
-   
+
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
 
-    println!("Floodfill request received, without changes");
+    println!("Floodfill request received");
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
     
     let (graph_walk, graph_pt, node_values_padding_row_count) =
@@ -105,7 +113,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     
     let now = Instant::now();
     
-    let (node_values_2d, travel_times) = parallel_node_values_read_and_floodfill(
+    let (node_values_2d, travel_times, nodes_to_neighbouring_nodes) = parallel_node_values_read_and_floodfill_and_nearby_nodes(
         &graph_walk,
         &graph_pt,
         &input,
@@ -116,7 +124,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let now = Instant::now();
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
     
-    let results: Vec<(i32, u32, [i64; 32])> = indices
+    let results: Vec<(i32, u32, [f64; 5], HashMap<i32, [i64; 5]>, HashMap<i32, [i32; 2]>, vec<vec<[u64; 2]>>)> = indices
         .par_iter()
         .map(|i| {
             get_all_scores_links_and_key_destinations(
@@ -140,11 +148,14 @@ async fn main() -> std::io::Result<()> {
     let year: i32 = 2022;
     
     // make this true on initial run; false otherwise
-    if true {
+    if false {
         serialise_files::serialise_files(year);
         serialise_files::serialise_sparse_node_values_2d(year);
         create_graph_walk_len(year); 
     }
+    
+    // comment this out to not make the lookup of nodes which are near other nodes
+    make_and_serialise_nodes_within_120s(year);
     
     let (
         travel_time_relationships_7,
