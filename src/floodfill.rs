@@ -301,6 +301,9 @@ pub fn get_all_scores_links_and_key_destinations(
         }
     }
     
+    //*** make set of all nodes which are close to those in the top 5... 
+    
+    
     let mut rng = rand::thread_rng();
     for node_reached_id in destination_ids {
         
@@ -320,7 +323,7 @@ pub fn get_all_scores_links_and_key_destinations(
             
             if purpose_scores[k] > lowest_values_in_top_by_purposes[k] {
                 
-                // to avoid hash collision, add random decimal to values when adding to top_nodes_by_purposes and lowest_values_in_top_by_purposes
+                // to avoid hash collision, add random decimal (0-1) to values when adding to top_nodes_by_purposes and lowest_values_in_top_by_purposes
                 let new_score = purpose_scores[k] + rng.gen::<f64>();
                                 
                 // replace value in hashmap
