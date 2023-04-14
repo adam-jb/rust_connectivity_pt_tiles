@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
+use std::hash::{Hash, Hasher};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
 pub struct NodeID(pub u32);
@@ -32,7 +33,7 @@ pub struct UserInputJSON {
 
 
 // FloatBinHeap is to allow f64 in a binary heap
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(Debug, PartialEq, PartialOrd, Serialize)]
 pub struct FloatBinHeap(pub f64);
 
 impl Eq for FloatBinHeap {}
@@ -41,5 +42,12 @@ impl Ord for FloatBinHeap {
     fn cmp(&self, other: &Self) -> Ordering {
         //self.0.partial_cmp(&other.0).unwrap_or(Ordering::Equal)
         other.0.partial_cmp(&self.0).unwrap_or(Ordering::Equal) // for reverse ordering
+    }
+}
+
+impl Hash for FloatBinHeap {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let float_bits = self.0.to_bits();
+        float_bits.hash(state);
     }
 }

@@ -3,9 +3,9 @@ use rayon::prelude::*;
 use smallvec::SmallVec;
 use std::time::Instant;
 use std::collections::HashMap;
-use ordered_float::OrderedFloat;
+use std::sync::Arc;
 
-use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID, UserInputJSON};
+use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID, UserInputJSON, FloatBinHeap};
 use floodfill::{get_travel_times, get_all_scores_links_and_key_destinations};
 use get_time_of_day_index::get_time_of_day_index;
 use crate::read_files::{
@@ -25,9 +25,12 @@ mod serialise_files;
 mod shared;
 mod make_and_serialise_nodes_within_120s;
 
+
+
 struct AppState {
     travel_time_relationships_all: Vec<Vec<i32>>,
     subpurpose_purpose_lookup: [i8; 32],
+    arc_nodes_to_neighbouring_nodes: Arc<Vec<Vec<u32>>>,
 }
 
 fn get_travel_times_multicore(
@@ -54,35 +57,29 @@ fn get_travel_times_multicore(
         .collect(); 
 }
 
-
-fn parallel_node_values_read_and_floodfill_and_nearby_nodes(graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
+fn parallel_node_values_read_and_floodfill(graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
     graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     input: &web::Json<UserInputJSON>
 ) -> (
     Vec<Vec<[i32;2]>>, 
-    Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>)>,
-    Vec<Vec<u32>>,
+    Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>)>
 ) {
-
-    let (node_values_2d, (get_travel_times_multicore_output, nodes_to_neighbouring_nodes)) = rayon::join(
-        || read_sparse_node_values_2d_serial(input.year),
-        || {
-            rayon::join(
-                || {
+        
+    let (node_values_2d, get_travel_times_multicore_output) = rayon::join(
+            || {
+                read_sparse_node_values_2d_serial(input.year)
+            },
+            || {
                 get_travel_times_multicore(
                     &graph_walk,
                     &graph_pt,
                     &input,
-                )},
-                || {
-                    deserialize_bincoded_file::Vec::<Vec<u32>>("nodes_to_neighbouring_nodes")
-                },
-            )
-        },
-    );
-    
-    (node_values_2d, get_travel_times_multicore_output, nodes_to_neighbouring_nodes)
+                )
+            },
+        );
+    (node_values_2d, get_travel_times_multicore_output)
 }
+
 
 
 #[get("/")]
@@ -116,29 +113,29 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     
     let now = Instant::now();
     
-    let (node_values_2d, travel_times, nodes_to_neighbouring_nodes) = parallel_node_values_read_and_floodfill_and_nearby_nodes(
+    let (node_values_2d, floodfill_outputs_tuple) = parallel_node_values_read_and_floodfill(
         &graph_walk,
         &graph_pt,
         &input,
     );
-        
+    
     println!("Node values read in and floodfill in parallel {:?}", now.elapsed());
     
     let now = Instant::now();
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
     
     // [HashMap<f64, f64>; 5]
-    let results: Vec<(i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<OrderedFloat<f64>, u32>; 5])> = indices
+    let results: Vec<(i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<FloatBinHeap, u32>; 5])> = indices
         .par_iter()
         .map(|i| {
             get_all_scores_links_and_key_destinations(
-                &travel_times[*i],
+                &floodfill_outputs_tuple[*i],
                 &node_values_2d,
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &data.subpurpose_purpose_lookup,
                 count_original_nodes,
                 node_values_padding_row_count,
-                &nodes_to_neighbouring_nodes,
+                &data.arc_nodes_to_neighbouring_nodes, 
             )
         })
         .collect();
@@ -176,9 +173,14 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_16,
         travel_time_relationships_19,
     ];
+    
+    let nodes_to_neighbouring_nodes: Vec<Vec<u32>> = deserialize_bincoded_file("nodes_to_neighbouring_nodes");
+    let arc_nodes_to_neighbouring_nodes: Arc<Vec<Vec<u32>>> = Arc::new(nodes_to_neighbouring_nodes);
+    
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
         subpurpose_purpose_lookup,
+        arc_nodes_to_neighbouring_nodes,
     });
     HttpServer::new(move || {
         App::new()

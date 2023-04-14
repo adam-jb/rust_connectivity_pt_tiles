@@ -3,7 +3,8 @@ use crate::priority_queue::PriorityQueueItem;
 use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID, FloatBinHeap};
 use smallvec::SmallVec;
 use rand::Rng;
-use ordered_float::OrderedFloat;
+use std::sync::Arc;
+use std::time::Instant;
 
 // returns unique i32 based on sequence of two integers
 fn cantor_pairing(x: u32, y: u32) -> u32 {
@@ -19,6 +20,8 @@ pub fn get_travel_times(
     walk_only: bool,
     max_travel_time: u16,
 ) -> (u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>) {
+    
+    let now = Instant::now();
     
     let time_limit: Cost = Cost(max_travel_time);
     
@@ -48,7 +51,7 @@ pub fn get_travel_times(
         );
     }
 
-    while let Some(current) = queue.pop() {
+    while let Some(mut current) = queue.pop() {
         
         if nodes_visited[current.value.0 as usize] {
             continue;
@@ -57,7 +60,7 @@ pub fn get_travel_times(
 
         destination_ids.push(current.value.0);
         destination_travel_times.push(current.cost.0);
-        nodes_visited_sequences.push(current.nodes_taken);
+        nodes_visited_sequences.push(current.nodes_taken.to_vec());
         
         current.nodes_taken.push(current.value.0);
         
@@ -69,7 +72,7 @@ pub fn get_travel_times(
                 queue.push(PriorityQueueItem {
                     cost: new_cost,
                     value: edge.to,
-                    nodes_taken: current.nodes_taken,
+                    nodes_taken: current.nodes_taken.to_vec(),
                 });
             }
         }
@@ -91,6 +94,9 @@ pub fn get_travel_times(
         }
 
     }
+    
+    println!("Floodfill took {:?}", now.elapsed());
+    
     return (
         start.0,
         destination_ids,
@@ -140,7 +146,7 @@ fn get_pt_connections(
             queue.push(PriorityQueueItem {
                 cost: Cost(arrival_time_next_stop as u16),
                 value: NodeID(*destination_node as u32),
-                nodes_taken: *current_nodes_taken,
+                nodes_taken: current_nodes_taken.to_vec(),
             });
         };
     }
@@ -155,8 +161,8 @@ pub fn get_all_scores_links_and_key_destinations(
     subpurpose_purpose_lookup: &[i8; 32],
     count_original_nodes: u32,
     node_values_padding_row_count: u32,
-    nodes_to_neighbouring_nodes: &Vec<Vec<u32>>,
-) -> (i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<OrderedFloat<f64>, u32>; 5]) {
+    nodes_to_neighbouring_nodes: &Arc<Vec<Vec<u32>>>,
+) -> (i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<FloatBinHeap, u32>; 5]) {
     
     // Got this from 'subpurpose_purpose_lookup_integer_list.json' in connectivity-processing-files
     let subpurpose_purpose_lookup_integer: [u8; 32] = [2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1, 2, 1];
@@ -221,7 +227,7 @@ pub fn get_all_scores_links_and_key_destinations(
         
         // Apply score_multipler to get purpose level scores for this start node. This does what s39 would do in python: faster to do it here as so many tiles
         // getting log of score for this subpurpose
-        let subpurpose_score = ((subpurpose_scores[subpurpose_ix] as f64) * score_multipler[subpurpose_ix]).ln();
+        let mut subpurpose_score = ((subpurpose_scores[subpurpose_ix] as f64) * score_multipler[subpurpose_ix]).ln();
         
         // make negative values zero: this corrects for an effect of using log()
         if subpurpose_score < 0.0 {
@@ -259,7 +265,8 @@ pub fn get_all_scores_links_and_key_destinations(
                 for k in 0..5 {
                     purpose_scores[k] += end_node_purpose_scores[k];
                 }
-                link_score_contributions[&unique_link_id] = purpose_scores;
+                // line below overwrites existing value mapping to unique_link_id
+                link_score_contributions.insert(unique_link_id, purpose_scores);
                 
             } else {
                 link_score_contributions.insert(unique_link_id, end_node_purpose_scores);
@@ -273,7 +280,7 @@ pub fn get_all_scores_links_and_key_destinations(
     
     // get key destinations for each purpose
     // for each purpose, 5 nodes with their ID and score contributed. Initialised with all zeros
-    let mut top_nodes_by_purposes: [HashMap<OrderedFloat<f64>, u32>; 5] = [
+    let mut top_nodes_by_purposes: [HashMap<FloatBinHeap, u32>; 5] = [
         HashMap::new(),
         HashMap::new(),
         HashMap::new(),
@@ -302,7 +309,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let mut rng = rand::thread_rng();
     for node_reached_id in destination_ids {
         
-        let near_nodes = nodes_to_neighbouring_nodes[*node_reached_id as usize];
+        let near_nodes = nodes_to_neighbouring_nodes[*node_reached_id as usize].to_vec();
         let mut purpose_scores: [f64; 5] = [0.0; 5];
         
         // get total scores by purpose, of nodes within 120s of this node
@@ -322,8 +329,8 @@ pub fn get_all_scores_links_and_key_destinations(
                 let new_score = purpose_scores[k] + rng.gen::<f64>();
                                 
                 // replace value in hashmap
-                top_nodes_by_purposes[k].remove(&OrderedFloat(lowest_values_in_top_by_purposes[k]));
-                top_nodes_by_purposes[k].insert(OrderedFloat(new_score), *node_reached_id);
+                top_nodes_by_purposes[k].remove(&FloatBinHeap(lowest_values_in_top_by_purposes[k]));
+                top_nodes_by_purposes[k].insert(FloatBinHeap(new_score), *node_reached_id);
                 
                 // update heap
                 top_5_scores_by_purpose_heaps[k].pop();
@@ -334,10 +341,8 @@ pub fn get_all_scores_links_and_key_destinations(
                 
             }
         }
-                
     }
-        
-
+    
     
     // link_score_contributions: hashmap of total purpose-level scores trips across that link that fed into
     // link_start_end_nodes: hashmap of link ID to the nodes at either end of the link
