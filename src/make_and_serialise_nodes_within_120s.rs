@@ -5,33 +5,23 @@ use crate::read_files::{
 use rayon::prelude::*;
 use fs_err::File;
 use std::io::BufWriter;
-use std::time::Instant;
 use std::sync::Mutex;
 
 use crate::shared::{Cost, NodeID};
 
 pub fn make_and_serialise_nodes_within_120s(year: i32) {
     
-    // read in graph_walk and graph_pt
     println!("Begun make_and_serialise_nodes_within_120s");
+    // For ~10m walking nodes takes under an hour on 8core Compute Engine machine
     
     let (graph_walk, graph_pt, node_values_padding_row_count) =
         read_files_parallel_excluding_node_values(year);
     
-    let start_time = Instant::now();
-    let iter_count = Mutex::new(0);
     let indices = (0..graph_walk.len()).collect::<Vec<_>>();
     
     let results: Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>)> = indices
         .par_iter()
-        .enumerate()
-        .map(|(count, i)| {
-            let mut iter_count = iter_count.lock().unwrap();
-            *iter_count += 1;
-            if *iter_count % 1000 == 0 {
-                let elapsed = start_time.elapsed();
-                println!("Iteration: {}, Time elapsed: {:?}", iter_count, elapsed);
-            }
+        .map(|i| {
             get_travel_times(
                 &graph_walk,
                 &graph_pt,
