@@ -4,7 +4,6 @@ use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID, FloatBinHeap};
 use smallvec::SmallVec;
 use rand::Rng;
 use std::sync::Arc;
-use std::time::Instant;
 
 // returns unique i32 based on sequence of two integers
 fn cantor_pairing(x: u32, y: u32) -> u32 {
@@ -20,9 +19,7 @@ pub fn get_travel_times(
     walk_only: bool,
     max_travel_time: u16,
 ) -> (u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>) {
-    
-    let now = Instant::now();
-    
+        
     let time_limit: Cost = Cost(max_travel_time);
     
     let start_nodes_taken_sequence: Vec<u32> = vec![start.0];
@@ -94,9 +91,7 @@ pub fn get_travel_times(
         }
 
     }
-    
-    println!("Floodfill took {:?}", now.elapsed());
-    
+        
     return (
         start.0,
         destination_ids,
