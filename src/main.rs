@@ -3,11 +3,12 @@ use rayon::prelude::*;
 use smallvec::SmallVec;
 use std::time::Instant;
 use std::collections::HashMap;
+use ordered_float::OrderedFloat;
 
 use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID, UserInputJSON};
 use floodfill::{get_travel_times, get_all_scores_links_and_key_destinations};
 use get_time_of_day_index::get_time_of_day_index;
-use read_files::{
+use crate::read_files::{
     read_files_parallel_excluding_node_values,
     read_small_files_serial,
     deserialize_bincoded_file,
@@ -62,22 +63,24 @@ fn parallel_node_values_read_and_floodfill_and_nearby_nodes(graph_walk: &Vec<Sma
     Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>)>,
     Vec<Vec<u32>>,
 ) {
-        
-    let (node_values_2d, get_travel_times_multicore_output, nodes_to_neighbouring_nodes) = rayon::join(
-            || {
-                read_sparse_node_values_2d_serial(input.year)
-            },
-            || {
+
+    let (node_values_2d, (get_travel_times_multicore_output, nodes_to_neighbouring_nodes)) = rayon::join(
+        || read_sparse_node_values_2d_serial(input.year),
+        || {
+            rayon::join(
+                || {
                 get_travel_times_multicore(
                     &graph_walk,
                     &graph_pt,
                     &input,
-                )
-            },
-            || {
-                deserialize_bincoded_file::vec::<vec<u32>>("nodes_to_neighbouring_nodes")
-            },
-        );
+                )},
+                || {
+                    deserialize_bincoded_file::Vec::<Vec<u32>>("nodes_to_neighbouring_nodes")
+                },
+            )
+        },
+    );
+    
     (node_values_2d, get_travel_times_multicore_output, nodes_to_neighbouring_nodes)
 }
 
@@ -124,7 +127,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let now = Instant::now();
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
     
-    let results: Vec<(i32, u32, [f64; 5], HashMap<i32, [i64; 5]>, HashMap<i32, [i32; 2]>, vec<vec<[u64; 2]>>)> = indices
+    // [HashMap<f64, f64>; 5]
+    let results: Vec<(i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<OrderedFloat<f64>, u32>; 5])> = indices
         .par_iter()
         .map(|i| {
             get_all_scores_links_and_key_destinations(
@@ -134,6 +138,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
                 &data.subpurpose_purpose_lookup,
                 count_original_nodes,
                 node_values_padding_row_count,
+                &nodes_to_neighbouring_nodes,
             )
         })
         .collect();

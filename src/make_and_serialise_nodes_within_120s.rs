@@ -1,21 +1,23 @@
-use std::collections::HashMap;
-use floodfill::get_travel_times;
-use read_files::{
+use crate::floodfill::get_travel_times;
+use crate::read_files::{
     read_files_parallel_excluding_node_values,
-    read_small_files_serial,
-    deserialize_bincoded_file,
-    create_graph_walk_len,
-    read_sparse_node_values_2d_serial,
 };
+use rayon::prelude::*;
+use fs_err::File;
+use std::io::BufWriter;
+use crate::shared::{Cost, NodeID};
+use crate::get_time_of_day_index::get_time_of_day_index;
+
+
 
 pub fn make_and_serialise_nodes_within_120s(year: i32) {
     
     // read in graph_walk and graph_pt
     println!("Begun make_and_serialise_nodes_within_120s");
-    let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
+    let time_of_day_ix = get_time_of_day_index(28800);
     
     let (graph_walk, graph_pt, node_values_padding_row_count) =
-        read_files_parallel_excluding_node_values(input.year);
+        read_files_parallel_excluding_node_values(year);
     
     let indices = (0..graph_walk.len()).collect::<Vec<_>>();
     
@@ -35,10 +37,10 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
         .collect();
     
     // write the neighbouring nodes to a vector
-    let mut nodes_to_neighbouring_nodes: vec<vec<u32>> = vec![vec![]; graph_walk.len()];
+    let mut nodes_to_neighbouring_nodes: Vec<Vec<u32>> = vec![vec![]; graph_walk.len()];
     for res in results {
-        let ix = res[0];
-        nodes_to_neighbouring_nodes[ix] = res[1];
+        let ix = res.0;
+        nodes_to_neighbouring_nodes[ix as usize] = res.1;
     }
     
     // look at all nodes: the old pre-parallelisation code
