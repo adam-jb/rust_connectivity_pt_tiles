@@ -12,12 +12,13 @@ use crate::shared::{Cost, NodeID};
 pub fn make_and_serialise_nodes_within_120s(year: i32) {
     
     println!("Begun make_and_serialise_nodes_within_120s");
-    // For ~10m walking nodes takes under an hour on 8core Compute Engine machine
+    // For ~10m walking nodes, takes ~90 mins to get all nearby nodes in 120s with 8 core machine; 128gb RAM was enough and 32gb wasnt
     
     let (graph_walk, graph_pt, node_values_padding_row_count) =
         read_files_parallel_excluding_node_values(year);
     
     let indices = (0..graph_walk.len()).collect::<Vec<_>>();
+    println!(”Number of iters to do: {}”, graph_walk.len());
     
     let results: Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>)> = indices
         .par_iter()
@@ -33,6 +34,7 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
             )
         })
         .collect();
+    println!("Floodfill done for all nodes in graph_walk");
     
     // write the neighbouring nodes to a vector
     let mut nodes_to_neighbouring_nodes: Vec<Vec<u32>> = vec![vec![]; graph_walk.len()];
