@@ -7,13 +7,13 @@ use std::time::Instant;
 
 use crate::shared::{EdgePT, EdgeWalk};
 
-pub fn read_sparse_node_values_2d_serial(year: i32) -> Vec<Vec<[i32;2]>> { 
+pub fn read_sparse_node_values_2d_serial(year: i32) -> Vec<Vec<[i32; 2]>> {
     let now = Instant::now();
-    let sparse_node_values_2d: Vec<Vec<[i32;2]>> = deserialize_bincoded_file(&format!("sparse_node_values_6am_{year}_2d"));
+    let sparse_node_values_2d: Vec<Vec<[i32; 2]>> =
+        deserialize_bincoded_file(&format!("sparse_node_values_6am_{year}_2d"));
     println!("Serial loading took {:?}", now.elapsed());
-    return sparse_node_values_2d
+    return sparse_node_values_2d;
 }
-
 
 pub fn read_files_parallel_excluding_node_values(
     year: i32,
@@ -25,17 +25,17 @@ pub fn read_files_parallel_excluding_node_values(
     let now = Instant::now();
 
     let (graph_walk, graph_pt) = rayon::join(
-                || {
-                    deserialize_bincoded_file::<Vec<SmallVec<[EdgeWalk; 4]>>>(&format!(
-                        "p1_main_nodes_vector_6am_{year}"
-                    ))
-                },
-                || {
-                    deserialize_bincoded_file::<Vec<SmallVec<[EdgePT; 4]>>>(&format!(
-                        "p2_main_nodes_vector_6am_{year}"
-                    ))
-                },
-            );
+        || {
+            deserialize_bincoded_file::<Vec<SmallVec<[EdgeWalk; 4]>>>(&format!(
+                "p1_main_nodes_vector_6am_{year}"
+            ))
+        },
+        || {
+            deserialize_bincoded_file::<Vec<SmallVec<[EdgePT; 4]>>>(&format!(
+                "p2_main_nodes_vector_6am_{year}"
+            ))
+        },
+    );
 
     let node_values_padding_row_count: u32 =
         deserialize_bincoded_file(&format!("node_values_padding_row_count_6am_{year}"));
@@ -44,13 +44,8 @@ pub fn read_files_parallel_excluding_node_values(
         "Parallel loading for files excluding travel time relationships took {:?}",
         now.elapsed()
     );
-    (
-        graph_walk,
-        graph_pt,
-        node_values_padding_row_count,
-    )
+    (graph_walk, graph_pt, node_values_padding_row_count)
 }
-
 
 pub fn read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lookup(
     year: i32,

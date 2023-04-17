@@ -33,7 +33,6 @@ pub fn get_travel_times(
     });
     
     let mut nodes_visited = vec![false; graph_walk.len()];
-    //let mut nodes_visited = HashSet::new();
     let mut destination_ids: Vec<u32> = vec![];
     let mut destination_travel_times: Vec<u16> = vec![];
     let mut nodes_visited_sequences: Vec<Vec<u32>> = vec![];
@@ -168,11 +167,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let score_multipler: [f64; 32] = [0.00831415115437604, 0.009586382150013575, 0.00902817799219063, 0.008461272650878338, 0.008889733875203568, 0.008921736222033676, 0.022264233988222335, 0.008314147237807904, 0.010321099162180719, 0.00850878998927169, 0.008314150893271383, 0.009256043337142108, 0.008338366940103991, 0.009181584368558857, 0.008455731022360958, 0.009124946989519319, 0.008332774189837317, 0.046128804773287346, 0.009503140563990153, 0.01198700845708387, 0.009781270599036206, 0.00832427047935188, 0.008843645925786448, 0.008531419360132648, 0.009034318952510731, 0.008829954505680167, 0.011168757794031156, 0.017255946829128663, 0.008374145360142223, 0.008578983146921768, 0.008467735739894604, 0.012110456385386992];
 
     // based on subpurpose_integers_to_ignore.json; they include ['Residential', 'Motor sports', 'Allotment']
-    let subpurposes_to_ignore: [i8; 3] = [0, 10, 14];
-    
-    let count_nodes_no_value = node_values_padding_row_count / 32;
-    
-    
+    let subpurposes_to_ignore: [i8; 3] = [0, 10, 14];    
     let mut subpurpose_scores: [f64; 32] = [0.0; 32];
     
     let start = travel_times.0;
@@ -206,7 +201,6 @@ pub fn get_all_scores_links_and_key_destinations(
         node_values_contributed_each_purpose_hashmap.insert(current_node, purpose_scores_this_node);
 
     }
-    //println!("node_values_contributed_each_purpose_hashmap: {:?}",node_values_contributed_each_purpose_hashmap);
     
     
     // **** Loops through each subpurpose, scaling them and getting the purpose level scores for the start node
@@ -241,7 +235,6 @@ pub fn get_all_scores_links_and_key_destinations(
     let mut link_start_end_nodes: HashMap<u32, [u32; 2]> = HashMap::new();
     for sequence in node_sequences.iter() {
         
-        //println!("sequence.last().unwrap(): {:?}", sequence.last().unwrap());
         let end_node_purpose_scores = node_values_contributed_each_purpose_hashmap[sequence.last().unwrap()];  // without .unwrap() you will get an Option<&u32> type that you can use to check if the vector is empty or not
         
         // loop through each link in the sequence, as defined by the pair of nodes at each end of the link: these are i32 values
