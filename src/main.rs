@@ -5,7 +5,7 @@ use std::time::Instant;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID, UserInputJSON, FloatBinHeap};
+use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID, UserInputJSON};
 use floodfill::{get_travel_times, get_all_scores_links_and_key_destinations};
 use get_time_of_day_index::get_time_of_day_index;
 use crate::read_files::{
@@ -31,11 +31,16 @@ struct AppState {
     travel_time_relationships_all: Vec<Vec<i32>>,
     subpurpose_purpose_lookup: [i8; 32],
     arc_nodes_to_neighbouring_nodes: Arc<Vec<Vec<u32>>>,
+    graph_walk: Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
+    graph_pt: Arc<Vec<SmallVec<[EdgePT; 4]>>>,
+    node_values_padding_row_count: u32, 
 }
 
+
+
 fn get_travel_times_multicore(
-    graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
-    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
+    graph_walk: &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
+    graph_pt: &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
     input: &web::Json<UserInputJSON>
 ) -> Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>)> {
         
@@ -57,8 +62,9 @@ fn get_travel_times_multicore(
         .collect(); 
 }
 
-fn parallel_node_values_read_and_floodfill(graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
-    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
+fn parallel_node_values_read_and_floodfill(
+    graph_walk: &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
+    graph_pt: &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
     input: &web::Json<UserInputJSON>
 ) -> (
     Vec<Vec<[i32;2]>>, 
@@ -67,7 +73,7 @@ fn parallel_node_values_read_and_floodfill(graph_walk: &Vec<SmallVec<[EdgeWalk; 
         
     let (node_values_2d, get_travel_times_multicore_output) = rayon::join(
             || {
-                read_sparse_node_values_2d_serial(input.year)
+                read_sparse_node_values_2d_serial(2022)
             },
             || {
                 get_travel_times_multicore(
@@ -99,11 +105,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
 
     println!("Floodfill request received");
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
-    
-    let (graph_walk, graph_pt, node_values_padding_row_count) =
-        read_files_parallel_excluding_node_values(input.year);
-        
-    let count_original_nodes = graph_walk.len() as u32;
+    let count_original_nodes = data.graph_walk.len() as u32;
     
     println!(
         "Started running floodfill and node values files read\ttime_of_day_ix: {}\tNodes count: {}",
@@ -114,8 +116,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let now = Instant::now();
     
     let (node_values_2d, floodfill_outputs_tuple) = parallel_node_values_read_and_floodfill(
-        &graph_walk,
-        &graph_pt,
+        &data.graph_walk,
+        &data.graph_pt,
         &input,
     );
     
@@ -125,7 +127,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
     
     // [HashMap<f64, f64>; 5]
-    let results: Vec<(i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<FloatBinHeap, u32>; 5])> = indices
+    let results: Vec<(i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<u32, Vec<u32>>; 5])> = indices
         .par_iter()
         .map(|i| {
             get_all_scores_links_and_key_destinations(
@@ -134,7 +136,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &data.subpurpose_purpose_lookup,
                 count_original_nodes,
-                node_values_padding_row_count,
+                data.node_values_padding_row_count,
                 &data.arc_nodes_to_neighbouring_nodes, 
             )
         })
@@ -157,7 +159,8 @@ async fn main() -> std::io::Result<()> {
     }
     
     // comment this out to not make the lookup of nodes which are near other nodes
-    make_and_serialise_nodes_within_120s(year);
+    // this is big preprocessing stage (~90mins with 8cores)
+    // make_and_serialise_nodes_within_120s(year);
     
     let (
         travel_time_relationships_7,
@@ -174,6 +177,12 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_19,
     ];
     
+    let (graph_walk, graph_pt, node_values_padding_row_count) =
+        read_files_parallel_excluding_node_values(2022);
+    
+    let graph_walk = Arc::new(graph_walk);
+    let graph_pt = Arc::new(graph_pt);
+    
     let nodes_to_neighbouring_nodes: Vec<Vec<u32>> = deserialize_bincoded_file("nodes_to_neighbouring_nodes");
     let arc_nodes_to_neighbouring_nodes: Arc<Vec<Vec<u32>>> = Arc::new(nodes_to_neighbouring_nodes);
     
@@ -181,6 +190,9 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_all,
         subpurpose_purpose_lookup,
         arc_nodes_to_neighbouring_nodes,
+        graph_walk,
+        graph_pt,
+        node_values_padding_row_count,
     });
     HttpServer::new(move || {
         App::new()

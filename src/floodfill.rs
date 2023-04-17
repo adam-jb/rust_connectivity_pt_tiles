@@ -1,8 +1,8 @@
-use std::collections::{HashMap, BinaryHeap};
+use std::collections::{HashMap, BinaryHeap, HashSet};
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID, FloatBinHeap};
+use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
 use smallvec::SmallVec;
-use rand::Rng;
+//use rand::Rng;
 use std::sync::Arc;
 
 // returns unique i32 based on sequence of two integers
@@ -10,9 +10,10 @@ fn cantor_pairing(x: u32, y: u32) -> u32 {
     ((x + y) * (x + y + 1)) / 2 + y
 }
 
+// Open question: whether graph_walk and graph_pt would be equally fine if not Arcs
 pub fn get_travel_times(
-    graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
-    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
+    graph_walk: &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
+    graph_pt: &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
     start: NodeID,
     trip_start_seconds: i32,
     init_travel_time: Cost,
@@ -157,7 +158,7 @@ pub fn get_all_scores_links_and_key_destinations(
     count_original_nodes: u32,
     node_values_padding_row_count: u32,
     nodes_to_neighbouring_nodes: &Arc<Vec<Vec<u32>>>,
-) -> (i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<FloatBinHeap, u32>; 5]) {
+) -> (i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<u32, Vec<u32>>; 5]) {
     
     // Got this from 'subpurpose_purpose_lookup_integer_list.json' in connectivity-processing-files
     let subpurpose_purpose_lookup_integer: [u8; 32] = [2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1, 2, 1];
@@ -168,7 +169,6 @@ pub fn get_all_scores_links_and_key_destinations(
     // based on subpurpose_integers_to_ignore.json; they include ['Residential', 'Motor sports', 'Allotment']
     let subpurposes_to_ignore: [i8; 3] = [0, 10, 14];
     
-    let subpurposes_count: usize = 32;
     let count_nodes_no_value = node_values_padding_row_count / 32;
     
     
@@ -180,7 +180,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let node_sequences = &travel_times.3;
     let mut node_values_contributed_each_purpose_hashmap: HashMap<u32, [f64; 5]> = HashMap::new();
 
-    
+    // ********* Get subpurpose level scores overall, and purpose level contribution of each individual node reached
     for i in 0..destination_ids.len() {
         let current_node = destination_ids[i];
         let current_cost = destination_travel_times[i];
@@ -211,7 +211,7 @@ pub fn get_all_scores_links_and_key_destinations(
 
     }
     
-    // Loops through each subpurpose, scaling them and getting the purpose level scores for the start node
+    // **** Loops through each subpurpose, scaling them and getting the purpose level scores for the start node
     let mut overall_purpose_scores: [f64; 5] = [0.0; 5];
     for subpurpose_ix in 0..subpurpose_scores.len() {
         
@@ -234,9 +234,10 @@ pub fn get_all_scores_links_and_key_destinations(
         overall_purpose_scores[purpose_ix as usize] += subpurpose_score;
         
     }
+    // ****** Overall scores obtained ******
     
     
-    // Get contributions to scores: to tell us the relative importance of each link
+    // ******* Get contributions to scores: to tell us the relative importance of each link *******
     // For each sequence, find the scores which were reached: this involves looking to the final node in the sequence
     let mut link_score_contributions: HashMap<u32, [f64; 5]>  = HashMap::new();
     let mut link_start_end_nodes: HashMap<u32, [u32; 2]> = HashMap::new();
@@ -271,11 +272,14 @@ pub fn get_all_scores_links_and_key_destinations(
         }
         
     }
+    // ****** Contributions to scores obtained ******
     
     
-    // get key destinations for each purpose
-    // for each purpose, 5 nodes with their ID and score contributed. Initialised with all zeros
-    let mut top_nodes_by_purposes: [HashMap<FloatBinHeap, u32>; 5] = [
+    
+    // ****** Get top 3 clusters destinations for each purpose *******
+        
+    // dicts of which of the 3 top 3 nodes, the nodes in the sets above correspond to keys in these hashmaps; each value will be the ID of one of the top 3 nodes
+    let mut nearby_nodes_to_current_highest_node_hashmap: [HashMap<u32, u32>; 5] = [
         HashMap::new(),
         HashMap::new(),
         HashMap::new(),
@@ -283,75 +287,144 @@ pub fn get_all_scores_links_and_key_destinations(
         HashMap::new(),
     ];
     
-    // and have a record of the lowest value for each purpose
-    let mut lowest_values_in_top_by_purposes: [f64; 5] = [0.0; 5];
-    
-    // initialise vector of heaps for top 5 scores for each purpose. Wrap writes to heap in Reverse() so smallest values are at front of heap
-    let mut top_5_scores_by_purpose_heaps: [BinaryHeap<FloatBinHeap>; 5] = [
-        BinaryHeap::new(),
-        BinaryHeap::new(),
-        BinaryHeap::new(),
-        BinaryHeap::new(),
-        BinaryHeap::new(),
+    // sets of all nodes which are close to those in the top 3 (eg: if there are 24 nodes within 120s of the 3 top nodes for business, those 24 node ids will be in the set corresponding to business)
+    let mut nearby_nodes_top_3_scores_sets: [HashSet<u32>; 5] = [
+        HashSet::new(),
+        HashSet::new(),
+        HashSet::new(),
+        HashSet::new(),
+        HashSet::new(),
     ];
     
-    for k in 0..5 {
-        for z in 0..5 {
-            top_5_scores_by_purpose_heaps[k].push(FloatBinHeap(0.0));
-        }
-    }
+    // to log minimum scores for each purpose: this is the threshold to exceed to get into the running top 3
+    let mut id_and_min_scores: [(u32, f64); 5] = [
+        (0, 0.0),
+        (0, 0.0),
+        (0, 0.0),
+        (0, 0.0),
+        (0, 0.0),
+    ];
     
-    //*** make set of all nodes which are close to those in the top 5... 
+    let mut id_and_scores_top_3: [[(u32, f64); 3]; 5] = [
+        [(0, 0.0),(0, 0.0),(0, 0.0),],
+        [(0, 0.0),(0, 0.0),(0, 0.0),],
+        [(0, 0.0),(0, 0.0),(0, 0.0),],
+        [(0, 0.0),(0, 0.0),(0, 0.0),],
+        [(0, 0.0),(0, 0.0),(0, 0.0),],
+    ];
     
+    // Dicts of nodeID to adjacent nodes (each Dict will have 3 keys of node IDs, corresponding to vec of Node IDs in each cluster)
+    let mut highest_nodes_hashmap_to_adjacent_nodes_vec: [HashMap<u32, Vec<u32>>; 5] = [
+        HashMap::new(),
+        HashMap::new(),
+        HashMap::new(),
+        HashMap::new(),
+        HashMap::new(),
+    ];
     
-    let mut rng = rand::thread_rng();
+    //let mut rng = rand::thread_rng();
     for node_reached_id in destination_ids {
         
+        // near_nodes is vector of u32 node IDs
         let near_nodes = nodes_to_neighbouring_nodes[*node_reached_id as usize].to_vec();
         let mut purpose_scores: [f64; 5] = [0.0; 5];
         
         // get total scores by purpose, of nodes within 120s of this node
-        for neighbouring_node in near_nodes {
-            let scores_one_node = &node_values_contributed_each_purpose_hashmap[&neighbouring_node];
+        // node_values_contributed_each_purpose_hashmap tells you score contributed by each node
+        for neighbouring_node in &near_nodes {
+            let scores_one_node = &node_values_contributed_each_purpose_hashmap[neighbouring_node];
             for k in 0..5 {
                 purpose_scores[k] += scores_one_node[k];
             }
         }
         
-        // Look through each of the purposes, and add to the top 5 if it qualifies for any of them
+        // Look through each of the purposes, and add to the top 3 if it qualifies for any of them
+        // "Adjacent" here means: within 120s of that node via walking
         for k in 0..5 {
             
-            if purpose_scores[k] > lowest_values_in_top_by_purposes[k] {
+            if purpose_scores[k] > id_and_min_scores[k].1 {
                 
-                // to avoid hash collision, add random decimal (0-1) to values when adding to top_nodes_by_purposes and lowest_values_in_top_by_purposes
-                let new_score = purpose_scores[k] + rng.gen::<f64>();
+                // test if node is an adjacent one
+                let node_to_replace: u32;
+                let is_in_adjacent: bool = nearby_nodes_top_3_scores_sets[k].contains(node_reached_id);
+                if is_in_adjacent {
+                    node_to_replace = nearby_nodes_to_current_highest_node_hashmap[k][node_reached_id];
+                } else {
+                    node_to_replace = id_and_min_scores[k].0;
+                }
+                
+                // find position of the node we want to replace 
+                let mut node_to_replace_ix: usize = 0;
+                for i in 0..3 {
+                    if id_and_scores_top_3[k][i].0 == node_to_replace {
+                        node_to_replace_ix = i;
+                    }
+                }
+                
+                // if node is adjacent to one of the top 3 nodes, and the cluster score of the adjacent node is above the new one, do nothing
+                let mut do_nothing_as_existing_adjacent_score_larger: bool = false;
+                if is_in_adjacent {
+                    do_nothing_as_existing_adjacent_score_larger = purpose_scores[k] > id_and_scores_top_3[k][node_to_replace_ix].1;
+                }
+                if do_nothing_as_existing_adjacent_score_larger {
+                    continue;
+                }
                                 
-                // replace value in hashmap
-                top_nodes_by_purposes[k].remove(&FloatBinHeap(lowest_values_in_top_by_purposes[k]));
-                top_nodes_by_purposes[k].insert(FloatBinHeap(new_score), *node_reached_id);
+                // Use highest_nodes_hashmap_to_adjacent_nodes_vec to find adjacent nodes to get rid of (and the node ID of itself)
+                // Don't run this if node_to_replace is 0, as node_to_replace=0 is the initialised node ID
+                if node_to_replace != 0 {
+                    let vec_nodes_to_drop_from_set_and_dict = &highest_nodes_hashmap_to_adjacent_nodes_vec[k][&node_to_replace];
+                    for node_id in vec_nodes_to_drop_from_set_and_dict {
+                        nearby_nodes_to_current_highest_node_hashmap[k].remove(&node_id);
+                        nearby_nodes_top_3_scores_sets[k].remove(&node_id);
+                    }
+                    highest_nodes_hashmap_to_adjacent_nodes_vec[k].remove(&node_to_replace);
+                }
                 
-                // update heap
-                top_5_scores_by_purpose_heaps[k].pop();
-                top_5_scores_by_purpose_heaps[k].push(FloatBinHeap(new_score));
+                // overwrite current top 3: this is fine to do inplace as id_and_scores_top_3 isn't ordered 
+                id_and_scores_top_3[k][node_to_replace_ix].0 = *node_reached_id;
+                id_and_scores_top_3[k][node_to_replace_ix].1 = purpose_scores[k];
+                                
+                // recalculate current minimum
+                let mut current_minimum: f64 = 999_999_999_999_999_999.0;
+                let mut current_min_ix: usize = 0;
+                for i in 0..3 {
+                    let current_score = id_and_scores_top_3[k][i].1;
+                    if current_score < current_minimum {
+                        current_minimum = current_score;
+                        current_min_ix = i;
+                    }
+                }
                 
-                // find new lowest value in heap for following iterations // use .0 to extract f64 value from FloatBinHeap
-                lowest_values_in_top_by_purposes[k] = top_5_scores_by_purpose_heaps[k].peek().unwrap().0;
+                let minimum_node_id = id_and_scores_top_3[k][current_min_ix].0;
+                id_and_min_scores[k].0 = minimum_node_id;
+                id_and_min_scores[k].1 = current_minimum;
+                
+                // add new adjacaents to both hashmap and the set
+                for node_id in near_nodes.to_vec() {
+                    nearby_nodes_to_current_highest_node_hashmap[k].insert(node_id, *node_reached_id);
+                    nearby_nodes_top_3_scores_sets[k].insert(node_id);
+                }
+                
+                // add new adjacent nodes to highest_nodes_hashmap_to_adjacent_nodes_vec
+                highest_nodes_hashmap_to_adjacent_nodes_vec[k].insert(*node_reached_id, near_nodes.to_vec());                
                 
             }
         }
     }
+    // ******* Clusters obtained *******
     
     
     // link_score_contributions: hashmap of total purpose-level scores trips across that link that fed into
     // link_start_end_nodes: hashmap of link ID to the nodes at either end of the link
-    // top_nodes_by_purposes: array of 5 hashmaps of scores and node IDs
+    // nearby_nodes_top_3_scores_sets: array of 5 hashmaps of scores and node IDs
     return (
         travel_times.1.len() as i32,
         start,
         overall_purpose_scores,
         link_score_contributions,
         link_start_end_nodes,
-        top_nodes_by_purposes,
+        highest_nodes_hashmap_to_adjacent_nodes_vec,
     );
 
 }
