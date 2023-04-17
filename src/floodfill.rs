@@ -164,6 +164,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let subpurpose_purpose_lookup_integer: [u8; 32] = [2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1, 2, 1];
     
     // Get this from score_multipler_by_subpurpose_id_{mode_simpler}.json in connectivity-processing-files
+    // Used to get relative importance of each subpurpose when aggregating them to purpose level
     let score_multipler: [f64; 32] = [0.00831415115437604, 0.009586382150013575, 0.00902817799219063, 0.008461272650878338, 0.008889733875203568, 0.008921736222033676, 0.022264233988222335, 0.008314147237807904, 0.010321099162180719, 0.00850878998927169, 0.008314150893271383, 0.009256043337142108, 0.008338366940103991, 0.009181584368558857, 0.008455731022360958, 0.009124946989519319, 0.008332774189837317, 0.046128804773287346, 0.009503140563990153, 0.01198700845708387, 0.009781270599036206, 0.00832427047935188, 0.008843645925786448, 0.008531419360132648, 0.009034318952510731, 0.008829954505680167, 0.011168757794031156, 0.017255946829128663, 0.008374145360142223, 0.008578983146921768, 0.008467735739894604, 0.012110456385386992];
 
     // based on subpurpose_integers_to_ignore.json; they include ['Residential', 'Motor sports', 'Allotment']
@@ -184,32 +185,29 @@ pub fn get_all_scores_links_and_key_destinations(
     for i in 0..destination_ids.len() {
         let current_node = destination_ids[i];
         let current_cost = destination_travel_times[i];
-        
-        // if the node id is not a p2 node (ie, above count_nodes_no_value), then it will have an associated value
-        if current_node <= count_original_nodes && current_node >= count_nodes_no_value {
-            
-            let mut purpose_scores_this_node: [f64; 5] = [0.0; 5];
-            
-            for subpurpose_score_pair in node_values_2d[current_node as usize].iter() {
-                
-                // store scores for each subpurpose for this node
-                let subpurpose_ix = subpurpose_score_pair[0];
-                let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[subpurpose_ix as usize] as i32) * 3601;
-                let multiplier = travel_time_relationships[(vec_start_pos_this_purpose + current_cost as i32) as usize];
-                let score_to_add = (subpurpose_score_pair[1] as f64) * (multiplier as f64);
-                subpurpose_scores[subpurpose_ix as usize] += score_to_add;
-                
-                // To get purpose level contribution to scores for each node: used for finding key destinations
-                if !subpurposes_to_ignore.contains(&(subpurpose_ix as i8)) {
-                    let purpose_ix = subpurpose_purpose_lookup_integer[subpurpose_ix as usize];
-                    purpose_scores_this_node[purpose_ix as usize] += score_to_add;
-                }
+        let mut purpose_scores_this_node: [f64; 5] = [0.0; 5];
+
+        for subpurpose_score_pair in node_values_2d[current_node as usize].iter() {
+
+            // store scores for each subpurpose for this node
+            let subpurpose_ix = subpurpose_score_pair[0];
+            let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[subpurpose_ix as usize] as i32) * 3601;
+            let multiplier = travel_time_relationships[(vec_start_pos_this_purpose + current_cost as i32) as usize];
+            let score_to_add = (subpurpose_score_pair[1] as f64) * (multiplier as f64);
+            subpurpose_scores[subpurpose_ix as usize] += score_to_add;
+
+            // To get purpose level contribution to scores for each node: used for finding key destinations
+            if !subpurposes_to_ignore.contains(&(subpurpose_ix as i8)) {
+                let purpose_ix = subpurpose_purpose_lookup_integer[subpurpose_ix as usize];
+                purpose_scores_this_node[purpose_ix as usize] += score_to_add;
             }
-            
-            node_values_contributed_each_purpose_hashmap.insert(current_node, purpose_scores_this_node);
         }
 
+        node_values_contributed_each_purpose_hashmap.insert(current_node, purpose_scores_this_node);
+
     }
+    //println!("node_values_contributed_each_purpose_hashmap: {:?}",node_values_contributed_each_purpose_hashmap);
+    
     
     // **** Loops through each subpurpose, scaling them and getting the purpose level scores for the start node
     let mut overall_purpose_scores: [f64; 5] = [0.0; 5];
@@ -243,6 +241,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let mut link_start_end_nodes: HashMap<u32, [u32; 2]> = HashMap::new();
     for sequence in node_sequences.iter() {
         
+        //println!("sequence.last().unwrap(): {:?}", sequence.last().unwrap());
         let end_node_purpose_scores = node_values_contributed_each_purpose_hashmap[sequence.last().unwrap()];  // without .unwrap() you will get an Option<&u32> type that you can use to check if the vector is empty or not
         
         // loop through each link in the sequence, as defined by the pair of nodes at each end of the link: these are i32 values
@@ -328,13 +327,18 @@ pub fn get_all_scores_links_and_key_destinations(
         // near_nodes is vector of u32 node IDs
         let near_nodes = nodes_to_neighbouring_nodes[*node_reached_id as usize].to_vec();
         let mut purpose_scores: [f64; 5] = [0.0; 5];
-        
+
         // get total scores by purpose, of nodes within 120s of this node
         // node_values_contributed_each_purpose_hashmap tells you score contributed by each node
         for neighbouring_node in &near_nodes {
-            let scores_one_node = &node_values_contributed_each_purpose_hashmap[neighbouring_node];
-            for k in 0..5 {
-                purpose_scores[k] += scores_one_node[k];
+            
+            // nodes which aren't reached in the 3600s won't be in node_values_contributed_each_purpose_hashmap
+            if node_values_contributed_each_purpose_hashmap.contains_key(neighbouring_node) {
+        
+                let scores_one_node = &node_values_contributed_each_purpose_hashmap[neighbouring_node];
+                for k in 0..5 {
+                    purpose_scores[k] += scores_one_node[k];
+                }
             }
         }
         

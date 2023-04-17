@@ -141,7 +141,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
             )
         })
         .collect();
-    println!("Getting destinations and scores took {:?}", now.elapsed());
+    println!("Getting destinations, scores, link importances and clusters took {:?}", now.elapsed());
     
     serde_json::to_string(&results).unwrap()
 }
