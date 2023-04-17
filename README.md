@@ -36,21 +36,15 @@ wget -O- --post-data='{"start_nodes_user_input": [9380647, 9183046, 2420336], "i
 
 To make and run docker image.
 ```
-docker build --progress=plain -t rust_connectivity:latest .
-docker run -p 0.0.0.0:7328:7328 rust_connectivity:latest
-```
-
-To push build image to dockerhub
-```
-docker tag connectivity_rust:latest adambricknell/connectivity_rust
-docker push adambricknell/connectivity_rust
+docker build --progress=plain -t rust_connectivity_pt_tiles:latest .
+docker run -p 0.0.0.0:7328:7328 rust_connectivity_pt_tiles:latest
 ```
 
 To deploy with Cloud Run do the below, then use Cloud Run UI in GCP to deploy
 ```
-docker build --progress=plain -t rust_connectivity:latest . && \
-docker tag rust_connectivity:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest && \
-docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest
+docker build --progress=plain -t rust_connectivity_pt_tiles:latest . && \
+docker tag rust_connectivity_pt_tiles:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/rust_connectivity_pt_tiles:latest && \
+docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/rust_connectivity_pt_tiles:latest
 ```
 
 
