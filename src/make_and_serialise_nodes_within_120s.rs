@@ -20,7 +20,7 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
     let indices = (0..arc_graph_walk.len()).collect::<Vec<_>>();
     println!("Number of iters to do: {}", arc_graph_walk.len());
 
-    let results: Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>)> = indices
+    let results: Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16)> = indices
         .par_iter()
         .map(|i| {
             get_travel_times(

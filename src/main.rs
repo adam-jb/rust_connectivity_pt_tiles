@@ -42,7 +42,7 @@ fn get_travel_times_multicore(
     graph_walk: &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
     graph_pt: &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
     input: &web::Json<UserInputJSON>
-) -> Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>)> {
+) -> Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16)> {
         
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
     
@@ -68,7 +68,7 @@ fn parallel_node_values_read_and_floodfill(
     input: &web::Json<UserInputJSON>
 ) -> (
     Vec<Vec<[i32;2]>>, 
-    Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>)>
+    Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16)>
 ) {
         
     let (node_values_2d, get_travel_times_multicore_output) = rayon::join(
@@ -127,7 +127,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
     
     // [HashMap<f64, f64>; 5]
-    let results: Vec<(i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<u32, Vec<u32>>; 5])> = indices
+    let results: Vec<(i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<u32, Vec<u32>>; 5], u16)> = indices
         .par_iter()
         .map(|i| {
             get_all_scores_links_and_key_destinations(

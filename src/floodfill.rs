@@ -19,7 +19,7 @@ pub fn get_travel_times(
     init_travel_time: Cost,
     walk_only: bool,
     max_travel_time: u16,
-) -> (u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>) {
+) -> (u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16) {
         
     let time_limit: Cost = Cost(max_travel_time);
     
@@ -45,6 +45,7 @@ pub fn get_travel_times(
             destination_ids,
             destination_travel_times,
             nodes_visited_sequences,
+            init_travel_time.0,
         );
     }
 
@@ -97,6 +98,7 @@ pub fn get_travel_times(
         destination_ids,
         destination_travel_times,
         nodes_visited_sequences,
+        init_travel_time.0,
     );
 }
 
@@ -150,14 +152,14 @@ fn get_pt_connections(
 
 
 pub fn get_all_scores_links_and_key_destinations(
-    travel_times: &(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>), // nodeID, destination node IDs, travel times to destinations, sequence of nodes taken to each node reached
+    travel_times: &(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16), // nodeID, destination node IDs, travel times to destinations, sequence of nodes taken to each node reached
     node_values_2d: &Vec<Vec<[i32; 2]>>, //&Vec<i32>,
     travel_time_relationships: &[i32], //&Vec<i32>,
     subpurpose_purpose_lookup: &[i8; 32],
     count_original_nodes: u32,
     node_values_padding_row_count: u32,
     nodes_to_neighbouring_nodes: &Arc<Vec<Vec<u32>>>,
-) -> (i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<u32, Vec<u32>>; 5]) {
+) -> (i32, u32, [f64; 5], HashMap<u32, [f64; 5]>, HashMap<u32, [u32; 2]>, [HashMap<u32, Vec<u32>>; 5], u16) {
     
     // Got this from 'subpurpose_purpose_lookup_integer_list.json' in connectivity-processing-files
     let subpurpose_purpose_lookup_integer: [u8; 32] = [2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1, 2, 1];
@@ -174,6 +176,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let destination_ids = &travel_times.1;
     let destination_travel_times = &travel_times.2;
     let node_sequences = &travel_times.3;
+    let init_travel_time = travel_times.4;
     let mut node_values_contributed_each_purpose_hashmap: HashMap<u32, [f64; 5]> = HashMap::new();
 
     // ********* Get subpurpose level scores overall, and purpose level contribution of each individual node reached
@@ -422,6 +425,7 @@ pub fn get_all_scores_links_and_key_destinations(
         link_score_contributions,
         link_start_end_nodes,
         highest_nodes_hashmap_to_adjacent_nodes_vec,
+        init_travel_time,
     );
 
 }
