@@ -153,7 +153,7 @@ fn get_pt_connections(
 
 pub fn get_all_scores_links_and_key_destinations(
     travel_times: &(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16), // nodeID, destination node IDs, travel times to destinations, sequence of nodes taken to each node reached
-    node_values_2d: &Vec<Vec<[i32; 2]>>, //&Vec<i32>,
+    node_values_2d: &Arc<Vec<Vec<[i32; 2]>>>, //&Vec<i32>,
     travel_time_relationships: &[i32], //&Vec<i32>,
     subpurpose_purpose_lookup: &[i8; 32],
     count_original_nodes: u32,

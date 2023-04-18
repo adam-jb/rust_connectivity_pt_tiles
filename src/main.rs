@@ -34,6 +34,7 @@ struct AppState {
     graph_walk: Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
     graph_pt: Arc<Vec<SmallVec<[EdgePT; 4]>>>,
     node_values_padding_row_count: u32, 
+    node_values_2d: Arc<Vec<Vec<[i32;2]>>>,
 }
 
 
@@ -61,31 +62,6 @@ fn get_travel_times_multicore(
         })
         .collect(); 
 }
-
-fn parallel_node_values_read_and_floodfill(
-    graph_walk: &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
-    graph_pt: &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
-    input: &web::Json<UserInputJSON>
-) -> (
-    Vec<Vec<[i32;2]>>, 
-    Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16)>
-) {
-        
-    let (node_values_2d, get_travel_times_multicore_output) = rayon::join(
-            || {
-                read_sparse_node_values_2d_serial(2022)
-            },
-            || {
-                get_travel_times_multicore(
-                    &graph_walk,
-                    &graph_pt,
-                    &input,
-                )
-            },
-        );
-    (node_values_2d, get_travel_times_multicore_output)
-}
-
 
 
 #[get("/")]
@@ -115,11 +91,20 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     
     let now = Instant::now();
     
+    let floodfill_outputs_tuple = get_travel_times_multicore(
+        &data.graph_walk,
+        &data.graph_pt,
+        &input,
+    );
+    
+    /*
+    // The old version
     let (node_values_2d, floodfill_outputs_tuple) = parallel_node_values_read_and_floodfill(
         &data.graph_walk,
         &data.graph_pt,
         &input,
     );
+    */
     
     println!("Node values read in and floodfill in parallel {:?}", now.elapsed());
     
@@ -132,7 +117,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         .map(|i| {
             get_all_scores_links_and_key_destinations(
                 &floodfill_outputs_tuple[*i],
-                &node_values_2d,
+                &data.node_values_2d,
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &data.subpurpose_purpose_lookup,
                 count_original_nodes,
@@ -180,8 +165,11 @@ async fn main() -> std::io::Result<()> {
     let (graph_walk, graph_pt, node_values_padding_row_count) =
         read_files_parallel_excluding_node_values(2022);
     
+    let node_values_2d = read_sparse_node_values_2d_serial(2022);
+    
     let graph_walk = Arc::new(graph_walk);
     let graph_pt = Arc::new(graph_pt);
+    let node_values_2d = Arc::new(node_values_2d);
     
     let nodes_to_neighbouring_nodes: Vec<Vec<u32>> = deserialize_bincoded_file("nodes_to_neighbouring_nodes");
     let arc_nodes_to_neighbouring_nodes: Arc<Vec<Vec<u32>>> = Arc::new(nodes_to_neighbouring_nodes);
@@ -193,6 +181,7 @@ async fn main() -> std::io::Result<()> {
         graph_walk,
         graph_pt,
         node_values_padding_row_count,
+        node_values_2d,
     });
     HttpServer::new(move || {
         App::new()
