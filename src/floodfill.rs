@@ -342,7 +342,7 @@ pub fn get_all_scores_links_and_key_destinations(
         // "Adjacent" here means: within 120s of that node via walking
         for k in 0..5 {
             
-            if purpose_scores[k] > id_and_min_scores[k].1 {
+            if purpose_scores[k] >= id_and_min_scores[k].1 {
                 
                 // test if node is an adjacent one
                 let node_to_replace: u32;
@@ -366,9 +366,24 @@ pub fn get_all_scores_links_and_key_destinations(
                 if is_in_adjacent {
                     do_nothing_as_existing_adjacent_score_larger = purpose_scores[k] > id_and_scores_top_3[k][node_to_replace_ix].1;
                 }
-                if do_nothing_as_existing_adjacent_score_larger {
+                
+                // If node is adjacent to one of the top 3 nodes AND the cluster score of the adjacent node is same as new node AND the new node has a higher score
+                // than the current "reigning node", then we want the node with the higher score to become the new reigning node
+                let mut do_nothing_as_existing_node_score_larger: bool = false;
+                if !do_nothing_as_existing_adjacent_score_larger {
+                    if purpose_scores[k] == id_and_scores_top_3[k][node_to_replace_ix].1 {
+                        let purpose_value_node_to_replace = node_values_contributed_each_purpose_hashmap[&node_to_replace][k];
+                        let purpose_value_node_reached = node_values_contributed_each_purpose_hashmap[&node_reached_id][k];
+                        if purpose_value_node_to_replace > purpose_value_node_reached {
+                            do_nothing_as_existing_node_score_larger = true; 
+                        }
+                    }
+                }
+
+                if do_nothing_as_existing_adjacent_score_larger || do_nothing_as_existing_node_score_larger {
                     continue;
                 }
+                
                                 
                 // Use highest_nodes_hashmap_to_adjacent_nodes_vec to find adjacent nodes to get rid of (and the node ID of itself)
                 // Don't run this if node_to_replace is 0, as node_to_replace=0 is the initialised node ID

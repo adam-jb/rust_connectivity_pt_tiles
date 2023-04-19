@@ -106,7 +106,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     );
     */
     
-    println!("Node values read in and floodfill in parallel {:?}", now.elapsed());
+    println!("Floodfill in {:?}", now.elapsed());
     
     let now = Instant::now();
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
