@@ -1,5 +1,5 @@
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, NodeID};
+use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, NodeID, LinkCoords};
 use smallvec::SmallVec;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 //use rand::Rng;
@@ -261,8 +261,7 @@ pub fn get_all_scores_links_and_key_destinations(
     // ******* Get contributions to scores: to tell us the relative importance of each link *******
     // For each sequence, find the scores which were reached: this involves looking to the final node in the sequence
     let mut link_score_contributions: HashMap<u32, [f64; 5]> = HashMap::new();
-    //let mut link_start_end_nodes: HashMap<u32, [u32; 2]> = HashMap::new();
-    let mut link_start_end_nodes: HashMap<u32, [[f64; 2]; 2]> = HashMap::new();
+    let mut link_start_end_nodes: HashMap<u32, LinkCoords> = HashMap::new();
 
     for sequence in node_sequences.iter() {
         let end_node_purpose_scores =
@@ -287,11 +286,10 @@ pub fn get_all_scores_links_and_key_destinations(
             } else {
                 link_score_contributions.insert(unique_link_id, end_node_purpose_scores);
 
-                // **** Add rust_node_longlat_lookup here
-                let start_link_longlat = rust_node_longlat_lookup[node_start_of_link as usize];
-                let end_link_longlat = rust_node_longlat_lookup[node_end_of_link as usize];
+                let start_node_longlat = rust_node_longlat_lookup[node_start_of_link as usize];
+                let end_node_longlat = rust_node_longlat_lookup[node_end_of_link as usize];
 
-                link_start_end_nodes.insert(unique_link_id, [start_link_longlat, end_link_longlat]);
+                link_start_end_nodes.insert(unique_link_id, LinkCoords{start_node_longlat, end_node_longlat});
             }
         }
     }

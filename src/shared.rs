@@ -31,29 +31,6 @@ pub struct UserInputJSON {
     pub trip_start_seconds: i32,
 }
 
-// FloatBinHeap is to allow f64 in a binary heap
-// No longer used
-/*
-#[derive(Debug, PartialEq, PartialOrd, Serialize)]
-pub struct FloatBinHeap(pub f64);
-
-impl Eq for FloatBinHeap {}
-
-impl Ord for FloatBinHeap {
-    fn cmp(&self, other: &Self) -> Ordering {
-        //self.0.partial_cmp(&other.0).unwrap_or(Ordering::Equal)
-        other.0.partial_cmp(&self.0).unwrap_or(Ordering::Equal) // for reverse ordering
-    }
-}
-
-impl Hash for FloatBinHeap {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let float_bits = self.0.to_bits();
-        float_bits.hash(state);
-    }
-}
-*/
-
 pub struct FloodfillOutput {
     pub start_node_id: u32,
     pub destination_ids: Vec<u32>,
@@ -63,12 +40,18 @@ pub struct FloodfillOutput {
 }
 
 #[derive(Serialize)]
+pub struct LinkCoords {
+    pub start_node_longlat: [f64; 2],
+    pub end_node_longlat: [f64; 2],
+}
+
+#[derive(Serialize)]
 pub struct FinalOutput {
     pub num_iterations: i32,
     pub start_node: u32,
     pub score_per_purpose: [f64; 5],
     pub per_link_score_per_purpose: HashMap<u32, [f64; 5]>,
-    pub link_coordinates: HashMap<u32, [[f64; 2]; 2]>,
+    pub link_coordinates: HashMap<u32, LinkCoords>,
     pub key_destinations_per_purpose: [[[f64; 2]; 3]; 5],
     pub init_travel_time: u16,
 }
