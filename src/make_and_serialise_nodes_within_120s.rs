@@ -3,9 +3,8 @@ use crate::read_files::read_files_parallel_excluding_node_values;
 use fs_err::File;
 use rayon::prelude::*;
 use std::io::BufWriter;
-use std::sync::Arc;
 
-use crate::shared::{Cost, NodeID};
+use crate::shared::{Cost, FloodfillOutput, NodeID};
 
 pub fn make_and_serialise_nodes_within_120s(year: i32) {
     println!("Begun make_and_serialise_nodes_within_120s");
@@ -13,18 +12,15 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
 
     let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
 
-    let arc_graph_walk = Arc::new(graph_walk);
-    let arc_graph_pt = Arc::new(graph_pt);
+    let indices = (0..graph_walk.len()).collect::<Vec<_>>();
+    println!("Number of iters to do: {}", graph_walk.len());
 
-    let indices = (0..arc_graph_walk.len()).collect::<Vec<_>>();
-    println!("Number of iters to do: {}", arc_graph_walk.len());
-
-    let results: Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16)> = indices
+    let results: Vec<FloodfillOutput> = indices
         .par_iter()
         .map(|i| {
             get_travel_times(
-                &arc_graph_walk,
-                &arc_graph_pt,
+                &graph_walk,
+                &graph_pt,
                 NodeID(*i as u32),
                 28800,
                 Cost(0 as u16),
@@ -36,10 +32,10 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
     println!("Floodfill done for all nodes in graph_walk");
 
     // write the neighbouring nodes to a vector
-    let mut nodes_to_neighbouring_nodes: Vec<Vec<u32>> = vec![vec![]; arc_graph_walk.len()];
+    let mut nodes_to_neighbouring_nodes: Vec<Vec<u32>> = vec![vec![]; graph_walk.len()];
     for res in results {
-        let ix = res.0;
-        nodes_to_neighbouring_nodes[ix as usize] = res.1; // res.1 is Vec<u32> of all nodes reached
+        let ix = res.start_node_id;
+        nodes_to_neighbouring_nodes[ix as usize] = res.destination_ids;
     }
 
     let file =

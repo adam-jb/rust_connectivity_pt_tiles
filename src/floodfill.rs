@@ -1,26 +1,24 @@
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
+use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, NodeID};
 use smallvec::SmallVec;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 //use rand::Rng;
-use std::sync::Arc;
 
 // returns unique i32 based on sequence of two integers
 fn cantor_pairing(x: u32, y: u32) -> u32 {
     ((x + y) * (x + y + 1)) / 2 + y
 }
 
-// Open question: whether graph_walk and graph_pt would be equally fine if not Arcs
 pub fn get_travel_times(
-    graph_walk: &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
-    graph_pt: &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
+    graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
+    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     start: NodeID,
     trip_start_seconds: i32,
     init_travel_time: Cost,
     walk_only: bool,
     max_travel_time: u16,
-) -> (u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16) {
-    let time_limit: Cost = Cost(max_travel_time);
+) -> FloodfillOutput {
+    let time_limit = Cost(max_travel_time);
 
     let start_nodes_taken_sequence: Vec<u32> = vec![start.0];
 
@@ -38,13 +36,13 @@ pub fn get_travel_times(
 
     // catch where start node is over an hour from centroid
     if init_travel_time >= Cost(3600) {
-        return (
-            start.0,
+        return FloodfillOutput {
+            start_node_id: start.0,
             destination_ids,
             destination_travel_times,
             nodes_visited_sequences,
-            init_travel_time.0,
-        );
+            init_travel_time: init_travel_time.0,
+        };
     }
 
     while let Some(mut current) = queue.pop() {
@@ -89,13 +87,13 @@ pub fn get_travel_times(
         }
     }
 
-    return (
-        start.0,
+    FloodfillOutput {
+        start_node_id: start.0,
         destination_ids,
         destination_travel_times,
         nodes_visited_sequences,
-        init_travel_time.0,
-    );
+        init_travel_time: init_travel_time.0,
+    }
 }
 
 fn get_pt_connections(
@@ -145,21 +143,13 @@ fn get_pt_connections(
 }
 
 pub fn get_all_scores_links_and_key_destinations(
-    travel_times: &(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16), // nodeID, destination node IDs, travel times to destinations, sequence of nodes taken to each node reached, time to walk
-    node_values_2d: &Arc<Vec<Vec<[i32; 2]>>>,                     
-    travel_time_relationships: &[i32],                            
+    floodfill_output: &FloodfillOutput,
+    node_values_2d: &Vec<Vec<[i32; 2]>>,
+    travel_time_relationships: &[i32],
     subpurpose_purpose_lookup: &[i8; 32],
-    nodes_to_neighbouring_nodes: &Arc<Vec<Vec<u32>>>,
-    rust_node_longlat_lookup: &Arc<Vec<[f64; 2]>>,
-) -> (
-    i32,
-    u32,
-    [f64; 5],
-    HashMap<u32, [f64; 5]>,
-    HashMap<u32, [[f64; 2]; 2]>,
-    [[[f64; 2]; 3]; 5], //[HashMap<u32, Vec<u32>>; 5],
-    u16,
-) {
+    nodes_to_neighbouring_nodes: &Vec<Vec<u32>>,
+    rust_node_longlat_lookup: &Vec<[f64; 2]>,
+) -> FinalOutput {
     // Got this from 'subpurpose_purpose_lookup_integer_list.json' in connectivity-processing-files
     let subpurpose_purpose_lookup_integer: [u8; 32] = [
         2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1,
@@ -207,13 +197,13 @@ pub fn get_all_scores_links_and_key_destinations(
     let subpurposes_to_ignore: [i8; 3] = [0, 10, 14];
     let mut subpurpose_scores: [f64; 32] = [0.0; 32];
 
-    let start = travel_times.0;
-    let destination_ids = &travel_times.1;
-    let destination_travel_times = &travel_times.2;
-    let node_sequences = &travel_times.3;
-    let init_travel_time = travel_times.4;
+    let start = floodfill_output.start_node_id;
+    let destination_ids = &floodfill_output.destination_ids;
+    let destination_travel_times = &floodfill_output.destination_travel_times;
+    let node_sequences = &floodfill_output.nodes_visited_sequences;
+    let init_travel_time = floodfill_output.init_travel_time;
     let mut node_values_contributed_each_purpose_hashmap: HashMap<u32, [f64; 5]> = HashMap::new();
-    
+
     // 0th node is used as starting point when finding node clusters later in process, so ensure Node 0 is always
     // populated
     node_values_contributed_each_purpose_hashmap.insert(0, [0.0, 0.0, 0.0, 0.0, 0.0]);
@@ -273,7 +263,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let mut link_score_contributions: HashMap<u32, [f64; 5]> = HashMap::new();
     //let mut link_start_end_nodes: HashMap<u32, [u32; 2]> = HashMap::new();
     let mut link_start_end_nodes: HashMap<u32, [[f64; 2]; 2]> = HashMap::new();
-    
+
     for sequence in node_sequences.iter() {
         let end_node_purpose_scores =
             node_values_contributed_each_purpose_hashmap[sequence.last().unwrap()]; // without .unwrap() you will get an Option<&u32> type that you can use to check if the vector is empty or not
@@ -296,7 +286,7 @@ pub fn get_all_scores_links_and_key_destinations(
                 link_score_contributions.insert(unique_link_id, purpose_scores);
             } else {
                 link_score_contributions.insert(unique_link_id, end_node_purpose_scores);
-                
+
                 // **** Add rust_node_longlat_lookup here
                 let start_link_longlat = rust_node_longlat_lookup[node_start_of_link as usize];
                 let end_link_longlat = rust_node_longlat_lookup[node_end_of_link as usize];
@@ -462,7 +452,7 @@ pub fn get_all_scores_links_and_key_destinations(
         }
     }
     // ******* Clusters obtained *******
-    
+
     // **** Extract keys from each of the 5 of highest_nodes_hashmap_to_adjacent_nodes_vec
     let mut most_important_nodes_longlat: [[[f64; 2]; 3]; 5] = [[[0.0; 2]; 3]; 5];
     for i in 0..5 {
@@ -472,19 +462,18 @@ pub fn get_all_scores_links_and_key_destinations(
             most_important_nodes_longlat[i][inner_iter] = node_longlat;
             inner_iter += 1;
         }
-    }    
-    
+    }
 
     // link_score_contributions: hashmap of total purpose-level scores trips across that link that fed into
     // link_start_end_nodes: hashmap of link ID to the nodes at either end of the link
     // nearby_nodes_top_3_scores_sets: array of 5 hashmaps of scores and node IDs
-    return (
-        travel_times.1.len() as i32,
-        start,
-        overall_purpose_scores,
-        link_score_contributions,
-        link_start_end_nodes,
-        most_important_nodes_longlat,
+    FinalOutput {
+        num_iterations: destination_ids.len() as i32,
+        start_node: start,
+        score_per_purpose: overall_purpose_scores,
+        per_link_score_per_purpose: link_score_contributions,
+        link_coordinates: link_start_end_nodes,
+        key_destinations_per_purpose: most_important_nodes_longlat,
         init_travel_time,
-    );
+    }
 }
