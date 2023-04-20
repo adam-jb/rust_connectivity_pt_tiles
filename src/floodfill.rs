@@ -1,11 +1,15 @@
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, LinkCoords, NodeID};
+use crate::shared::{
+    Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, LinkCoords, LinkID, NodeID,
+};
 use smallvec::SmallVec;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 
-// returns unique i32 based on sequence of two integers
-fn cantor_pairing(x: NodeID, y: NodeID) -> u32 {
-    ((x.0 + y.0) * (x.0 + y.0 + 1)) / 2 + y.0
+// returns unique int based on sequence of two integers
+fn cantor_pairing(x: NodeID, y: NodeID) -> LinkID {
+    let x = x.0;
+    let y = y.0;
+    LinkID(((x + y) * (x + y + 1)) / 2 + y)
 }
 
 pub fn get_travel_times(
@@ -259,8 +263,8 @@ pub fn get_all_scores_links_and_key_destinations(
 
     // ******* Get contributions to scores: to tell us the relative importance of each link *******
     // For each sequence, find the scores which were reached: this involves looking to the final node in the sequence
-    let mut link_score_contributions: HashMap<u32, [f64; 5]> = HashMap::new();
-    let mut link_start_end_nodes: HashMap<u32, LinkCoords> = HashMap::new();
+    let mut link_score_contributions: HashMap<LinkID, [f64; 5]> = HashMap::new();
+    let mut link_start_end_nodes: HashMap<LinkID, LinkCoords> = HashMap::new();
 
     for sequence in node_sequences.iter() {
         let end_node_purpose_scores =
