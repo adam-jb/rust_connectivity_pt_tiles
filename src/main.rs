@@ -2,7 +2,6 @@ use actix_web::{get, post, web, App, HttpServer};
 use rayon::prelude::*;
 use smallvec::SmallVec;
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::Instant;
 
 use crate::read_files::{
@@ -25,16 +24,16 @@ mod shared;
 struct AppState {
     travel_time_relationships_all: Vec<Vec<i32>>,
     subpurpose_purpose_lookup: [i8; 32],
-    arc_nodes_to_neighbouring_nodes: Arc<Vec<Vec<u32>>>,
-    graph_walk: Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
-    graph_pt: Arc<Vec<SmallVec<[EdgePT; 4]>>>,
-    node_values_2d: Arc<Vec<Vec<[i32; 2]>>>,
-    rust_node_longlat_lookup: Arc<Vec<[f64; 2]>>,
+    nodes_to_neighbouring_nodes: Vec<Vec<u32>>,
+    graph_walk: Vec<SmallVec<[EdgeWalk; 4]>>,
+    graph_pt: Vec<SmallVec<[EdgePT; 4]>>,
+    node_values_2d: Vec<Vec<[i32; 2]>>,
+    rust_node_longlat_lookup: Vec<[f64; 2]>,
 }
 
 fn get_travel_times_multicore(
-    graph_walk: &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
-    graph_pt: &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
+    graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
+    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     input: &web::Json<UserInputJSON>,
 ) -> Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16)> {
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
@@ -69,7 +68,6 @@ async fn get_node_id_count() -> String {
 
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
-
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 
     println!(
@@ -104,7 +102,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
                 &data.node_values_2d,
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &data.subpurpose_purpose_lookup,
-                &data.arc_nodes_to_neighbouring_nodes,
+                &data.nodes_to_neighbouring_nodes,
                 &data.rust_node_longlat_lookup,
             )
         })
@@ -153,21 +151,16 @@ async fn main() -> std::io::Result<()> {
     let nodes_to_neighbouring_nodes: Vec<Vec<u32>> =
         deserialize_bincoded_file("nodes_to_neighbouring_nodes");
 
-    let graph_walk = Arc::new(graph_walk);
-    let graph_pt = Arc::new(graph_pt);
-    let node_values_2d = Arc::new(node_values_2d);
-    let rust_node_longlat_lookup = Arc::new(rust_node_longlat_lookup);
-    let arc_nodes_to_neighbouring_nodes: Arc<Vec<Vec<u32>>> = Arc::new(nodes_to_neighbouring_nodes);
-
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
         subpurpose_purpose_lookup,
-        arc_nodes_to_neighbouring_nodes,
+        nodes_to_neighbouring_nodes,
         graph_walk,
         graph_pt,
         node_values_2d,
         rust_node_longlat_lookup,
     });
+    println!("Starting server");
     HttpServer::new(move || {
         App::new()
             // This clone is of an Arc from actix. AppState is immutable, and only one copy exists

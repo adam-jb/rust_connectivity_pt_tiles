@@ -3,17 +3,15 @@ use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
 use smallvec::SmallVec;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 //use rand::Rng;
-use std::sync::Arc;
 
 // returns unique i32 based on sequence of two integers
 fn cantor_pairing(x: u32, y: u32) -> u32 {
     ((x + y) * (x + y + 1)) / 2 + y
 }
 
-// Open question: whether graph_walk and graph_pt would be equally fine if not Arcs
 pub fn get_travel_times(
-    graph_walk: &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
-    graph_pt: &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
+    graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
+    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     start: NodeID,
     trip_start_seconds: i32,
     init_travel_time: Cost,
@@ -146,11 +144,11 @@ fn get_pt_connections(
 
 pub fn get_all_scores_links_and_key_destinations(
     travel_times: &(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16), // nodeID, destination node IDs, travel times to destinations, sequence of nodes taken to each node reached, time to walk
-    node_values_2d: &Arc<Vec<Vec<[i32; 2]>>>,                     
-    travel_time_relationships: &[i32],                            
+    node_values_2d: &Vec<Vec<[i32; 2]>>,
+    travel_time_relationships: &[i32],
     subpurpose_purpose_lookup: &[i8; 32],
-    nodes_to_neighbouring_nodes: &Arc<Vec<Vec<u32>>>,
-    rust_node_longlat_lookup: &Arc<Vec<[f64; 2]>>,
+    nodes_to_neighbouring_nodes: &Vec<Vec<u32>>,
+    rust_node_longlat_lookup: &Vec<[f64; 2]>,
 ) -> (
     i32,
     u32,
@@ -213,7 +211,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let node_sequences = &travel_times.3;
     let init_travel_time = travel_times.4;
     let mut node_values_contributed_each_purpose_hashmap: HashMap<u32, [f64; 5]> = HashMap::new();
-    
+
     // 0th node is used as starting point when finding node clusters later in process, so ensure Node 0 is always
     // populated
     node_values_contributed_each_purpose_hashmap.insert(0, [0.0, 0.0, 0.0, 0.0, 0.0]);
@@ -273,7 +271,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let mut link_score_contributions: HashMap<u32, [f64; 5]> = HashMap::new();
     //let mut link_start_end_nodes: HashMap<u32, [u32; 2]> = HashMap::new();
     let mut link_start_end_nodes: HashMap<u32, [[f64; 2]; 2]> = HashMap::new();
-    
+
     for sequence in node_sequences.iter() {
         let end_node_purpose_scores =
             node_values_contributed_each_purpose_hashmap[sequence.last().unwrap()]; // without .unwrap() you will get an Option<&u32> type that you can use to check if the vector is empty or not
@@ -296,7 +294,7 @@ pub fn get_all_scores_links_and_key_destinations(
                 link_score_contributions.insert(unique_link_id, purpose_scores);
             } else {
                 link_score_contributions.insert(unique_link_id, end_node_purpose_scores);
-                
+
                 // **** Add rust_node_longlat_lookup here
                 let start_link_longlat = rust_node_longlat_lookup[node_start_of_link as usize];
                 let end_link_longlat = rust_node_longlat_lookup[node_end_of_link as usize];
@@ -462,7 +460,7 @@ pub fn get_all_scores_links_and_key_destinations(
         }
     }
     // ******* Clusters obtained *******
-    
+
     // **** Extract keys from each of the 5 of highest_nodes_hashmap_to_adjacent_nodes_vec
     let mut most_important_nodes_longlat: [[[f64; 2]; 3]; 5] = [[[0.0; 2]; 3]; 5];
     for i in 0..5 {
@@ -472,8 +470,7 @@ pub fn get_all_scores_links_and_key_destinations(
             most_important_nodes_longlat[i][inner_iter] = node_longlat;
             inner_iter += 1;
         }
-    }    
-    
+    }
 
     // link_score_contributions: hashmap of total purpose-level scores trips across that link that fed into
     // link_start_end_nodes: hashmap of link ID to the nodes at either end of the link
