@@ -153,6 +153,8 @@ async fn main() -> std::io::Result<()> {
         rust_node_longlat_lookup,
     });
     println!("Starting server");
+    // The 50MB warning is wrong
+    #[allow(deprecated)]
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
