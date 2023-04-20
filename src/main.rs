@@ -163,9 +163,6 @@ async fn main() -> std::io::Result<()> {
     println!("Starting server");
     HttpServer::new(move || {
         App::new()
-            // This clone is of an Arc from actix. AppState is immutable, and only one copy exists
-            // (except for when we clone some pieces of it to make mutations scoped to a single
-            // request.)
             .app_data(app_state.clone())
             .data(web::JsonConfig::default().limit(1024 * 1024 * 50)) // allow POST'd JSON payloads up to 50mb
             .service(index)
