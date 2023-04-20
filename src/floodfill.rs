@@ -142,6 +142,7 @@ fn get_pt_connections(
     }
 }
 
+// ****** rust_node_longlat_lookup also has  ******
 pub fn get_all_scores_links_and_key_destinations(
     floodfill_output: &FloodfillOutput,
     node_values_2d: &Vec<Vec<[i32; 2]>>,
@@ -463,6 +464,13 @@ pub fn get_all_scores_links_and_key_destinations(
             inner_iter += 1;
         }
     }
+    
+    // ****** Convert link_start_end_nodes to string, taking first 8 values from the string ****** 
+    
+    
+    // ****** Drop the names from link_start_end_nodes, so just arrays
+    
+    
 
     // link_score_contributions: hashmap of total purpose-level scores trips across that link that fed into
     // link_start_end_nodes: hashmap of link ID to the nodes at either end of the link
