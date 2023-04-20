@@ -1,15 +1,14 @@
 use actix_web::{get, post, web, App, HttpServer};
 use rayon::prelude::*;
 use smallvec::SmallVec;
-use std::collections::HashMap;
 use std::time::Instant;
 
 use crate::read_files::{
-    create_graph_walk_len, deserialize_bincoded_file, read_files_parallel_excluding_node_values,
+    deserialize_bincoded_file, read_files_parallel_excluding_node_values,
     read_rust_node_longlat_lookup_serial, read_small_files_serial,
     read_sparse_node_values_2d_serial,
 };
-use crate::shared::{Cost, EdgePT, EdgeWalk, FloodfillOutput, NodeID, UserInputJSON};
+use crate::shared::{Cost, EdgePT, EdgeWalk, FloodfillOutput, NodeID, UserInputJSON, FinalOutput};
 use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};
 use get_time_of_day_index::get_time_of_day_index;
 
@@ -85,15 +84,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let now = Instant::now();
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
 
-    let results: Vec<(
-        i32,
-        u32,
-        [f64; 5],
-        HashMap<u32, [f64; 5]>,
-        HashMap<u32, [[f64; 2]; 2]>, //HashMap<u32, [u32; 2]>,
-        [[[f64; 2]; 3]; 5],          //[HashMap<u32, Vec<u32>>; 5],
-        u16,
-    )> = indices
+    let results: Vec<FinalOutput> = indices
         .par_iter()
         .map(|i| {
             get_all_scores_links_and_key_destinations(

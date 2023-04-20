@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use std::cmp::{Ord, PartialEq, PartialOrd};
 use std::hash::Hash;
@@ -58,5 +59,16 @@ pub struct FloodfillOutput {
     pub destination_ids: Vec<u32>,
     pub destination_travel_times: Vec<u16>,
     pub nodes_visited_sequences: Vec<Vec<u32>>,
+    pub init_travel_time: u16,
+}
+
+#[derive(Serialize)]
+pub struct FinalOutput {
+    pub num_iterations: i32,
+    pub start_node: u32,
+    pub score_per_purpose: [f64; 5],
+    pub per_link_score_per_purpose: HashMap<u32, [f64; 5]>,
+    pub link_coordinates: HashMap<u32, [[f64; 2]; 2]>,
+    pub key_destinations_per_purpose: [[[f64; 2]; 3]; 5],
     pub init_travel_time: u16,
 }

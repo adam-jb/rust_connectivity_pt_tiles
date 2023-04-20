@@ -1,5 +1,5 @@
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, EdgePT, EdgeWalk, FloodfillOutput, NodeID};
+use crate::shared::{Cost, EdgePT, EdgeWalk, FloodfillOutput, NodeID, FinalOutput};
 use smallvec::SmallVec;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 //use rand::Rng;
@@ -149,15 +149,7 @@ pub fn get_all_scores_links_and_key_destinations(
     subpurpose_purpose_lookup: &[i8; 32],
     nodes_to_neighbouring_nodes: &Vec<Vec<u32>>,
     rust_node_longlat_lookup: &Vec<[f64; 2]>,
-) -> (
-    i32,
-    u32,
-    [f64; 5],
-    HashMap<u32, [f64; 5]>,
-    HashMap<u32, [[f64; 2]; 2]>,
-    [[[f64; 2]; 3]; 5], //[HashMap<u32, Vec<u32>>; 5],
-    u16,
-) {
+) -> FinalOutput {
     // Got this from 'subpurpose_purpose_lookup_integer_list.json' in connectivity-processing-files
     let subpurpose_purpose_lookup_integer: [u8; 32] = [
         2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1,
@@ -475,13 +467,13 @@ pub fn get_all_scores_links_and_key_destinations(
     // link_score_contributions: hashmap of total purpose-level scores trips across that link that fed into
     // link_start_end_nodes: hashmap of link ID to the nodes at either end of the link
     // nearby_nodes_top_3_scores_sets: array of 5 hashmaps of scores and node IDs
-    return (
-        destination_ids.len() as i32,
-        start,
-        overall_purpose_scores,
-        link_score_contributions,
-        link_start_end_nodes,
-        most_important_nodes_longlat,
+    FinalOutput {
+        num_iterations: destination_ids.len() as i32,
+        start_node: start,
+        score_per_purpose: overall_purpose_scores,
+        per_link_score_per_purpose: link_score_contributions,
+        link_coordinates: link_start_end_nodes,
+        key_destinations_per_purpose: most_important_nodes_longlat,
         init_travel_time,
-    );
+    }
 }
