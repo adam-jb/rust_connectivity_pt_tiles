@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use std::cmp::{Ord, PartialEq, PartialOrd};
+use std::collections::HashMap;
 use std::hash::Hash;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]

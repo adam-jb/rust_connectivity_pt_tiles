@@ -8,7 +8,7 @@ use crate::read_files::{
     read_rust_node_longlat_lookup_serial, read_small_files_serial,
     read_sparse_node_values_2d_serial,
 };
-use crate::shared::{Cost, EdgePT, EdgeWalk, FloodfillOutput, NodeID, UserInputJSON, FinalOutput};
+use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, NodeID, UserInputJSON};
 use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};
 use get_time_of_day_index::get_time_of_day_index;
 
@@ -118,7 +118,9 @@ async fn main() -> std::io::Result<()> {
 
     // comment this out to not make the lookup of nodes which are near other nodes
     // this is big preprocessing stage (~90mins with 8cores)
-    // make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s(year);
+    if false {
+        make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s(year);
+    }
 
     let (
         travel_time_relationships_7,
