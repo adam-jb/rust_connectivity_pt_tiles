@@ -22,7 +22,8 @@ impl<K: Ord, V: Ord, NT: Ord> Ord for PriorityQueueItem<K, V, NT> {
         if ord != Ordering::Equal {
             return ord;
         }
-        // The tie-breaker is arbitrary, based on the value
+        // The tie-breaker is arbitrary, based on the value. Here it's NodeID, which is guaranteed
+        // to differ for the one place this is used, so it's safe
         self.value.cmp(&other.value)
     }
 }

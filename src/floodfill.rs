@@ -1,12 +1,11 @@
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, NodeID, LinkCoords};
+use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, LinkCoords, NodeID};
 use smallvec::SmallVec;
 use std::collections::{BinaryHeap, HashMap, HashSet};
-//use rand::Rng;
 
 // returns unique i32 based on sequence of two integers
-fn cantor_pairing(x: u32, y: u32) -> u32 {
-    ((x + y) * (x + y + 1)) / 2 + y
+fn cantor_pairing(x: NodeID, y: NodeID) -> u32 {
+    ((x.0 + y.0) * (x.0 + y.0 + 1)) / 2 + y.0
 }
 
 pub fn get_travel_times(
@@ -20,24 +19,22 @@ pub fn get_travel_times(
 ) -> FloodfillOutput {
     let time_limit = Cost(max_travel_time);
 
-    let start_nodes_taken_sequence: Vec<u32> = vec![start.0];
-
-    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Vec<u32>>> = BinaryHeap::new();
+    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Vec<NodeID>>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
         cost: init_travel_time,
         value: start,
-        nodes_taken: start_nodes_taken_sequence.to_vec(),
+        nodes_taken: vec![start],
     });
 
     let mut nodes_visited = vec![false; graph_walk.len()];
-    let mut destination_ids: Vec<u32> = vec![];
+    let mut destination_ids: Vec<NodeID> = vec![];
     let mut destination_travel_times: Vec<u16> = vec![];
-    let mut nodes_visited_sequences: Vec<Vec<u32>> = vec![];
+    let mut nodes_visited_sequences: Vec<Vec<NodeID>> = vec![];
 
     // catch where start node is over an hour from centroid
     if init_travel_time >= Cost(3600) {
         return FloodfillOutput {
-            start_node_id: start.0,
+            start_node_id: start,
             destination_ids,
             destination_travel_times,
             nodes_visited_sequences,
@@ -51,21 +48,21 @@ pub fn get_travel_times(
         }
         nodes_visited[current.value.0 as usize] = true;
 
-        destination_ids.push(current.value.0);
+        destination_ids.push(current.value);
         destination_travel_times.push(current.cost.0);
-        nodes_visited_sequences.push(current.nodes_taken.to_vec());
+        nodes_visited_sequences.push(current.nodes_taken.clone());
 
-        current.nodes_taken.push(current.value.0);
+        current.nodes_taken.push(current.value);
 
         // Finding adjacent walk nodes
         // skip 1st edge as it has info on whether node also has a PT service
-        for edge in &graph_walk[(current.value.0 as usize)][1..] {
+        for edge in &graph_walk[current.value.0 as usize][1..] {
             let new_cost = Cost(current.cost.0 + edge.cost.0);
             if new_cost < time_limit {
                 queue.push(PriorityQueueItem {
                     cost: new_cost,
                     value: edge.to,
-                    nodes_taken: current.nodes_taken.to_vec(),
+                    nodes_taken: current.nodes_taken.clone(),
                 });
             }
         }
@@ -73,14 +70,14 @@ pub fn get_travel_times(
         // if node has a timetable associated with it: the first value in the first 'edge'
         // will be 1 if it does, and 0 if it doesn't
         if !walk_only {
-            if graph_walk[(current.value.0 as usize)][0].cost == Cost(1) {
+            if graph_walk[current.value.0 as usize][0].cost == Cost(1) {
                 get_pt_connections(
                     &graph_pt,
                     current.cost.0,
                     &mut queue,
                     time_limit,
                     trip_start_seconds,
-                    &current.value,
+                    current.value,
                     &current.nodes_taken,
                 );
             }
@@ -88,7 +85,7 @@ pub fn get_travel_times(
     }
 
     FloodfillOutput {
-        start_node_id: start.0,
+        start_node_id: start,
         destination_ids,
         destination_travel_times,
         nodes_visited_sequences,
@@ -99,11 +96,11 @@ pub fn get_travel_times(
 fn get_pt_connections(
     graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     time_so_far: u16,
-    queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID, Vec<u32>>>,
+    queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID, Vec<NodeID>>>,
     time_limit: Cost,
     trip_start_seconds: i32,
-    current_node: &NodeID,
-    current_nodes_taken: &Vec<u32>,
+    current_node: NodeID,
+    current_nodes_taken: &Vec<NodeID>,
 ) {
     // find time node is arrived at in seconds past midnight
     let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
@@ -113,7 +110,7 @@ fn get_pt_connections(
     let mut journey_time: u16 = 0;
     let mut next_leaving_time = 0;
 
-    for edge in &graph_pt[(current_node.0 as usize)][1..] {
+    for edge in &graph_pt[current_node.0 as usize][1..] {
         if time_of_arrival_current_node <= edge.leavetime.0 as u32 {
             next_leaving_time = edge.leavetime.0;
             journey_time = edge.cost.0;
@@ -131,12 +128,13 @@ fn get_pt_connections(
         if arrival_time_next_stop < time_limit.0 as u32 {
             // Notice this uses 'leavingTime' from first 'edge' for the ID
             // of next node: this is legacy from our matrix-based approach in python
-            let destination_node = &graph_pt[(current_node.0 as usize)][0].leavetime.0;
+            // TODO The first row is magically node IDs, just trust it
+            let destination_node = NodeID(graph_pt[(current_node.0 as usize)][0].leavetime.0);
 
             queue.push(PriorityQueueItem {
                 cost: Cost(arrival_time_next_stop as u16),
-                value: NodeID(*destination_node as u32),
-                nodes_taken: current_nodes_taken.to_vec(),
+                value: destination_node,
+                nodes_taken: current_nodes_taken.clone(),
             });
         };
     }
@@ -147,7 +145,7 @@ pub fn get_all_scores_links_and_key_destinations(
     node_values_2d: &Vec<Vec<[i32; 2]>>,
     travel_time_relationships: &[i32],
     subpurpose_purpose_lookup: &[i8; 32],
-    nodes_to_neighbouring_nodes: &Vec<Vec<u32>>,
+    nodes_to_neighbouring_nodes: &Vec<Vec<NodeID>>,
     rust_node_longlat_lookup: &Vec<[f64; 3]>,
 ) -> FinalOutput {
     // Got this from 'subpurpose_purpose_lookup_integer_list.json' in connectivity-processing-files
@@ -202,11 +200,12 @@ pub fn get_all_scores_links_and_key_destinations(
     let destination_travel_times = &floodfill_output.destination_travel_times;
     let node_sequences = &floodfill_output.nodes_visited_sequences;
     let init_travel_time = floodfill_output.init_travel_time;
-    let mut node_values_contributed_each_purpose_hashmap: HashMap<u32, [f64; 5]> = HashMap::new();
+    let mut node_values_contributed_each_purpose_hashmap: HashMap<NodeID, [f64; 5]> =
+        HashMap::new();
 
     // 0th node is used as starting point when finding node clusters later in process, so ensure Node 0 is always
     // populated
-    node_values_contributed_each_purpose_hashmap.insert(0, [0.0, 0.0, 0.0, 0.0, 0.0]);
+    node_values_contributed_each_purpose_hashmap.insert(NodeID(0), [0.0, 0.0, 0.0, 0.0, 0.0]);
 
     // ********* Get subpurpose level scores overall, and purpose level contribution of each individual node reached
     for i in 0..destination_ids.len() {
@@ -214,7 +213,7 @@ pub fn get_all_scores_links_and_key_destinations(
         let current_cost = destination_travel_times[i];
         let mut purpose_scores_this_node: [f64; 5] = [0.0; 5];
 
-        for subpurpose_score_pair in node_values_2d[current_node as usize].iter() {
+        for subpurpose_score_pair in node_values_2d[current_node.0 as usize].iter() {
             // store scores for each subpurpose for this node
             let subpurpose_ix = subpurpose_score_pair[0];
             let vec_start_pos_this_purpose =
@@ -286,10 +285,16 @@ pub fn get_all_scores_links_and_key_destinations(
             } else {
                 link_score_contributions.insert(unique_link_id, end_node_purpose_scores);
 
-                let start_node_longlat = rust_node_longlat_lookup[node_start_of_link as usize];
-                let end_node_longlat = rust_node_longlat_lookup[node_end_of_link as usize];
+                let start_node_longlat = rust_node_longlat_lookup[node_start_of_link.0 as usize];
+                let end_node_longlat = rust_node_longlat_lookup[node_end_of_link.0 as usize];
 
-                link_start_end_nodes.insert(unique_link_id, LinkCoords{start_node_longlat, end_node_longlat});
+                link_start_end_nodes.insert(
+                    unique_link_id,
+                    LinkCoords {
+                        start_node_longlat,
+                        end_node_longlat,
+                    },
+                );
             }
         }
     }
@@ -298,7 +303,7 @@ pub fn get_all_scores_links_and_key_destinations(
     // ****** Get top 3 clusters destinations for each purpose *******
 
     // dicts of which of the 3 top 3 nodes, the nodes in the sets above correspond to keys in these hashmaps; each value will be the ID of one of the top 3 nodes
-    let mut nearby_nodes_to_current_highest_node_hashmap: [HashMap<u32, u32>; 5] = [
+    let mut nearby_nodes_to_current_highest_node_hashmap: [HashMap<NodeID, NodeID>; 5] = [
         HashMap::new(),
         HashMap::new(),
         HashMap::new(),
@@ -307,7 +312,7 @@ pub fn get_all_scores_links_and_key_destinations(
     ];
 
     // sets of all nodes which are close to those in the top 3 (eg: if there are 24 nodes within 120s of the 3 top nodes for business, those 24 node ids will be in the set corresponding to business)
-    let mut nearby_nodes_top_3_scores_sets: [HashSet<u32>; 5] = [
+    let mut nearby_nodes_top_3_scores_sets: [HashSet<NodeID>; 5] = [
         HashSet::new(),
         HashSet::new(),
         HashSet::new(),
@@ -316,18 +321,13 @@ pub fn get_all_scores_links_and_key_destinations(
     ];
 
     // to log minimum scores for each purpose: this is the threshold to exceed to get into the running top 3
-    let mut id_and_min_scores: [(u32, f64); 5] = [(0, 0.0), (0, 0.0), (0, 0.0), (0, 0.0), (0, 0.0)];
+    let mut id_and_min_scores: [(NodeID, f64); 5] = [(NodeID(0), 0.0); 5];
 
-    let mut id_and_scores_top_3: [[(u32, f64); 3]; 5] = [
-        [(0, 0.0), (0, 0.0), (0, 0.0)],
-        [(0, 0.0), (0, 0.0), (0, 0.0)],
-        [(0, 0.0), (0, 0.0), (0, 0.0)],
-        [(0, 0.0), (0, 0.0), (0, 0.0)],
-        [(0, 0.0), (0, 0.0), (0, 0.0)],
-    ];
+    let mut id_and_scores_top_3: [[(NodeID, f64); 3]; 5] =
+        [[(NodeID(0), 0.0), (NodeID(0), 0.0), (NodeID(0), 0.0)]; 5];
 
     // Dicts of nodeID to adjacent nodes (each Dict will have 3 keys of node IDs, corresponding to vec of Node IDs in each cluster)
-    let mut highest_nodes_hashmap_to_adjacent_nodes_vec: [HashMap<u32, Vec<u32>>; 5] = [
+    let mut highest_nodes_hashmap_to_adjacent_nodes_vec: [HashMap<NodeID, Vec<NodeID>>; 5] = [
         HashMap::new(),
         HashMap::new(),
         HashMap::new(),
@@ -335,10 +335,9 @@ pub fn get_all_scores_links_and_key_destinations(
         HashMap::new(),
     ];
 
-    //let mut rng = rand::thread_rng();
     for node_reached_id in destination_ids {
         // near_nodes is vector of u32 node IDs
-        let near_nodes = nodes_to_neighbouring_nodes[*node_reached_id as usize].to_vec();
+        let near_nodes = nodes_to_neighbouring_nodes[node_reached_id.0 as usize].to_vec();
         let mut purpose_scores: [f64; 5] = [0.0; 5];
 
         // get total scores by purpose, of nodes within 120s of this node
@@ -359,7 +358,7 @@ pub fn get_all_scores_links_and_key_destinations(
         for k in 0..5 {
             if purpose_scores[k] >= id_and_min_scores[k].1 {
                 // test if node is an adjacent one
-                let node_to_replace: u32;
+                let node_to_replace: NodeID;
                 let is_in_adjacent: bool =
                     nearby_nodes_top_3_scores_sets[k].contains(node_reached_id);
                 if is_in_adjacent {
@@ -407,7 +406,7 @@ pub fn get_all_scores_links_and_key_destinations(
 
                 // Use highest_nodes_hashmap_to_adjacent_nodes_vec to find adjacent nodes to get rid of (and the node ID of itself)
                 // Don't run this if node_to_replace is 0, as node_to_replace=0 is the initialised node ID
-                if node_to_replace != 0 {
+                if node_to_replace != NodeID(0) {
                     let vec_nodes_to_drop_from_set_and_dict =
                         &highest_nodes_hashmap_to_adjacent_nodes_vec[k][&node_to_replace];
                     for node_id in vec_nodes_to_drop_from_set_and_dict {

@@ -23,7 +23,7 @@ mod shared;
 struct AppState {
     travel_time_relationships_all: Vec<Vec<i32>>,
     subpurpose_purpose_lookup: [i8; 32],
-    nodes_to_neighbouring_nodes: Vec<Vec<u32>>,
+    nodes_to_neighbouring_nodes: Vec<Vec<NodeID>>,
     graph_walk: Vec<SmallVec<[EdgeWalk; 4]>>,
     graph_pt: Vec<SmallVec<[EdgePT; 4]>>,
     node_values_2d: Vec<Vec<[i32; 2]>>,
@@ -140,7 +140,7 @@ async fn main() -> std::io::Result<()> {
     let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(2022);
     let node_values_2d = read_sparse_node_values_2d_serial(2022);
     let rust_node_longlat_lookup = read_rust_node_longlat_lookup_serial();
-    let nodes_to_neighbouring_nodes: Vec<Vec<u32>> =
+    let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> =
         deserialize_bincoded_file("nodes_to_neighbouring_nodes");
 
     let app_state = web::Data::new(AppState {

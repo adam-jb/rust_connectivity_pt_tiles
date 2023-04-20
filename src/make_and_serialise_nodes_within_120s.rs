@@ -32,10 +32,9 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
     println!("Floodfill done for all nodes in graph_walk");
 
     // write the neighbouring nodes to a vector
-    let mut nodes_to_neighbouring_nodes: Vec<Vec<u32>> = vec![vec![]; graph_walk.len()];
+    let mut nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> = vec![vec![]; graph_walk.len()];
     for res in results {
-        let ix = res.start_node_id;
-        nodes_to_neighbouring_nodes[ix as usize] = res.destination_ids;
+        nodes_to_neighbouring_nodes[res.start_node_id.0 as usize] = res.destination_ids;
     }
 
     let file =
