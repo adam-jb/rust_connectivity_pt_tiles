@@ -11,8 +11,7 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
     println!("Begun make_and_serialise_nodes_within_120s");
     // For ~10m walking nodes, takes ~90 mins to get all nearby nodes in 120s with 8 core machine; 128gb RAM was enough and 32gb wasnt
 
-    let (graph_walk, graph_pt, _node_values_padding_row_count) =
-        read_files_parallel_excluding_node_values(year);
+    let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
 
     let arc_graph_walk = Arc::new(graph_walk);
     let arc_graph_pt = Arc::new(graph_pt);

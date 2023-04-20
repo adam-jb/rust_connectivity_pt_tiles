@@ -23,13 +23,14 @@ Check it's listening:
 curl http://0.0.0.0:7328/
 ```
     
-    
+
 Run PT algorithm on 3 start nodes: 
 ```
 wget -O- --post-data='{"start_nodes_user_input": [9380647, 9183046, 2420336], "init_travel_times_user_input": [16, 10, 10], "trip_start_seconds": 28800}' \
   --header='Content-Type:application/json' \
   'http://0.0.0.0:7328/floodfill_pt/'
 ```
+
 
 
 # Deploying with Docker
@@ -46,6 +47,4 @@ docker build --progress=plain -t rust_connectivity_pt_tiles:latest . && \
 docker tag rust_connectivity_pt_tiles:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/rust_connectivity_pt_tiles:latest && \
 docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/rust_connectivity_pt_tiles:latest
 ```
-
-
 

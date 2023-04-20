@@ -18,6 +18,18 @@ pub fn serialise_sparse_node_values_2d(year: i32) {
     println!("Serialised to {}", outpath);
 }
 
+pub fn serialise_rust_node_longlat_lookup() {
+    let inpath = format!("data/rust_lookup_long_lat_list.json");
+    let contents = fs_err::read_to_string(&inpath).unwrap();
+    let output: Vec<[f64; 2]> = serde_json::from_str(&contents).unwrap();
+    println!("Read from {}", inpath);
+
+    let outpath = format!("serialised_data/rust_lookup_long_lat_list.bin");
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised to {}", outpath);
+}
+
 pub fn serialise_files(year: i32) {
     let now = Instant::now();
 
