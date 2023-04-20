@@ -41,8 +41,8 @@ pub struct FloodfillOutput {
 
 #[derive(Serialize)]
 pub struct LinkCoords {
-    pub start_node_longlat: [f64; 2],
-    pub end_node_longlat: [f64; 2],
+    pub start_node_longlat: [f64; 3],
+    pub end_node_longlat: [f64; 3],
 }
 
 #[derive(Serialize)]

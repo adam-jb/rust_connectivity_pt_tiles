@@ -148,7 +148,7 @@ pub fn get_all_scores_links_and_key_destinations(
     travel_time_relationships: &[i32],
     subpurpose_purpose_lookup: &[i8; 32],
     nodes_to_neighbouring_nodes: &Vec<Vec<u32>>,
-    rust_node_longlat_lookup: &Vec<[f64; 2]>,
+    rust_node_longlat_lookup: &Vec<[f64; 3]>,
 ) -> FinalOutput {
     // Got this from 'subpurpose_purpose_lookup_integer_list.json' in connectivity-processing-files
     let subpurpose_purpose_lookup_integer: [u8; 32] = [
@@ -456,7 +456,9 @@ pub fn get_all_scores_links_and_key_destinations(
     for i in 0..5 {
         let mut inner_iter = 0;
         for rust_node_id in highest_nodes_hashmap_to_adjacent_nodes_vec[i].keys() {
-            let node_longlat = rust_node_longlat_lookup[*rust_node_id as usize];
+            let node_longlat_and_pt_status = rust_node_longlat_lookup[*rust_node_id as usize];
+            let node_longlat = &node_longlat_and_pt_status[0..2];
+            let node_longlat: [f64; 2] = node_longlat.try_into().unwrap();
             most_important_nodes_longlat[i][inner_iter] = node_longlat;
             inner_iter += 1;
         }

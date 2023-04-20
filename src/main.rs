@@ -27,7 +27,7 @@ struct AppState {
     graph_walk: Vec<SmallVec<[EdgeWalk; 4]>>,
     graph_pt: Vec<SmallVec<[EdgePT; 4]>>,
     node_values_2d: Vec<Vec<[i32; 2]>>,
-    rust_node_longlat_lookup: Vec<[f64; 2]>,
+    rust_node_longlat_lookup: Vec<[f64; 3]>,
 }
 
 fn get_travel_times_multicore(
