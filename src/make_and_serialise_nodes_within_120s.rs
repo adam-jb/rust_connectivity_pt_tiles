@@ -4,7 +4,7 @@ use fs_err::File;
 use rayon::prelude::*;
 use std::io::BufWriter;
 
-use crate::shared::{Cost, NodeID};
+use crate::shared::{Cost, FloodfillOutput, NodeID};
 
 pub fn make_and_serialise_nodes_within_120s(year: i32) {
     println!("Begun make_and_serialise_nodes_within_120s");
@@ -15,7 +15,7 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
     let indices = (0..graph_walk.len()).collect::<Vec<_>>();
     println!("Number of iters to do: {}", graph_walk.len());
 
-    let results: Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16)> = indices
+    let results: Vec<FloodfillOutput> = indices
         .par_iter()
         .map(|i| {
             get_travel_times(
@@ -34,8 +34,8 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
     // write the neighbouring nodes to a vector
     let mut nodes_to_neighbouring_nodes: Vec<Vec<u32>> = vec![vec![]; graph_walk.len()];
     for res in results {
-        let ix = res.0;
-        nodes_to_neighbouring_nodes[ix as usize] = res.1; // res.1 is Vec<u32> of all nodes reached
+        let ix = res.start_node_id;
+        nodes_to_neighbouring_nodes[ix as usize] = res.destination_ids;
     }
 
     let file =

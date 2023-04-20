@@ -52,3 +52,11 @@ impl Hash for FloatBinHeap {
     }
 }
 */
+
+pub struct FloodfillOutput {
+    pub start_node_id: u32,
+    pub destination_ids: Vec<u32>,
+    pub destination_travel_times: Vec<u16>,
+    pub nodes_visited_sequences: Vec<Vec<u32>>,
+    pub init_travel_time: u16,
+}

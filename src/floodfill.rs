@@ -1,5 +1,5 @@
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
+use crate::shared::{Cost, EdgePT, EdgeWalk, FloodfillOutput, NodeID};
 use smallvec::SmallVec;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 //use rand::Rng;
@@ -17,8 +17,8 @@ pub fn get_travel_times(
     init_travel_time: Cost,
     walk_only: bool,
     max_travel_time: u16,
-) -> (u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16) {
-    let time_limit: Cost = Cost(max_travel_time);
+) -> FloodfillOutput {
+    let time_limit = Cost(max_travel_time);
 
     let start_nodes_taken_sequence: Vec<u32> = vec![start.0];
 
@@ -36,13 +36,13 @@ pub fn get_travel_times(
 
     // catch where start node is over an hour from centroid
     if init_travel_time >= Cost(3600) {
-        return (
-            start.0,
+        return FloodfillOutput {
+            start_node_id: start.0,
             destination_ids,
             destination_travel_times,
             nodes_visited_sequences,
-            init_travel_time.0,
-        );
+            init_travel_time: init_travel_time.0,
+        };
     }
 
     while let Some(mut current) = queue.pop() {
@@ -87,13 +87,13 @@ pub fn get_travel_times(
         }
     }
 
-    return (
-        start.0,
+    FloodfillOutput {
+        start_node_id: start.0,
         destination_ids,
         destination_travel_times,
         nodes_visited_sequences,
-        init_travel_time.0,
-    );
+        init_travel_time: init_travel_time.0,
+    }
 }
 
 fn get_pt_connections(
@@ -143,7 +143,7 @@ fn get_pt_connections(
 }
 
 pub fn get_all_scores_links_and_key_destinations(
-    travel_times: &(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16), // nodeID, destination node IDs, travel times to destinations, sequence of nodes taken to each node reached, time to walk
+    floodfill_output: &FloodfillOutput,
     node_values_2d: &Vec<Vec<[i32; 2]>>,
     travel_time_relationships: &[i32],
     subpurpose_purpose_lookup: &[i8; 32],
@@ -205,11 +205,11 @@ pub fn get_all_scores_links_and_key_destinations(
     let subpurposes_to_ignore: [i8; 3] = [0, 10, 14];
     let mut subpurpose_scores: [f64; 32] = [0.0; 32];
 
-    let start = travel_times.0;
-    let destination_ids = &travel_times.1;
-    let destination_travel_times = &travel_times.2;
-    let node_sequences = &travel_times.3;
-    let init_travel_time = travel_times.4;
+    let start = floodfill_output.start_node_id;
+    let destination_ids = &floodfill_output.destination_ids;
+    let destination_travel_times = &floodfill_output.destination_travel_times;
+    let node_sequences = &floodfill_output.nodes_visited_sequences;
+    let init_travel_time = floodfill_output.init_travel_time;
     let mut node_values_contributed_each_purpose_hashmap: HashMap<u32, [f64; 5]> = HashMap::new();
 
     // 0th node is used as starting point when finding node clusters later in process, so ensure Node 0 is always
@@ -476,7 +476,7 @@ pub fn get_all_scores_links_and_key_destinations(
     // link_start_end_nodes: hashmap of link ID to the nodes at either end of the link
     // nearby_nodes_top_3_scores_sets: array of 5 hashmaps of scores and node IDs
     return (
-        travel_times.1.len() as i32,
+        destination_ids.len() as i32,
         start,
         overall_purpose_scores,
         link_score_contributions,

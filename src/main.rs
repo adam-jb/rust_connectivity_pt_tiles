@@ -9,7 +9,7 @@ use crate::read_files::{
     read_rust_node_longlat_lookup_serial, read_small_files_serial,
     read_sparse_node_values_2d_serial,
 };
-use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID, UserInputJSON};
+use crate::shared::{Cost, EdgePT, EdgeWalk, FloodfillOutput, NodeID, UserInputJSON};
 use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};
 use get_time_of_day_index::get_time_of_day_index;
 
@@ -35,7 +35,7 @@ fn get_travel_times_multicore(
     graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
     graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     input: &web::Json<UserInputJSON>,
-) -> Vec<(u32, Vec<u32>, Vec<u16>, Vec<Vec<u32>>, u16)> {
+) -> Vec<FloodfillOutput> {
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
 
     return indices
@@ -78,8 +78,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
 
     let now = Instant::now();
 
-    let floodfill_outputs_tuple =
-        get_travel_times_multicore(&data.graph_walk, &data.graph_pt, &input);
+    let floodfill_outputs = get_travel_times_multicore(&data.graph_walk, &data.graph_pt, &input);
 
     println!("Floodfill in {:?}", now.elapsed());
 
@@ -98,7 +97,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         .par_iter()
         .map(|i| {
             get_all_scores_links_and_key_destinations(
-                &floodfill_outputs_tuple[*i],
+                &floodfill_outputs[*i],
                 &data.node_values_2d,
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &data.subpurpose_purpose_lookup,
