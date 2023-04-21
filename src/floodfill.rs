@@ -1,5 +1,5 @@
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, NodeID, LinkCoords};
+use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, NodeID, LinkCoords, LinkCoordsString};
 use smallvec::SmallVec;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 //use rand::Rng;
@@ -465,10 +465,15 @@ pub fn get_all_scores_links_and_key_destinations(
         }
     }
     
-    // ****** Convert link_start_end_nodes to string, taking first 8 values from the string ****** 
-    
-    
-    // ****** Drop the names from link_start_end_nodes, so just arrays
+
+    // ******* Convert link_start_end_nodes to string, taking longlat to 6 decimal places 
+    // And Drop the names from link_start_end_nodes, so just arrays
+    let mut link_start_end_nodes_string: HashMap<u32, Vec<String>> = HashMap::new();
+    for unique_link_id in link_start_end_nodes.keys() {
+        let link_as_LinkCoordsString = link_start_end_nodes[unique_link_id].to_string_with_6dp();
+        let vector_of_strings = vec![link_as_LinkCoordsString.start_node_longlat, link_as_LinkCoordsString.end_node_longlat];
+        link_start_end_nodes_string.insert(*unique_link_id, vector_of_strings);
+    }
     
     
 
@@ -480,7 +485,7 @@ pub fn get_all_scores_links_and_key_destinations(
         start_node: start,
         score_per_purpose: overall_purpose_scores,
         per_link_score_per_purpose: link_score_contributions,
-        link_coordinates: link_start_end_nodes,
+        link_coordinates: link_start_end_nodes_string,
         key_destinations_per_purpose: most_important_nodes_longlat,
         init_travel_time,
     }

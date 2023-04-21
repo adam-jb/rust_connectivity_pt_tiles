@@ -50,8 +50,35 @@ pub struct FinalOutput {
     pub num_iterations: i32,
     pub start_node: u32,
     pub score_per_purpose: [f64; 5],
-    pub per_link_score_per_purpose: HashMap<u32, [f64; 5]>,
-    pub link_coordinates: HashMap<u32, LinkCoords>,
+    pub per_link_score_per_purpose: HashMap<u32, [f64;5]>,
+    pub link_coordinates: HashMap<u32, Vec<String>>,
     pub key_destinations_per_purpose: [[[f64; 2]; 3]; 5],
     pub init_travel_time: u16,
+}
+
+#[derive(Serialize, Debug)]
+pub struct LinkCoordsString {
+    pub start_node_longlat: String,
+    pub end_node_longlat: String,
+}
+
+impl LinkCoords {
+    pub fn to_string_with_6dp(&self) -> LinkCoordsString {
+        let start_node_longlat = self
+            .start_node_longlat
+            .iter()
+            .map(|n| format!("{:.6}", n))
+            .collect::<Vec<String>>()
+            .join(",");
+        let end_node_longlat = self
+            .end_node_longlat
+            .iter()
+            .map(|n| format!("{:.6}", n))
+            .collect::<Vec<String>>()
+            .join(",");
+        LinkCoordsString {
+            start_node_longlat,
+            end_node_longlat,
+        }
+    }
 }
