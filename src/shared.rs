@@ -6,6 +6,9 @@ use std::hash::Hash;
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
 pub struct NodeID(pub u32);
 
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
+pub struct LinkID(pub u32);
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct Cost(pub u16);
 
@@ -32,10 +35,11 @@ pub struct UserInputJSON {
 }
 
 pub struct FloodfillOutput {
-    pub start_node_id: u32,
-    pub destination_ids: Vec<u32>,
+    pub start_node_id: NodeID,
+    // TODO destinations_reached: Vec<(NodeID, Cost, Path)>
+    pub destination_ids: Vec<NodeID>,
     pub destination_travel_times: Vec<u16>,
-    pub nodes_visited_sequences: Vec<Vec<u32>>,
+    pub nodes_visited_sequences: Vec<Vec<NodeID>>,
     pub init_travel_time: u16,
 }
 
@@ -48,10 +52,10 @@ pub struct LinkCoords {
 #[derive(Serialize)]
 pub struct FinalOutput {
     pub num_iterations: i32,
-    pub start_node: u32,
+    pub start_node: NodeID,
     pub score_per_purpose: [f64; 5],
-    pub per_link_score_per_purpose: HashMap<u32, [f64;5]>,
-    pub link_coordinates: HashMap<u32, Vec<String>>,
+    pub per_link_score_per_purpose: HashMap<LinkID, [f64; 5]>,
+    pub link_coordinates: HashMap<LinkID, LinkCoords>,
     pub key_destinations_per_purpose: [[[f64; 2]; 3]; 5],
     pub init_travel_time: u16,
 }
