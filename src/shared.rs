@@ -55,7 +55,7 @@ pub struct FinalOutput {
     pub start_node: NodeID,
     pub score_per_purpose: [f64; 5],
     pub per_link_score_per_purpose: HashMap<LinkID, [f64; 5]>,
-    pub link_coordinates: HashMap<LinkID, LinkCoords>,
+    pub link_coordinates: HashMap<LinkID, Vec<String>>,
     pub key_destinations_per_purpose: [[[f64; 2]; 3]; 5],
     pub init_travel_time: u16,
 }

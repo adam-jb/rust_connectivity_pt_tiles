@@ -469,7 +469,7 @@ pub fn get_all_scores_links_and_key_destinations(
 
     // ******* Convert link_start_end_nodes to string, taking longlat to 6 decimal places 
     // And Drop the names from link_start_end_nodes, so just arrays
-    let mut link_start_end_nodes_string: HashMap<u32, Vec<String>> = HashMap::new();
+    let mut link_start_end_nodes_string: HashMap<LinkID, Vec<String>> = HashMap::new();
     for unique_link_id in link_start_end_nodes.keys() {
         let link_as_LinkCoordsString = link_start_end_nodes[unique_link_id].to_string_with_6dp();
         let vector_of_strings = vec![link_as_LinkCoordsString.start_node_longlat, link_as_LinkCoordsString.end_node_longlat];
