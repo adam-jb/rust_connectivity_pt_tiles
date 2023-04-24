@@ -8,7 +8,7 @@ use crate::read_files::{
     read_rust_node_longlat_lookup_serial, read_small_files_serial,
     read_sparse_node_values_2d_serial,
 };
-use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, NodeID, UserInputJSON};
+use crate::shared::{Cost, NodeID, EdgePT, EdgeWalk, FloodfillOutput, FinalOutput, UserInputJSON};
 use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};
 use get_time_of_day_index::get_time_of_day_index;
 

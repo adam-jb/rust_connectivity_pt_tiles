@@ -32,6 +32,15 @@ wget -O- --post-data='{"start_nodes_user_input": [9380647, 9183046, 2420336], "i
 ```
 
 
+Run PT algorithm on one start node and save the output: 
+```
+wget -O- --post-data='{"start_nodes_user_input": [9380647], "init_travel_times_user_input": [16], "trip_start_seconds": 28800}' \
+  --header='Content-Type:application/json' \
+  'http://0.0.0.0:7328/floodfill_pt/' > example_output.txt
+```
+
+
+
 
 # Deploying with Docker
 

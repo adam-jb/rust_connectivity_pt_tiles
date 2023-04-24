@@ -59,3 +59,30 @@ pub struct FinalOutput {
     pub key_destinations_per_purpose: [[[f64; 2]; 3]; 5],
     pub init_travel_time: u16,
 }
+
+#[derive(Serialize, Debug)]
+pub struct LinkCoordsString {
+    pub start_node_longlat: String,
+    pub end_node_longlat: String,
+}
+
+impl LinkCoords {
+    pub fn to_string_with_6dp(&self) -> LinkCoordsString {
+        let start_node_longlat = self
+            .start_node_longlat
+            .iter()
+            .map(|n| format!("{:.6}", n))
+            .collect::<Vec<String>>()
+            .join(",");
+        let end_node_longlat = self
+            .end_node_longlat
+            .iter()
+            .map(|n| format!("{:.6}", n))
+            .collect::<Vec<String>>()
+            .join(",");
+        LinkCoordsString {
+            start_node_longlat,
+            end_node_longlat,
+        }
+    }
+}
