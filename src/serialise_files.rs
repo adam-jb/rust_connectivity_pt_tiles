@@ -1,6 +1,5 @@
 use smallvec::SmallVec;
 use std::time::Instant;
-
 use fs_err::File;
 use std::io::BufWriter;
 
@@ -13,18 +12,6 @@ pub fn serialise_sparse_node_values_2d(year: i32) {
     println!("Read from {}", inpath);
 
     let outpath = format!("serialised_data/sparse_node_values_6am_{}_2d.bin", year);
-    let file = BufWriter::new(File::create(&outpath).unwrap());
-    bincode::serialize_into(file, &output).unwrap();
-    println!("Serialised to {}", outpath);
-}
-
-pub fn serialise_rust_node_longlat_lookup() {
-    let inpath = format!("data/rust_lookup_long_lat_pt_class_list.json");
-    let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: Vec<[f64; 3]> = serde_json::from_str(&contents).unwrap();
-    println!("Read from {}", inpath);
-
-    let outpath = format!("serialised_data/rust_lookup_long_lat_pt_class_list.bin");
     let file = BufWriter::new(File::create(&outpath).unwrap());
     bincode::serialize_into(file, &output).unwrap();
     println!("Serialised to {}", outpath);

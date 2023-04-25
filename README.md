@@ -1,3 +1,13 @@
+
+# Versions
+
+See branch 'pt-tiles-batch-calcs' for batch calculations which doesn't trace any links or cluster any nodes
+
+See branch 'main' for API which traces link and node importance. This is to be called by from the tiles app to show routes and nodes from a single node
+
+
+
+
 # Getting started
 
 ```

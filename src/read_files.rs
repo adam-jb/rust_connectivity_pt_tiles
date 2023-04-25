@@ -14,12 +14,6 @@ pub fn read_sparse_node_values_2d_serial(year: i32) -> Vec<Vec<[i32; 2]>> {
     return sparse_node_values_2d;
 }
 
-pub fn read_rust_node_longlat_lookup_serial() -> Vec<[f64; 3]> {
-    let rust_node_longlat_lookup: Vec<[f64; 3]> =
-        deserialize_bincoded_file(&format!("rust_lookup_long_lat_pt_class_list"));
-    return rust_node_longlat_lookup;
-}
-
 pub fn read_files_parallel_excluding_node_values(
     year: i32,
 ) -> (Vec<SmallVec<[EdgeWalk; 4]>>, Vec<SmallVec<[EdgePT; 4]>>) {
