@@ -23,7 +23,7 @@ files = ['graph_walk_len_2022.bin', 'padded_node_values_6am_2022.bin',
          'nodes_to_neighbouring_nodes.bin', 'sparse_node_values_6am_2022_2d.bin',
          'travel_time_relationships_7.bin', 'p1_main_nodes_vector_6am_2022.bin',
          'subpurpose_purpose_lookup.bin', 'p2_main_nodes_vector_6am_2022.bin',
-         'travel_time_relationships_10.bin', 'rust_lookup_long_lat_pt_class_list.bin']
+         'travel_time_relationships_10.bin']
 
 # Download each file from the bucket and save to local directory
 for file in files:
