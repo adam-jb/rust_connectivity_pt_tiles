@@ -142,7 +142,7 @@ fn get_pt_connections(
     }
 }
 
-// ****** rust_node_longlat_lookup also has  ******
+// ****** TODO rust_node_longlat_lookup also has PT classification ******
 pub fn get_all_scores_links_and_key_destinations(
     floodfill_output: &FloodfillOutput,
     node_values_2d: &Vec<Vec<[i32; 2]>>,
