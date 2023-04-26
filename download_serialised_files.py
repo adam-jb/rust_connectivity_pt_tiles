@@ -7,8 +7,6 @@
 import os
 from google.cloud import storage
 
-os.chdir('/home/jupyter/rust_connectivity')
-
 # Set up GCS client and bucket name
 client = storage.Client()
 bucket_name = 'april-2023-hack-rust-files'
