@@ -4,7 +4,7 @@ use smallvec::SmallVec;
 use std::time::Instant;
 
 use crate::read_files::{
-    deserialize_bincoded_file, read_files_parallel_excluding_node_values,
+    read_files_parallel_excluding_node_values,
     read_small_files_serial,
     read_sparse_node_values_2d_serial,
 };
@@ -30,13 +30,6 @@ struct AppState {
 #[get("/")]
 async fn index() -> String {
     format!("App is listening")
-}
-
-#[get("/get_node_id_count/")]
-async fn get_node_id_count() -> String {
-    let year: i32 = 2022; //// TODO change this dynamically depending on when user hits this api... OR drop this from Rust api and store in py
-    let graph_walk_len: i32 = deserialize_bincoded_file(&format!("graph_walk_len_{year}"));
-    return serde_json::to_string(&graph_walk_len).unwrap();
 }
 
 #[post("/floodfill_pt/")]
@@ -71,6 +64,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         .collect();
 
     println!("Floodfill in {:?}", now.elapsed());
+    println!("results len {}", results.len());
     serde_json::to_string(&results).unwrap()
 }
 
@@ -122,10 +116,9 @@ async fn main() -> std::io::Result<()> {
             .app_data(app_state.clone())
             .data(web::JsonConfig::default().limit(1024 * 1024 * 50)) // allow POST'd JSON payloads up to 50mb
             .service(index)
-            .service(get_node_id_count)
             .service(floodfill_pt)
     })
-    .bind(("0.0.0.0", 7328))?
+    .bind(("0.0.0.0", 6000))?
     .run()
     .await
 }

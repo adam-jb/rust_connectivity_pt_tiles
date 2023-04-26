@@ -6,3 +6,4 @@ serialised_data/*
 .ipynb_checkpoints/*
 .ipynb_checkpoints
 index.*
+*ipynb

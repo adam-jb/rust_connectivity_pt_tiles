@@ -67,3 +67,10 @@ docker tag rust_connectivity_pt_tiles:latest gcr.io/dft-dst-prt-connectivitymetr
 docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/rust_connectivity_pt_tiles:latest
 ```
 
+
+# Deploying the batch processing branch with Docker
+```
+docker build --progress=plain -t rust_batch_pt_tiles:latest . && \
+docker tag rust_batch_pt_tiles:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/rust_batch_pt_tiles:latest && \
+docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/rust_batch_pt_tiles:latest
+```
