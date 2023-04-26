@@ -7,8 +7,25 @@ See branch 'main' for API which traces link and node importance. This is to be c
 
 
 
+# Getting started if files are already serialised, stored in GCS and you are internal to DfT
 
-# Getting started
+Make sure you choose the right branch
+
+```
+python3 /home/jupyter/rust_connectivity/download_serialised_files.py && \
+cargo run --release
+```
+
+If you are external to DfT and the files are public
+```
+./home/jupyter/rust_connectivity/download_serialised_files.sh && \
+cargo run --release
+```
+
+
+
+
+# Getting started if files aren't serialised
 
 ```
 curl https://sh.rustup.rs -sSf | sh && \

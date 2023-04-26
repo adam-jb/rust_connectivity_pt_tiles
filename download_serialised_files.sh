@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# For use by external devs in hackathons where files have already been serialised
+
 set -e
 mkdir -p serialised_data
 
