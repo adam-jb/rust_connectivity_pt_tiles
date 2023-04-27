@@ -3,6 +3,7 @@ use crate::read_files::read_files_parallel_excluding_node_values;
 use fs_err::File;
 use rayon::prelude::*;
 use std::io::BufWriter;
+use typed_index_collections::TiVec;
 
 use crate::shared::{Cost, FloodfillOutput, NodeID};
 
@@ -22,19 +23,19 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
                 &graph_walk,
                 &graph_pt,
                 NodeID(*i as u32),
-                28800,
+                Cost(28800),
                 Cost(0 as u16),
                 true,
-                120,
+                Cost(120),
             )
         })
         .collect();
     println!("Floodfill done for all nodes in graph_walk");
 
-    // write the neighbouring nodes to a vector
-    let mut nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> = vec![vec![]; graph_walk.len()];
+    // write the neighbouring nodes to a vector. CHECK .into() call is needed to convert initialised vec to TiVec
+    let mut nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>> = vec![vec![]; graph_walk.len()].into();
     for res in results {
-        nodes_to_neighbouring_nodes[res.start_node_id.0 as usize] = res.destination_ids;
+        nodes_to_neighbouring_nodes[res.start_node_id] = res.destination_ids;
     }
 
     let file =

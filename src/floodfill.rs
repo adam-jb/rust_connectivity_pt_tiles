@@ -1,7 +1,8 @@
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, NodeID, LinkCoords, LinkID, LinkCoordsString};
+use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, NodeID, Score, GraphWalk, GraphPT, SecondsPastMidnight, LinkCoords, LinkID, LinkCoordsString};
 use smallvec::SmallVec;
 use std::collections::{BinaryHeap, HashMap, HashSet};
+use typed_index_collections::TiVec;
 
 // returns unique int based on sequence of two integers
 fn cantor_pairing(x: NodeID, y: NodeID) -> LinkID {
@@ -11,55 +12,57 @@ fn cantor_pairing(x: NodeID, y: NodeID) -> LinkID {
 }
 
 pub fn get_travel_times(
-    graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
-    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
-    start: NodeID,
-    trip_start_seconds: i32,
+    graph_walk: &TiVec<NodeID, SmallVec<[EdgeWalk; 4]>>,
+    graph_pt: &TiVec<NodeID, SmallVec<[EdgePT; 4]>>,
+    start_node_id: NodeID,
+    trip_start_seconds: Cost,
     init_travel_time: Cost,
     walk_only: bool,
-    max_travel_time: u16,
+    time_limit: Cost,
 ) -> FloodfillOutput {
-    let time_limit = Cost(max_travel_time);
 
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Vec<NodeID>>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
         cost: init_travel_time,
-        value: start,
-        nodes_taken: vec![start],
+        value: start_node_id,
+        nodes_taken: vec![start_node_id],
     });
 
-    let mut nodes_visited = vec![false; graph_walk.len()];
+    //let mut nodes_visited = vec![false; graph_walk.len()];
+    let mut nodes_visited: TiVec<NodeID, bool> =   vec![false; graph_walk.len()].into();
+    
+    
     let mut destination_ids: Vec<NodeID> = vec![];
-    let mut destination_travel_times: Vec<u16> = vec![];
+    let mut destination_travel_times: Vec<Cost> = vec![];
     let mut nodes_visited_sequences: Vec<Vec<NodeID>> = vec![];
 
     // catch where start node is over an hour from centroid
     if init_travel_time >= Cost(3600) {
         return FloodfillOutput {
-            start_node_id: start,
+            start_node_id,
             destination_ids,
             destination_travel_times,
             nodes_visited_sequences,
-            init_travel_time: init_travel_time.0,
+            init_travel_time,
         };
     }
 
     while let Some(mut current) = queue.pop() {
-        if nodes_visited[current.value.0 as usize] {
+        if nodes_visited[current.value] {
             continue;
         }
-        nodes_visited[current.value.0 as usize] = true;
+        nodes_visited[current.value] = true;
 
         destination_ids.push(current.value);
-        destination_travel_times.push(current.cost.0);
+        destination_travel_times.push(current.cost);
         nodes_visited_sequences.push(current.nodes_taken.clone());
-
+        
+        // add to sequence
         current.nodes_taken.push(current.value);
 
         // Finding adjacent walk nodes
-        // skip 1st edge as it has info on whether node also has a PT service
-        for edge in &graph_walk[current.value.0 as usize][1..] {
-            let new_cost = Cost(current.cost.0 + edge.cost.0);
+        for edge in &graph_walk[current.value].node_connections {
+            let new_cost = current.cost + edge.cost;
             if new_cost < time_limit {
                 queue.push(PriorityQueueItem {
                     cost: new_cost,
@@ -69,13 +72,12 @@ pub fn get_travel_times(
             }
         }
 
-        // if node has a timetable associated with it: the first value in the first 'edge'
-        // will be 1 if it does, and 0 if it doesn't
+        // Find next PT route if there is one
         if !walk_only {
-            if graph_walk[current.value.0 as usize][0].cost == Cost(1) {
+            if graph_walk[current.value][0].HasPt {
                 get_pt_connections(
                     &graph_pt,
-                    current.cost.0,
+                    current.cost,
                     &mut queue,
                     time_limit,
                     trip_start_seconds,
@@ -87,54 +89,52 @@ pub fn get_travel_times(
     }
 
     FloodfillOutput {
-        start_node_id: start,
+        start_node_id,
         destination_ids,
         destination_travel_times,
         nodes_visited_sequences,
-        init_travel_time: init_travel_time.0,
+        init_travel_time: init_travel_time,
     }
 }
 
 fn get_pt_connections(
-    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
-    time_so_far: u16,
+    graph_pt: &TiVec<NodeID, SmallVec<[EdgePT; 4]>>,
+    time_so_far: Cost,
     queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID, Vec<NodeID>>>,
     time_limit: Cost,
-    trip_start_seconds: i32,
+    trip_start_seconds: Cost,
     current_node: NodeID,
     current_nodes_taken: &Vec<NodeID>,
 ) {
     // find time node is arrived at in seconds past midnight
-    let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
+    let time_of_arrival_current_node = trip_start_seconds + time_so_far;
 
     // find time next service leaves
-    let mut found_next_service = 0;
-    let mut journey_time: u16 = 0;
-    let mut next_leaving_time = 0;
+    let mut found_next_service = bool;
+    let mut journey_time_to_next_node: = Cost(0);
+    let mut next_leaving_time = Cost(0);
 
-    for edge in &graph_pt[current_node.0 as usize][1..] {
-        if time_of_arrival_current_node <= edge.leavetime.0 as u32 {
-            next_leaving_time = edge.leavetime.0;
-            journey_time = edge.cost.0;
-            found_next_service = 1;
+    for edge in &graph_pt[current_node].timetable {
+        if time_of_arrival_current_node <= edge.leavetime {
+            next_leaving_time = edge.leavetime;
+            journey_time_to_next_node = edge.cost;
+            found_next_service = true;
             break;
         }
     }
 
     // add to queue
-    if found_next_service == 1 {
-        let wait_time_this_stop = next_leaving_time as u32 - time_of_arrival_current_node;
+    if found_next_service {
+        let wait_time_this_stop = next_leaving_time - time_of_arrival_current_node;
         let arrival_time_next_stop =
-            time_so_far as u32 + wait_time_this_stop as u32 + journey_time as u32;
+            time_so_far + wait_time_this_stop + journey_time_to_next_node;
 
-        if arrival_time_next_stop < time_limit.0 as u32 {
-            // Notice this uses 'leavingTime' from first 'edge' for the ID
-            // of next node: this is legacy from our matrix-based approach in python
-            // TODO The first row is magically node IDs, just trust it
-            let destination_node = NodeID(graph_pt[(current_node.0 as usize)][0].leavetime.0);
+        if arrival_time_next_stop < time_limit {
 
+            let destination_node = graph_pt[current_node].next_stop_node;
+            
             queue.push(PriorityQueueItem {
-                cost: Cost(arrival_time_next_stop as u16),
+                cost: arrival_time_next_stop,
                 value: destination_node,
                 nodes_taken: current_nodes_taken.clone(),
             });
@@ -145,91 +145,97 @@ fn get_pt_connections(
 // ****** TODO rust_node_longlat_lookup also has PT classification ******
 pub fn get_all_scores_links_and_key_destinations(
     floodfill_output: &FloodfillOutput,
-    node_values_2d: &Vec<Vec<[i32; 2]>>,
-    travel_time_relationships: &[i32],
+    node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
+    travel_time_relationships: &[f64],
     subpurpose_purpose_lookup: &[i8; 32],
-    nodes_to_neighbouring_nodes: &Vec<Vec<NodeID>>,
-    rust_node_longlat_lookup: &Vec<[f64; 3]>,
+    nodes_to_neighbouring_nodes: &TiVec<NodeID, Vec<NodeID>>,
+    rust_node_longlat_lookup: &TiVec<NodeID, [f64; 3]>,
 ) -> FinalOutput {
     // Got this from 'subpurpose_purpose_lookup_integer_list.json' in connectivity-processing-files
-    let subpurpose_purpose_lookup_integer: [u8; 32] = [
+    let subpurpose_purpose_lookup: [usize; 32] = [
         2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1,
         2, 1,
     ];
 
     // Get this from score_multipler_by_subpurpose_id_{mode_simpler}.json in connectivity-processing-files
     // Used to get relative importance of each subpurpose when aggregating them to purpose level
-    let score_multipler: [f64; 32] = [
-        0.00831415115437604,
-        0.009586382150013575,
-        0.00902817799219063,
-        0.008461272650878338,
-        0.008889733875203568,
-        0.008921736222033676,
-        0.022264233988222335,
-        0.008314147237807904,
-        0.010321099162180719,
-        0.00850878998927169,
-        0.008314150893271383,
-        0.009256043337142108,
-        0.008338366940103991,
-        0.009181584368558857,
-        0.008455731022360958,
-        0.009124946989519319,
-        0.008332774189837317,
-        0.046128804773287346,
-        0.009503140563990153,
-        0.01198700845708387,
-        0.009781270599036206,
-        0.00832427047935188,
-        0.008843645925786448,
-        0.008531419360132648,
-        0.009034318952510731,
-        0.008829954505680167,
-        0.011168757794031156,
-        0.017255946829128663,
-        0.008374145360142223,
-        0.008578983146921768,
-        0.008467735739894604,
-        0.012110456385386992,
+    let score_multipler: [Score; 32] = [
+        Score(0.00831415115437604),
+        Score(0.009586382150013575),
+        Score(0.00902817799219063),
+        Score(0.008461272650878338),
+        Score(0.008889733875203568),
+        Score(0.008921736222033676),
+        Score(0.022264233988222335),
+        Score(0.008314147237807904),
+        Score(0.010321099162180719),
+        Score(0.00850878998927169),
+        Score(0.008314150893271383),
+        Score(0.009256043337142108),
+        Score(0.008338366940103991),
+        Score(0.009181584368558857),
+        Score(0.008455731022360958),
+        Score(0.009124946989519319),
+        Score(0.008332774189837317),
+        Score(0.046128804773287346),
+        Score(0.009503140563990153),
+        Score(0.01198700845708387),
+        Score(0.009781270599036206),
+        Score(0.00832427047935188),
+        Score(0.008843645925786448),
+        Score(0.008531419360132648),
+        Score(0.009034318952510731),
+        Score(0.008829954505680167),
+        Score(0.011168757794031156),
+        Score(0.017255946829128663),
+        Score(0.008374145360142223),
+        Score(0.008578983146921768),
+        Score(0.008467735739894604),
+        Score(0.012110456385386992),
     ];
 
     // based on subpurpose_integers_to_ignore.json; they include ['Residential', 'Motor sports', 'Allotment']
-    let subpurposes_to_ignore: [i8; 3] = [0, 10, 14];
-    let mut subpurpose_scores: [f64; 32] = [0.0; 32];
+    let subpurposes_to_ignore: [usize; 3] = [0, 10, 14];
+    let mut subpurpose_scores: [Score; 32] = [0.0; 32];
 
     let start = floodfill_output.start_node_id;
     let destination_ids = &floodfill_output.destination_ids;
     let destination_travel_times = &floodfill_output.destination_travel_times;
     let node_sequences = &floodfill_output.nodes_visited_sequences;
     let init_travel_time = floodfill_output.init_travel_time;
-    let mut node_values_contributed_each_purpose_hashmap: HashMap<NodeID, [f64; 5]> =
+    let mut node_values_contributed_each_purpose_hashmap: HashMap<NodeID, [Score; 5]> =
         HashMap::new();
 
     // 0th node is used as starting point when finding node clusters later in process, so ensure Node 0 is always
     // populated
-    node_values_contributed_each_purpose_hashmap.insert(NodeID(0), [0.0, 0.0, 0.0, 0.0, 0.0]);
+    node_values_contributed_each_purpose_hashmap.insert(NodeID(0), [(Score(0.0),Score(0.0),Score(0.0),Score(0.0),Score(0.0)]);
 
     // ********* Get subpurpose level scores overall, and purpose level contribution of each individual node reached
     for i in 0..destination_ids.len() {
         let current_node = destination_ids[i];
         let current_cost = destination_travel_times[i];
-        let mut purpose_scores_this_node: [f64; 5] = [0.0; 5];
+        let mut purpose_scores_this_node: [Score; 5] = [Score(0.0); 5];
+        
 
-        for subpurpose_score_pair in node_values_2d[current_node.0 as usize].iter() {
+        // old!
+        // for subpurpose. in node_values_2d[current_node].iter() {
+        
+        for SubpurposeScore { subpurpose_ix, subpurpose_score } in node_values_2d[current_node].iter() {
             // store scores for each subpurpose for this node
-            let subpurpose_ix = subpurpose_score_pair[0];
+            // Old!
+            //let subpurpose_ix = subpurpose_score_pair[0];
+            
             let vec_start_pos_this_purpose =
-                (subpurpose_purpose_lookup[subpurpose_ix as usize] as i32) * 3601;
+                subpurpose_purpose_lookup[subpurpose_ix] * 3601;
             let multiplier = travel_time_relationships
-                [(vec_start_pos_this_purpose + current_cost as i32) as usize];
-            let score_to_add = (subpurpose_score_pair[1] as f64) * (multiplier as f64);
-            subpurpose_scores[subpurpose_ix as usize] += score_to_add;
+                [vec_start_pos_this_purpose + (current_cost.0 as usize)];
+            let score_to_add = score * multiplier;
+            subpurpose_scores[subpurpose_ix] += score_to_add;
 
             // To get purpose level contribution to scores for each node: used for finding key destinations
-            if !subpurposes_to_ignore.contains(&(subpurpose_ix as i8)) {
-                let purpose_ix = subpurpose_purpose_lookup_integer[subpurpose_ix as usize];
-                purpose_scores_this_node[purpose_ix as usize] += score_to_add;
+            if !subpurposes_to_ignore.contains(&subpurpose_ix) {
+                let purpose_ix = subpurpose_purpose_lookup[subpurpose_ix];
+                purpose_scores_this_node[purpose_ix] += score_to_add;
             }
         }
 
@@ -237,44 +243,44 @@ pub fn get_all_scores_links_and_key_destinations(
     }
 
     // **** Loops through each subpurpose, scaling them and getting the purpose level scores for the start node
-    let mut overall_purpose_scores: [f64; 5] = [0.0; 5];
+    let mut overall_purpose_scores: [Score; 5] = [Score(0.0); 5];
     for subpurpose_ix in 0..subpurpose_scores.len() {
         // skip if subpurpose in ['Residential', 'Motor sports', 'Allotment']
-        if subpurposes_to_ignore.contains(&(subpurpose_ix as i8)) {
+        if subpurposes_to_ignore.contains(&subpurpose_ix) {
             continue;
         }
 
         // Apply score_multipler to get purpose level scores for this start node. This does what s39 would do in python: faster to do it here as so many tiles
         // getting log of score for this subpurpose
         let mut subpurpose_score =
-            ((subpurpose_scores[subpurpose_ix] as f64) * score_multipler[subpurpose_ix]).ln();
+            (subpurpose_scores[subpurpose_ix]) * score_multipler[subpurpose_ix]).ln();
 
         // make negative values zero: this corrects for an effect of using log()
-        if subpurpose_score < 0.0 {
-            subpurpose_score = 0.0;
+        if subpurpose_score < Score(0.0) {
+            subpurpose_score = Score(0.0);
         }
 
         // add to purpose level scores
-        let purpose_ix = subpurpose_purpose_lookup_integer[subpurpose_ix];
-        overall_purpose_scores[purpose_ix as usize] += subpurpose_score;
+        let purpose_ix = subpurpose_purpose_lookup[subpurpose_ix];
+        overall_purpose_scores[purpose_ix] += subpurpose_score;
     }
     // ****** Overall scores obtained ******
 
     // ******* Get contributions to scores: to tell us the relative importance of each link *******
     // For each sequence, find the scores which were reached: this involves looking to the final node in the sequence
-    let mut link_score_contributions: HashMap<LinkID, [f64; 5]> = HashMap::new();
+    let mut link_score_contributions: HashMap<LinkID, [Score; 5]> = HashMap::new();
     let mut link_start_end_nodes: HashMap<LinkID, LinkCoords> = HashMap::new();
 
     for sequence in node_sequences.iter() {
         let end_node_purpose_scores =
             node_values_contributed_each_purpose_hashmap[sequence.last().unwrap()]; // without .unwrap() you will get an Option<&u32> type that you can use to check if the vector is empty or not
-
+        
         // loop through each link in the sequence, as defined by the pair of nodes at each end of the link: these are i32 values
         for i in 1..sequence.len() {
             let node_start_of_link = sequence[i - 1];
             let node_end_of_link = sequence[i];
             let unique_link_id = cantor_pairing(node_start_of_link, node_end_of_link);
-
+            
             // add to scores_impacted_by_link for each purpose for said link
             if link_score_contributions.contains_key(&unique_link_id) {
                 // might be able to use get_mut on the dict to speed up the lines below
@@ -288,8 +294,8 @@ pub fn get_all_scores_links_and_key_destinations(
             } else {
                 link_score_contributions.insert(unique_link_id, end_node_purpose_scores);
 
-                let start_node_longlat = rust_node_longlat_lookup[node_start_of_link.0 as usize];
-                let end_node_longlat = rust_node_longlat_lookup[node_end_of_link.0 as usize];
+                let start_node_longlat = rust_node_longlat_lookup[node_start_of_link];
+                let end_node_longlat = rust_node_longlat_lookup[node_end_of_link];
 
                 link_start_end_nodes.insert(
                     unique_link_id,
@@ -324,10 +330,10 @@ pub fn get_all_scores_links_and_key_destinations(
     ];
 
     // to log minimum scores for each purpose: this is the threshold to exceed to get into the running top 3
-    let mut id_and_min_scores: [(NodeID, f64); 5] = [(NodeID(0), 0.0); 5];
+    let mut id_and_min_scores: [(NodeID, Score); 5] = [(NodeID(0), Score(0.0)); 5];
 
-    let mut id_and_scores_top_3: [[(NodeID, f64); 3]; 5] =
-        [[(NodeID(0), 0.0), (NodeID(0), 0.0), (NodeID(0), 0.0)]; 5];
+    let mut id_and_scores_top_3: [[(NodeID, Score); 3]; 5] =
+        [[(NodeID(0), Score(0.0)), (NodeID(0), Score(0.0)), (NodeID(0), Score(0.0))]; 5];
 
     // Dicts of nodeID to adjacent nodes (each Dict will have 3 keys of node IDs, corresponding to vec of Node IDs in each cluster)
     let mut highest_nodes_hashmap_to_adjacent_nodes_vec: [HashMap<NodeID, Vec<NodeID>>; 5] = [
@@ -339,9 +345,9 @@ pub fn get_all_scores_links_and_key_destinations(
     ];
 
     for node_reached_id in destination_ids {
-        // near_nodes is vector of u32 node IDs
-        let near_nodes = nodes_to_neighbouring_nodes[node_reached_id.0 as usize].to_vec();
-        let mut purpose_scores: [f64; 5] = [0.0; 5];
+        // TODO: try borrowing instead of copying
+        let near_nodes = nodes_to_neighbouring_nodes[node_reached_id].to_vec();
+        let mut purpose_scores: [Score; 5] = [Score(0.0); 5];
 
         // get total scores by purpose, of nodes within 120s of this node
         // node_values_contributed_each_purpose_hashmap tells you score contributed by each node
@@ -350,14 +356,24 @@ pub fn get_all_scores_links_and_key_destinations(
             if node_values_contributed_each_purpose_hashmap.contains_key(neighbouring_node) {
                 let scores_one_node =
                     &node_values_contributed_each_purpose_hashmap[neighbouring_node];
+                
+                // new way
+                for (scores_so_far, new_score) in purpose_scores.iter().zip(scores_one_node.iter()) {
+                    scores_so_far += new_score;
+                }
+                
+                // old way: storing in case doesn't work
+                /*
                 for k in 0..5 {
                     purpose_scores[k] += scores_one_node[k];
                 }
+                */
             }
         }
 
         // Look through each of the purposes, and add to the top 3 if it qualifies for any of them
         // "Adjacent" here means: within 120s of that node via walking
+        // TODO: change to iterate over purpose
         for k in 0..5 {
             if purpose_scores[k] >= id_and_min_scores[k].1 {
                 // test if node is an adjacent one

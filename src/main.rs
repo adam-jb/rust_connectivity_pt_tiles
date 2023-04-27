@@ -2,15 +2,17 @@ use actix_web::{get, post, web, App, HttpServer};
 use rayon::prelude::*;
 use smallvec::SmallVec;
 use std::time::Instant;
+use typed_index_collections::TiVec;
 
 use crate::read_files::{
     deserialize_bincoded_file, read_files_parallel_excluding_node_values,
     read_rust_node_longlat_lookup_serial, read_small_files_serial,
     read_sparse_node_values_2d_serial,
 };
-use crate::shared::{Cost, NodeID, EdgePT, EdgeWalk, FloodfillOutput, FinalOutput, UserInputJSON};
+use crate::shared::{Cost, NodeID, EdgePT, EdgeWalk, SubpurposeScore, GraphWalk, GraphPT, FloodfillOutput, FinalOutput, UserInputJSON};
 use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};
 use get_time_of_day_index::get_time_of_day_index;
+
 
 mod floodfill;
 mod get_time_of_day_index;
@@ -21,18 +23,18 @@ mod serialise_files;
 mod shared;
 
 struct AppState {
-    travel_time_relationships_all: Vec<Vec<i32>>,
+    travel_time_relationships_all: Vec<Vec<Score>>,
     subpurpose_purpose_lookup: [i8; 32],
-    nodes_to_neighbouring_nodes: Vec<Vec<NodeID>>,
-    graph_walk: Vec<SmallVec<[EdgeWalk; 4]>>,
-    graph_pt: Vec<SmallVec<[EdgePT; 4]>>,
-    node_values_2d: Vec<Vec<[i32; 2]>>,
+    nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>>,
+    graph_walk: TiVec<NodeID, GraphWalk>,
+    graph_pt: TiVec<NodeID, GraphPT>,
+    node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
     rust_node_longlat_lookup: Vec<[f64; 3]>,
 }
 
 fn get_travel_times_multicore(
-    graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
-    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
+    graph_walk: &TiVec<NodeID, GraphWalk>,
+    graph_pt: &TiVec<NodeID, GraphPT>,
     input: &web::Json<UserInputJSON>,
 ) -> Vec<FloodfillOutput> {
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
@@ -43,11 +45,11 @@ fn get_travel_times_multicore(
             get_travel_times(
                 &graph_walk,
                 &graph_pt,
-                NodeID(*&input.start_nodes_user_input[*i] as u32),
+                *&input.start_nodes_user_input[*i],
                 *&input.trip_start_seconds,
-                Cost(*&input.init_travel_times_user_input[*i] as u16),
+                *&input.init_travel_times_user_input[*i],
                 false,
-                3600,
+                Cost(3600),
             )
         })
         .collect();
@@ -156,14 +158,14 @@ async fn main() -> std::io::Result<()> {
         rust_node_longlat_lookup,
     });
     println!("Starting server");
-    // The 50MB warning is wrong
+    // The 500MB warning is wrong, the decorator on line below silences it
     #[allow(deprecated)]
     HttpServer::new(move || {
         App::new()
             // TODO Fix before deploying for real!
             .wrap(actix_cors::Cors::permissive())
             .app_data(app_state.clone())
-            .data(web::JsonConfig::default().limit(1024 * 1024 * 50)) // allow POST'd JSON payloads up to 50mb
+            .data(web::JsonConfig::default().limit(1024 * 1024 * 500)) // allow POST'd JSON payloads up to 500mb to cover all eventualities
             .service(index)
             .service(get_node_id_count)
             .service(floodfill_pt)
