@@ -47,6 +47,9 @@ pub struct NodeID(
 pub struct LinkID(pub u32);
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+pub struct SecondsPastMidnight(pub u32);
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct Cost(
     #[serde(
         serialize_with = "serialize_u32_as_u16",
@@ -55,21 +58,50 @@ pub struct Cost(
     pub u32,
 );
 
+// Allow Cost to be multiplied by SecondsPastMidnight, or compared against, or added
+impl Cost {
+    pub fn multiply(&self, second_past_midnight: SecondsPastMidnight) -> Cost {
+        Cost(self.0 * second_past_midnight.0)
+    }
+    
+    pub fn add(&self, other: &SecondsPastMidnight) -> Cost {
+        Cost(self.0 + other.0)
+    }
+}
+
+// Allow Cost to be multiplied by SecondsPastMidnight, or compared against, or added
+impl SecondsPastMidnight {
+    pub fn add(&self, other: &Cost) -> SecondsPastMidnight {
+        SecondsPastMidnight(self.0 + other.0)
+    }
+}
+
+// to allow a SecondsPastMidnight instance to cast into Cost with val.into()
+impl From<SecondsPastMidnight> for Cost {
+    fn from(seconds_past_midnight: SecondsPastMidnight) -> Cost {
+        Cost(seconds_past_midnight.0)
+    }
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct HasPt(pub bool);
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+pub struct Multiplier(pub f64);
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct Score(pub f64);
+
+// Allow Score to be multiplied by Multiplier
+impl Score {
+    pub fn multiply(&self, multiplier: Multiplier) -> Score {
+        Score(self.0 * multiplier.0)
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct EdgeWalk {
     pub to: NodeID,
-    pub cost: Cost,
-}
-
-#[derive(Serialize, Deserialize, Clone, Copy)]
-pub struct EdgePT {
-    pub leavetime: Cost,
     pub cost: Cost,
 }
 
@@ -90,6 +122,12 @@ pub struct GraphWalk {
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
+pub struct EdgePT {
+    pub leavetime: SecondsPastMidnight,
+    pub cost: Cost,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct GraphPT {
     pub next_stop_node: NodeID,
     pub timetable: SmallVec<[EdgePT; 4]>,
@@ -99,31 +137,27 @@ pub struct GraphPT {
 pub struct UserInputJSON {
     pub start_nodes_user_input: Vec<NodeID>,
     pub init_travel_times_user_input: Vec<Cost>,
-    pub trip_start_seconds: Cost,
+    pub trip_start_seconds: SecondsPastMidnight,
+}
+
+pub struct DestinationReached {
+    pub node: NodeID.
+    pub cost: Cost,
+    pub previous_node: NodeID,
+    pub previous_node_iters_taken: usize,
+    pub arrived_at_node_by_pt: u8,     // 0 for walk; 1 for PT
 }
 
 pub struct FloodfillOutput {
     pub start_node_id: NodeID,
-    // TODO destinations_reached: Vec<(NodeID, Cost, Path)>
-    pub destination_ids: Vec<NodeID>,
-    pub destination_travel_times: Vec<Cost>,
-    pub nodes_visited_sequences: Vec<Vec<NodeID>>,
-    pub init_travel_time: Cost,
+    pub seconds_walk_to_start_node: Cost,
+    pub destinations_reached: Vec<DestinationReached>    // ID of node reached; seconds to get there; previous Node ID
 }
 
 #[derive(Serialize)]
 pub struct LinkCoords {
-    pub start_node_longlat: [f64; 3],
-    pub end_node_longlat: [f64; 3],
-}
-
-#[derive(Serialize)]
-pub struct PurposeScores {
-    pub Business: f64,
-    pub Education: f64,
-    pub Entertainment: f64,
-    pub Shopping: f64,
-    pub VisitFriends: f64,
+    pub start_node_longlat: [f64; 2],
+    pub end_node_longlat: [f64; 2],
 }
 
 #[derive(Serialize)]
@@ -131,35 +165,19 @@ pub struct FinalOutput {
     pub num_iterations: i32,
     pub start_node: NodeID,
     pub score_per_purpose: [f64; 5],
-    pub per_link_score_per_purpose: HashMap<LinkID, [f64; 5]>,
-    pub link_coordinates: HashMap<LinkID, Vec<String>>,
+    pub per_link_score_per_purpose: Vec<[Score; 5]>,
+    pub link_coordinates: Vec<Vec<String>>,
     pub key_destinations_per_purpose: [[[f64; 2]; 3]; 5],
     pub init_travel_time: u16,
+    pub link_is_pt: Vec<u8>,
 }
 
-#[derive(Serialize, Debug)]
-pub struct LinkCoordsString {
-    pub start_node_longlat: String,
-    pub end_node_longlat: String,
-}
-
-impl LinkCoords {
-    pub fn to_string_with_6dp(&self) -> LinkCoordsString {
-        let start_node_longlat = self
-            .start_node_longlat
-            .iter()
-            .map(|n| format!("{:.6}", n))
-            .collect::<Vec<String>>()
-            .join(",");
-        let end_node_longlat = self
-            .end_node_longlat
-            .iter()
-            .map(|n| format!("{:.6}", n))
-            .collect::<Vec<String>>()
-            .join(",");
-        LinkCoordsString {
-            start_node_longlat,
-            end_node_longlat,
-        }
-    }
+// TODO: decide if to use and delete if not
+#[derive(Serialize)]
+pub struct PurposeScores {
+    pub Business: f64,
+    pub Education: f64,
+    pub Entertainment: f64,
+    pub Shopping: f64,
+    pub VisitFriends: f64,
 }

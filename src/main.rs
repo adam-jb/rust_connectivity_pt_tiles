@@ -115,7 +115,7 @@ async fn main() -> std::io::Result<()> {
     let year: i32 = 2022;
 
     // make this true on initial run; false otherwise
-    if false {
+    if true {
         serialise_files::serialise_files(year);
         serialise_files::serialise_sparse_node_values_2d(year);
         serialise_files::serialise_rust_node_longlat_lookup();
@@ -123,7 +123,7 @@ async fn main() -> std::io::Result<()> {
 
     // comment this out to not make the lookup of nodes which are near other nodes
     // this is big preprocessing stage (~90mins with 8cores)
-    if false {
+    if true {
         make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s(year);
     }
 
@@ -145,7 +145,7 @@ async fn main() -> std::io::Result<()> {
     let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(2022);
     let node_values_2d = read_sparse_node_values_2d_serial(2022);
     let rust_node_longlat_lookup = read_rust_node_longlat_lookup_serial();
-    let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> =
+    let nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>> =
         deserialize_bincoded_file("nodes_to_neighbouring_nodes");
 
     let app_state = web::Data::new(AppState {

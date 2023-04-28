@@ -159,6 +159,19 @@ fn serialise_list(filename: &str) {
     println!("Serialised to {}", outpath);
 }
 
+fn serialise_list_f64(filename: &str) {
+    let inpath = format!("data/{}.json", filename);
+    let contents = fs_err::read_to_string(&inpath).unwrap();
+    let output: Vec<f64> = serde_json::from_str(&contents).unwrap();
+    println!("Read from {}", inpath);
+
+    let outpath = format!("serialised_data/{}.bin", filename);
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised to {}", outpath);
+}
+
+
 fn serialise_list_immutable_array_i8(filename: &str) {
     let inpath = format!("data/{}.json", filename);
     let contents = std::fs::read_to_string(&inpath).unwrap();
