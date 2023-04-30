@@ -6,17 +6,30 @@ use std::path::Path;
 use std::collections::HashMap;
 
 use crate::shared::{
-    Cost, EdgePT, EdgeWalk, NodePT, NodeWalk, NodeID, Multiplier, SecondsPastMidnight, SubpurposeScore,
+    Cost, EdgePT, EdgeWalk, NodePT, NodeWalk, NodeID, Score, Multiplier, SecondsPastMidnight, SubpurposeScore,
 };
 
 
 pub fn serialise_sparse_node_values_2d(year: i32) {
     let inpath = format!("data/sparse_node_values_6am_{}_2d.json", year);
-    let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: Vec<SubpurposeScore> =
-        serde_json::from_str::<Vec<SubpurposeScore>>(&contents).unwrap().into();
-
-    println!("Read from {}", inpath);
+    let file = File::open(Path::new(&inpath)).unwrap();
+    let reader = BufReader::new(file);
+    let input: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
+    
+    let mut output: Vec<Vec<SubpurposeScore>> = Vec::new();
+    for item in input.iter() {
+        let sparse_subpurpose_scores_this_node: Vec<[usize; 2]> = serde_json::from_value(item.clone()).unwrap();
+        let mut output_this_node: Vec<SubpurposeScore> = Vec::new();
+        
+        for val in sparse_subpurpose_scores_this_node.iter() {
+            output_this_node.push(SubpurposeScore {
+                subpurpose_ix: val[0] as usize,
+                subpurpose_score: Score(val[1] as f64),
+            });
+        }
+        output.push(output_this_node);
+    }
+    println!("Read and processed from from {}", inpath);
 
     let outpath = format!("serialised_data/sparse_node_values_6am_{}_2d.bin", year);
     let file = BufWriter::new(File::create(&outpath).unwrap());
@@ -24,8 +37,8 @@ pub fn serialise_sparse_node_values_2d(year: i32) {
     println!("Serialised sparse_node_values to {}", outpath);
 }
 
-pub fn serialise_rust_node_longlat_lookup() {
-    let inpath = format!("data/rust_nodes_long_lat.json");
+pub fn serialise_rust_node_longlat_lookup(year: i32) {
+    let inpath = format!("data/rust_nodes_long_lat_{}.json", year);
     let contents = fs_err::read_to_string(&inpath).unwrap();
     let output: Vec<[f64; 2]> = serde_json::from_str::<Vec<[f64; 2]>>(&contents).unwrap().into();
     println!("Read from {}", inpath);

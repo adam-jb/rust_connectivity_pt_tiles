@@ -120,16 +120,16 @@ async fn main() -> std::io::Result<()> {
     
 
     // make this true on initial run; false otherwise
-    if true {
-        //serialise_files::serialise_files(year);
+    if false {
+        serialise_files::serialise_files(year);
         serialise_files::serialise_sparse_node_values_2d(year);
-        serialise_files::serialise_rust_node_longlat_lookup();
+        serialise_files::serialise_rust_node_longlat_lookup(year);
     }
 
     // comment this out to not make the lookup of nodes which are near other nodes
     // this is big preprocessing stage (~90mins with 8cores)
     if true {
-        let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(2022);
+        let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
         make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s(graph_walk, graph_pt);
     }
 
