@@ -5,7 +5,7 @@ use std::io::BufReader;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-use crate::shared::{EdgePT, EdgeWalk, SubpurposeScore, GraphWalk, GraphPT};
+use crate::shared::{EdgePT, EdgeWalk, Score, SubpurposeScore, GraphWalk, GraphPT};
 
 pub fn read_sparse_node_values_2d_serial(year: i32) -> TiVec<NodeID, Vec<[i32; 2]>> {
     let now = Instant::now();

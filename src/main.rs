@@ -30,6 +30,7 @@ struct AppState {
     graph_pt: TiVec<NodeID, GraphPT>,
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
     rust_node_longlat_lookup: Vec<[f64; 2]>,
+    route_info: TiVec<NodeID, String>,
 }
 
 fn get_travel_times_multicore(
@@ -96,6 +97,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
                 &data.subpurpose_purpose_lookup,
                 &data.nodes_to_neighbouring_nodes,
                 &data.rust_node_longlat_lookup,
+                &data.route_info,
             )
         })
         .collect();
@@ -141,6 +143,9 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_16,
         travel_time_relationships_19,
     ];
+    
+    let route_info: TiVec<NodeID, String> =
+        deserialize_bincoded_file(&format!("route_info_{year}"));
 
     let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(2022);
     let node_values_2d = read_sparse_node_values_2d_serial(2022);
@@ -156,6 +161,7 @@ async fn main() -> std::io::Result<()> {
         graph_pt,
         node_values_2d,
         rust_node_longlat_lookup,
+        route_info,
     });
     println!("Starting server");
     // The 500MB warning is wrong, the decorator on line below silences it

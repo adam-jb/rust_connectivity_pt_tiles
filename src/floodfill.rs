@@ -1,5 +1,5 @@
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, NodeID, Score, Multiplier, IterCounter, SecondsPastMidnight, GraphWalk, GraphPT, DestinationReached, LinkCoords, LinkID, LinkCoordsString};
+use crate::shared::{Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, NodeID, Score, Multiplier, SubpurposeScore, SecondsPastMidnight, GraphWalk, GraphPT, DestinationReached, LinkCoords, LinkID, LinkCoordsString};
 use smallvec::SmallVec;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use typed_index_collections::TiVec;
@@ -166,6 +166,7 @@ pub fn get_all_scores_links_and_key_destinations(
     subpurpose_purpose_lookup: &[i8; 32],
     nodes_to_neighbouring_nodes: &TiVec<NodeID, Vec<NodeID>>,
     rust_node_longlat_lookup: &TiVec<NodeID, [f64; 2]>,
+    route_info: &TiVec<NodeID, String>,
 ) -> FinalOutput {
     // Got this from 'subpurpose_purpose_lookup_integer_list.json' in connectivity-processing-files
     let subpurpose_purpose_lookup: [usize; 32] = [
@@ -292,6 +293,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let mut link_score_contributions: Vec<[Score; 5]> = vec![[Score(0.0); 5]; destinations_reached.len()];
     let mut link_start_end_nodes_string: Vec<Vec<String>> = vec![];
     let mut link_is_pt: Vec<u8> = vec![];
+    let mut node_info_for_output: HashMap<usize, String> = HashMap::new();
     
     // enumerate() produces 'iters' which is usize by default
     // Skip first node reached as this is the start node, which has no link
@@ -300,7 +302,7 @@ pub fn get_all_scores_links_and_key_destinations(
         // copying iter as it gets changed during the loop below. This should be an implicit clone() without using *
         let node_reached_iter = iter;
         
-        // loop until full path to node reached has been explored and links added to
+        // loop until full path to node reached has been explored and each link taken has had the score for this node added to it's total contribution
         while true {
             
             for k in 0..5 {
@@ -335,6 +337,13 @@ pub fn get_all_scores_links_and_key_destinations(
         ]);
         
         link_is_pt.push(arrived_at_node_by_pt);
+        
+        
+        if arrived_at_node_by_pt == 1 {
+            node_info_for_output[iter] = route_info[previous_node];
+        }
+        
+        
     }
     // ****** Contributions to scores obtained ******
 
@@ -519,5 +528,6 @@ pub fn get_all_scores_links_and_key_destinations(
         link_is_pt: link_is_pt,
         key_destinations_per_purpose: most_important_nodes_longlat,
         init_travel_time: seconds_walk_to_start_node,
+        node_info_for_output: node_info_for_output,
     }
 }

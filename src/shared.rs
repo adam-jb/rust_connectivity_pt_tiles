@@ -170,6 +170,7 @@ pub struct FinalOutput {
     pub key_destinations_per_purpose: [[[f64; 2]; 3]; 5],
     pub init_travel_time: u16,
     pub link_is_pt: Vec<u8>,
+    pub node_info_for_output: Hashmap<String>,
 }
 
 // TODO: decide if to use and delete if not

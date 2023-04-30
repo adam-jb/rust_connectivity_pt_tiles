@@ -1,12 +1,10 @@
 use smallvec::SmallVec;
 use std::time::Instant;
 use typed_index_collections::TiVec;
-use crate::shared::{Score};
-
 use fs_err::File;
 use std::io::{BufReader, BufWriter};
 
-use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID, HasPt, GraphWalk, GraphPT};
+use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID, HasPt, Score, SubpurposeScore, GraphWalk, GraphPT};
 
 pub fn serialise_sparse_node_values_2d(year: i32) {
     let inpath = format!("data/sparse_node_values_6am_{}_2d.json", year);
@@ -36,17 +34,16 @@ pub fn serialise_rust_node_longlat_lookup() {
 pub fn serialise_files(year: i32) {
     let now = Instant::now();
 
-    let padded_nodes_filename = format!("padded_node_values_6am_{}", year);
-    serialise_list(&padded_nodes_filename);
     let len_graph_walk = serialise_graph_walk_vector(year);
     serialise_graph_pt_vector(year, len_graph_walk);
     serialise_node_values_padding_count(year);
+    serialise_route_info(year);
 
     serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
-    serialise_list_f64("travel_time_relationships_7");
-    serialise_list_f64("travel_time_relationships_10");
-    serialise_list_f64("travel_time_relationships_16");
-    serialise_list_f64("travel_time_relationships_19");
+    serialise_list_Score("travel_time_relationships_7");
+    serialise_list_Score("travel_time_relationships_10");
+    serialise_list_Score("travel_time_relationships_16");
+    serialise_list_Score("travel_time_relationships_19");
     println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
 
@@ -135,6 +132,18 @@ fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
     bincode::serialize_into(file, &graph_pt_vec).unwrap();
 }
 
+fn serialise_route_info(year: i32) {
+    let inpath = format!("data/route_info_{}.json", year);
+    let contents = fs_err::read_to_string(&inpath).unwrap();
+    let output: TiVec<NodeID, String> = serde_json::from_str(&contents).unwrap();
+    println!("Read from {}", inpath);
+
+    let outpath = format!("serialised_data/route_info_{}.bin", year);
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised to {}", outpath);
+}
+
 fn serialise_list_Score(filename: &str) {
     let inpath = format!("data/{}.json", filename);
     let contents = fs_err::read_to_string(&inpath).unwrap();
@@ -146,31 +155,6 @@ fn serialise_list_Score(filename: &str) {
     bincode::serialize_into(file, &output).unwrap();
     println!("Serialised to {}", outpath);
 }
-
-fn serialise_list(filename: &str) {
-    let inpath = format!("data/{}.json", filename);
-    let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: Vec<i32> = serde_json::from_str(&contents).unwrap();
-    println!("Read from {}", inpath);
-
-    let outpath = format!("serialised_data/{}.bin", filename);
-    let file = BufWriter::new(File::create(&outpath).unwrap());
-    bincode::serialize_into(file, &output).unwrap();
-    println!("Serialised to {}", outpath);
-}
-
-fn serialise_list_f64(filename: &str) {
-    let inpath = format!("data/{}.json", filename);
-    let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: Vec<f64> = serde_json::from_str(&contents).unwrap();
-    println!("Read from {}", inpath);
-
-    let outpath = format!("serialised_data/{}.bin", filename);
-    let file = BufWriter::new(File::create(&outpath).unwrap());
-    bincode::serialize_into(file, &output).unwrap();
-    println!("Serialised to {}", outpath);
-}
-
 
 fn serialise_list_immutable_array_i8(filename: &str) {
     let inpath = format!("data/{}.json", filename);
