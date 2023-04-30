@@ -20,7 +20,7 @@ pub fn get_travel_times(
     let mut previous_node = start_node_id;
     let mut iters_count: usize = 0;
 
-    let mut queue: BinaryHeap<PriorityQueueItem<NodeID, Cost, NodeID, usize, u8>> =
+    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, NodeID, usize, u8>> =
         BinaryHeap::new();
     queue.push(PriorityQueueItem {
         node: start_node_id,
@@ -51,8 +51,8 @@ pub fn get_travel_times(
         nodes_visited[current.node] = true;
 
         destinations_reached.push(DestinationReached {
-            node: current.node,
             cost: current.cost,
+            node: current.node,
             previous_node: current.previous_node,
             previous_node_iters_taken: current.previous_node_iters_taken,
             arrived_at_node_by_pt: current.arrived_at_node_by_pt,
@@ -65,8 +65,8 @@ pub fn get_travel_times(
             let new_cost = current.cost + edge.cost;
             if new_cost < time_limit {
                 queue.push(PriorityQueueItem {
-                    node: edge.to,
                     cost: new_cost,
+                    node: edge.to,
                     previous_node: current.node,
                     previous_node_iters_taken: iters_count,
                     arrived_at_node_by_pt: 0,
@@ -84,7 +84,6 @@ pub fn get_travel_times(
                     time_limit,
                     trip_start_seconds,
                     current.node,
-                    current.previous_node,
                     iters_count,
                 );
             }
@@ -102,12 +101,11 @@ pub fn get_travel_times(
 fn take_next_pt_route(
     graph_pt: &TiVec<NodeID, GraphPT>,
     time_so_far: Cost,
-    queue: &mut BinaryHeap<PriorityQueueItem<NodeID, Cost, NodeID, usize, u8>>,
+    queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID, NodeID, usize, u8>>,
     time_limit: Cost,
     trip_start_seconds: SecondsPastMidnight,
     current_node: NodeID,
-    current_iters_taken: usize,
-    iters_count: &usize,
+    iters_count: usize,
 ) {
     // find time node is arrived: as SecondsPastMidnight
     let time_of_arrival_current_node = trip_start_seconds.add(&time_so_far);
@@ -139,7 +137,7 @@ fn take_next_pt_route(
 
             queue.push(PriorityQueueItem {
                 cost: time_since_start_next_stop_arrival,
-                next_node: destination_node,
+                node: destination_node,
                 previous_node: current_node,
                 previous_node_iters_taken: iters_count,
                 arrived_at_node_by_pt: 1,
@@ -242,14 +240,14 @@ pub fn get_all_scores_links_and_key_destinations(
             // Old!
             //let subpurpose_ix = subpurpose_score_pair[0];
 
-            let vec_start_pos_this_purpose = subpurpose_purpose_lookup[subpurpose_ix] * 3601;
+            let vec_start_pos_this_purpose = subpurpose_purpose_lookup[*subpurpose_ix] * 3601;
             let multiplier =
                 travel_time_relationships[vec_start_pos_this_purpose + (cost.0)];
             let score_to_add = subpurpose_score.multiply_f64(multiplier);
-            subpurpose_scores[subpurpose_ix] += score_to_add;
+            subpurpose_scores[*subpurpose_ix] += score_to_add;
 
             // To get purpose level contribution to scores for each node: used for finding key destinations
-            let purpose_ix = subpurpose_purpose_lookup[subpurpose_ix];
+            let purpose_ix = subpurpose_purpose_lookup[&subpurpose_ix];
             purpose_scores_this_node[purpose_ix] += score_to_add;
         }
 
@@ -306,7 +304,7 @@ pub fn get_all_scores_links_and_key_destinations(
         // loop until full path to node reached has been explored and each link taken has had the score for this node added to it's total contribution
         while true {
             for k in 0..5 {
-                link_score_contributions[node_reached_iter][k] += &node_values_contributed_each_purpose_vec[node_reached_iter][k];
+                link_score_contributions[node_reached_iter][k] += node_values_contributed_each_purpose_vec[node_reached_iter][k];
             }
 
             if node_reached_iter == 0 {
@@ -338,7 +336,7 @@ pub fn get_all_scores_links_and_key_destinations(
         link_is_pt.push(*arrived_at_node_by_pt);
 
         if *arrived_at_node_by_pt == 1 {
-            node_info_for_output[node_reached_iteration] = route_info[previous_node];
+            node_info_for_output[&node_reached_iteration] = route_info[previous_node];
         }
     }
     // ****** Contributions to scores obtained ******
@@ -383,14 +381,14 @@ pub fn get_all_scores_links_and_key_destinations(
 
     for DestinationReached { node, .. } in destinations_reached.iter() {
     //for node_reached_id in destination_ids {    // original
-        let near_nodes = &nodes_to_neighbouring_nodes[node];
+        let near_nodes = nodes_to_neighbouring_nodes[node];
         let mut purpose_scores = [Score(0.0); 5];
 
         // get total scores by purpose, of nodes within 120s of this node
         // node_values_contributed_each_purpose_hashmap tells you score contributed by each node
         for neighbouring_node in near_nodes {
             // nodes which aren't reached in the 3600s won't be in nodes_reached_set
-            if nodes_reached_set.contains_key(neighbouring_node) {
+            if nodes_reached_set.contains(neighbouring_node) {
                 let scores_one_node =
                     &node_values_contributed_each_purpose_hashmap[neighbouring_node];
 
@@ -514,7 +512,7 @@ pub fn get_all_scores_links_and_key_destinations(
     }
 
     FinalOutput {
-        num_iterations: destinations_reached.len() as i32,
+        num_iterations: destinations_reached.len() as u32,
         start_node: start,
         score_per_purpose: overall_purpose_scores,
         per_link_score_per_purpose: link_score_contributions,

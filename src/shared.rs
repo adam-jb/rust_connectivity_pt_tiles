@@ -3,7 +3,7 @@ use std::cmp::{Ord, PartialEq, PartialOrd};
 use std::collections::HashMap;
 use std::hash::Hash;
 use smallvec::SmallVec;
-use std::ops::{Add, Sub};
+use std::ops::{Add, Sub, AddAssign};
 
 // Serializes a `usize` as a `u32` to save space. Useful when you need `usize` for indexing, but
 // the values don't exceed 2^32.
@@ -46,7 +46,13 @@ pub struct NodeID(
 );
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
-pub struct SecondsPastMidnight(pub u32);
+pub struct SecondsPastMidnight(
+    #[serde(
+        serialize_with = "serialize_usize",
+        deserialize_with = "deserialize_usize"
+    )]
+    pub usize
+);
 
 // Allow instances of SecondsPastMidnight type to do minus '-' operation with other instances of this type
 impl Sub for SecondsPastMidnight {
@@ -87,9 +93,6 @@ impl From<SecondsPastMidnight> for Cost {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
-pub struct HasPt(pub bool);
-
 pub struct Multiplier(pub f64);
 
 #[derive(Serialize, Deserialize, PartialEq, PartialOrd, Clone, Copy, Debug)]
@@ -107,6 +110,12 @@ impl Score {
     
     pub fn ln(self) -> Self {
         Score(self.0.ln())
+    }
+}
+
+impl AddAssign for Score {
+    fn add_assign(&mut self, other: Self) {
+        self.0 += other.0;
     }
 }
 
@@ -128,7 +137,7 @@ pub struct SubpurposeScore {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GraphWalk {
-    pub pt_status: HasPt,
+    pub HasPt: bool,
     pub node_connections: SmallVec<[EdgeWalk; 4]>,
 }
 

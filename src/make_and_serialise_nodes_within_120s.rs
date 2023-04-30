@@ -36,7 +36,11 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
     let mut nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>> =
         vec![vec![]; graph_walk.len()].into();
     for res in results {
-        nodes_to_neighbouring_nodes[res.start_node_id] = res.destinations_reached;
+        let mut nodes_reached = Vec::new();
+        for destination in res.destinations_reached {
+            nodes_reached.push(destination.node);
+        }
+        nodes_to_neighbouring_nodes[res.start_node_id] = nodes_reached;
     }
 
     let file =

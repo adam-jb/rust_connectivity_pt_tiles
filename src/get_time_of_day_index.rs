@@ -1,4 +1,7 @@
-pub fn get_time_of_day_index(trip_start_seconds: i32) -> usize {
+
+use crate::shared::{SecondsPastMidnight};
+
+pub fn get_time_of_day_index(trip_start_seconds: SecondsPastMidnight) -> usize {
     let mut time_of_day_ix = 0;
     if trip_start_seconds > 3600 * 10 {
         time_of_day_ix = 1;

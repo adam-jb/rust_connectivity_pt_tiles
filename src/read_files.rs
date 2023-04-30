@@ -7,7 +7,7 @@ use typed_index_collections::TiVec;
 
 use crate::shared::{NodeID, EdgePT, EdgeWalk, GraphPT, GraphWalk, Score, SubpurposeScore};
 
-pub fn read_sparse_node_values_2d_serial(year: i32) -> TiVec<NodeID, Vec<[i32; 2]>> {
+pub fn read_sparse_node_values_2d_serial(year: i32) -> TiVec<NodeID, Vec<SubpurposeScore>> {
     let now = Instant::now();
     let sparse_node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> =
         deserialize_bincoded_file(&format!("sparse_node_values_6am_{year}_2d"));

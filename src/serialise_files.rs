@@ -6,7 +6,7 @@ use typed_index_collections::TiVec;
 use std::path::Path;
 
 use crate::shared::{
-    Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, HasPt, NodeID, Score, SecondsPastMidnight, SubpurposeScore,
+    Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, NodeID, Score, SecondsPastMidnight, SubpurposeScore,
 };
 
 pub fn serialise_sparse_node_values_2d(year: i32) {
@@ -78,12 +78,12 @@ fn serialise_graph_walk_vector(year: i32) -> usize {
         let mut edges: SmallVec<[EdgeWalk; 4]> = SmallVec::new();
         for array in node_connections {
             edges.push(EdgeWalk {
-                to: NodeID(array[1] as usize),
-                cost: Cost(array[0] as u32),
+                cost: Cost(array[0]),
+                to: NodeID(array[1]),
             });
         }
         graph_walk_vec.push(GraphWalk {
-            pt_status: HasPt(pt_status),
+            HasPt: pt_status,
             node_connections: edges,
         });
     }
@@ -109,8 +109,8 @@ fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
         let mut edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
         for array in timetable {
             edges.push(EdgePT {
-                leavetime: SecondsPastMidnight(array[0] as u32),
-                cost: Cost(array[0] as u32),
+                leavetime: SecondsPastMidnight(array[0]),
+                cost: Cost(array[0]),
             });
         }
         graph_pt_vec.push(GraphPT {

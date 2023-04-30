@@ -72,6 +72,7 @@ async fn get_node_id_count() -> String {
 
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
+    
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 
     println!(
