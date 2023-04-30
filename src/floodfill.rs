@@ -175,8 +175,9 @@ pub fn get_all_scores_links_and_key_destinations(
 
     // Get this from score_multipler_by_subpurpose_id_{mode_simpler}.json in connectivity-processing-files
     // Used to get relative importance of each subpurpose when aggregating them to purpose level
+    // This has subpurposes ['Residential', 'Motor sports', 'Allotment'] set to zero, which would, prior to removal, pertaining to subpurposes [0, 10, 14]
     let score_multipler: [Multiplier; 32] = [
-        Multiplier(0.00831415115437604),
+        Multiplier(0.000000000000000),     // set to 0
         Multiplier(0.009586382150013575),
         Multiplier(0.00902817799219063),
         Multiplier(0.008461272650878338),
@@ -186,11 +187,11 @@ pub fn get_all_scores_links_and_key_destinations(
         Multiplier(0.008314147237807904),
         Multiplier(0.010321099162180719),
         Multiplier(0.00850878998927169),
-        Multiplier(0.008314150893271383),
+        Multiplier(0.00000000000000),  // set to 0
         Multiplier(0.009256043337142108),
         Multiplier(0.008338366940103991),
         Multiplier(0.009181584368558857),
-        Multiplier(0.008455731022360958),
+        Multiplier(0.000000000000000),  // set to 0
         Multiplier(0.009124946989519319),
         Multiplier(0.008332774189837317),
         Multiplier(0.046128804773287346),
@@ -210,8 +211,7 @@ pub fn get_all_scores_links_and_key_destinations(
         Multiplier(0.012110456385386992),
     ];
 
-    // based on subpurpose_integers_to_ignore.json; they include ['Residential', 'Motor sports', 'Allotment']
-    let subpurposes_to_ignore: [usize; 3] = [0, 10, 14];
+    // subpurpose_scores includes the 3 subpurposes to ignore as postproc scripts are expecting them ['Residential', 'Motor sports', 'Allotment'] though they will always be 0
     let mut subpurpose_scores: [Score; 32] = [0.0; 32];
 
     let start = floodfill_output.start_node_id;
@@ -257,6 +257,7 @@ pub fn get_all_scores_links_and_key_destinations(
             }
         }
 
+        // might only need node_values_contributed_each_purpose_hashmap OR node_values_contributed_each_purpose_vec
         node_values_contributed_each_purpose_hashmap.insert(node, purpose_scores_this_node);
         
         nodes_reached_set.insert(node)
@@ -266,13 +267,8 @@ pub fn get_all_scores_links_and_key_destinations(
     // **** Loops through each subpurpose, scaling them and getting the purpose level scores for the start node
     let mut overall_purpose_scores: [Score; 5] = [Score(0.0); 5];
     for subpurpose_ix in 0..subpurpose_scores.len() {
-        // skip if subpurpose in ['Residential', 'Motor sports', 'Allotment']
-        if subpurposes_to_ignore.contains(&subpurpose_ix) {
-            continue;
-        }
 
-        // Apply score_multipler to get purpose level scores for this start node. This does what s39 would do in python: faster to do it here as so many tiles
-        // getting log of score for this subpurpose
+        // Apply score_multipler and apply logarithm to get subpurpose level scores
         let mut subpurpose_score =
             subpurpose_scores[subpurpose_ix].multiply(score_multipler[subpurpose_ix]).ln();
 
@@ -286,6 +282,7 @@ pub fn get_all_scores_links_and_key_destinations(
         overall_purpose_scores[purpose_ix] += subpurpose_score;
     }
     // ****** Overall scores obtained ******
+    
 
     // ******* Get contributions to scores: to tell us the relative importance of each link *******
     
