@@ -22,12 +22,12 @@ pub fn serialise_sparse_node_values_2d(year: i32) {
 }
 
 pub fn serialise_rust_node_longlat_lookup() {
-    let inpath = format!("data/rust_lookup_long_lat_pt_class_list.json");
+    let inpath = format!("data/rust_nodes_long_lat.json");
     let contents = fs_err::read_to_string(&inpath).unwrap();
     let output: TiVec<NodeID, [f64; 2]> = serde_json::from_str(&contents).unwrap().into();
     println!("Read from {}", inpath);
 
-    let outpath = format!("serialised_data/rust_lookup_long_lat_pt_class_list.bin");
+    let outpath = format!("serialised_data/rust_nodes_long_lat.bin");
     let file = BufWriter::new(File::create(&outpath).unwrap());
     bincode::serialize_into(file, &output).unwrap();
     println!("Serialised to {}", outpath);

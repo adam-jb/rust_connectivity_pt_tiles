@@ -22,7 +22,7 @@ data_files = [
     'travel_time_relationships_7.json',
     'subpurpose_purpose_lookup.json',
     'number_of_destination_categories.json',
-    'rust_lookup_long_lat_pt_class_list.json'
+    'rust_nodes_long_lat.json'
 ]
 
 for file in data_files:
@@ -36,6 +36,7 @@ for year in range(2022, 2023):
         f"padded_node_values_6am_{year}.json",
         f"sparse_node_values_6am_{year}_2d.json",
         f"node_values_padding_row_count_6am_{year}.json",
+        f"routes_info_{year}.json",
     ]:
         blob = bucket.blob(file)
         blob.download_to_filename(f"data/{file}")

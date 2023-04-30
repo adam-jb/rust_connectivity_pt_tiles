@@ -5,7 +5,7 @@ curl https://sh.rustup.rs -sSf | sh && \
 source "$HOME/.cargo/env"
 ```
 
-1. Run `./download_input.sh` once to download input data
+1. Run `./download_input_json.py` once to download input data
 
 2. Flip the `if false` part of `serialise_files` and `create_graph_walk_len` in `src/main.rs` to `true` so the files are serialised
 
