@@ -109,7 +109,7 @@ pub fn get_travel_times(
 fn take_next_pt_route(
     graph_pt: &TiVec<NodeID, SmallVec<[EdgePT; 4]>>,
     time_so_far: Cost,
-    queue: &mut BinaryHeap<PriorityQueueItem<NodeID, Cost, NodeID>>,
+    queue: &mut BinaryHeap<PriorityQueueItem<NodeID, Cost, NodeID, usize, u8>>,
     time_limit: Cost,
     trip_start_seconds: SecondsPastMidnight,
     current_node: NodeID,
