@@ -130,7 +130,7 @@ async fn main() -> std::io::Result<()> {
     // this is big preprocessing stage (~90mins with 8cores)
     if true {
         let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(2022);
-        make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s(year, graph_walk, graph_pt);
+        make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s(graph_walk, graph_pt);
     }
 
     let (

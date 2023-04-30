@@ -18,7 +18,7 @@ pub fn get_travel_times(
     walk_only: bool,
     time_limit: Cost,
 ) -> FloodfillOutput {
-    let mut previous_node = start_node_id;
+    let previous_node = start_node_id;
     let mut iters_count: usize = 0;
 
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, NodeID, usize, u8>> =
@@ -45,7 +45,7 @@ pub fn get_travel_times(
         };
     }
 
-    while let Some(mut current) = queue.pop() {
+    while let Some(current) = queue.pop() {
         if nodes_visited[current.node] {
             continue;
         }
@@ -77,7 +77,7 @@ pub fn get_travel_times(
 
         // Find next PT route if there is one
         if !walk_only {
-            if graph_walk[current.node].HasPt {
+            if graph_walk[current.node].HasPT {
                 take_next_pt_route(
                     &graph_pt,
                     current.cost,
@@ -292,7 +292,6 @@ pub fn get_all_scores_links_and_key_destinations(
         node_reached_iteration,
         DestinationReached {
             node,
-            cost,
             previous_node,
             arrived_at_node_by_pt,
             ..

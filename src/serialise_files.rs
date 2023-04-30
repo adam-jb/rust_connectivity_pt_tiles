@@ -44,10 +44,10 @@ pub fn serialise_files(year: i32) {
     serialise_route_info(year);
 
     serialise_list_immutable_array_usize("subpurpose_purpose_lookup");
-    serialise_list_Multiplier("travel_time_relationships_7");
-    serialise_list_Multiplier("travel_time_relationships_10");
-    serialise_list_Multiplier("travel_time_relationships_16");
-    serialise_list_Multiplier("travel_time_relationships_19");
+    serialise_list_multiplier("travel_time_relationships_7");
+    serialise_list_multiplier("travel_time_relationships_10");
+    serialise_list_multiplier("travel_time_relationships_16");
+    serialise_list_multiplier("travel_time_relationships_19");
     println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
 
@@ -71,9 +71,10 @@ fn serialise_graph_walk_vector(year: i32) -> usize {
     let input: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
     let mut graph_walk_vec: Vec<NodeWalk> = Vec::new();
 
-    for item in input.iter() {
-        println!("{:?}", item["pt_status"]);
-        let pt_status = item["pt_status"].as_bool().unwrap();
+    for item in input.iter() {        
+        // Converting 1 or 0 into boolean for HasPT
+        let pt_status_integer = item["pt_status"].as_i64().unwrap();
+        let pt_status_boolean = if pt_status_integer == 1 { true } else { false };
         let node_connections: Vec<[usize; 2]> =
             serde_json::from_value(item["node_connections"].clone()).unwrap();
         let mut edges: SmallVec<[EdgeWalk; 4]> = SmallVec::new();
@@ -84,10 +85,11 @@ fn serialise_graph_walk_vector(year: i32) -> usize {
             });
         }
         graph_walk_vec.push(NodeWalk {
-            HasPt: pt_status,
+            HasPT: pt_status_boolean,
             node_connections: edges,
         });
     }
+    
 
     let filename = format!("serialised_data/p1_main_nodes_vector_6am_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());
@@ -105,8 +107,11 @@ fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
     
     for item in input.iter() {
         let next_stop_node: NodeID = serde_json::from_value(item["next_stop_node"].clone()).unwrap();
+        
+        println!("{:?}", item["timetables"]);
         let timetable: Vec<[usize; 2]> =
             serde_json::from_value(item["timetables"].clone()).unwrap();
+        
         let mut edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
         for array in timetable {
             edges.push(EdgePT {
@@ -151,7 +156,7 @@ fn serialise_route_info(year: i32) {
     println!("Serialised to {}", outpath);
 }
 
-fn serialise_list_Multiplier(filename: &str) {
+fn serialise_list_multiplier(filename: &str) {
     let inpath = format!("data/{}.json", filename);
     let contents = fs_err::read_to_string(&inpath).unwrap();
     let output: Vec<Multiplier> = serde_json::from_str(&contents).unwrap();

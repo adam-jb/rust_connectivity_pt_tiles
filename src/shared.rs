@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use std::ops::{Add, Sub, AddAssign};
 use derive_more::{From, Into};
 
-// Serializes a `usize` as a `u32` to save space. Useful when you need `usize` for indexing, but
+// Serializes a `usize` as a `u32` to save space. Useful when you need `usize` for indexing, and
 // the values don't exceed 2^32.
 pub fn serialize_usize<S: Serializer>(x: &usize, s: S) -> Result<S::Ok, S::Error> {
     if let Ok(x) = u32::try_from(*x) {
@@ -135,7 +135,7 @@ pub struct SubpurposeScore {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct NodeWalk {
-    pub HasPt: bool,
+    pub HasPT: bool,
     pub node_connections: SmallVec<[EdgeWalk; 4]>,
 }
 
@@ -177,16 +177,6 @@ pub struct FinalOutput {
     pub init_travel_time: Cost,
     pub link_is_pt: Vec<u8>,
     pub node_info_for_output: HashMap<usize, String>,
-}
-
-// TODO: decide if to use and delete if not
-#[derive(Serialize)]
-pub struct PurposeScores {
-    pub Business: f64,
-    pub Education: f64,
-    pub Entertainment: f64,
-    pub Shopping: f64,
-    pub VisitFriends: f64,
 }
 
 #[derive(Deserialize)]

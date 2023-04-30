@@ -9,7 +9,7 @@ use crate::floodfill::get_travel_times;
 
 
 // For ~10m walking nodes, takes ~90 mins to get all nearby nodes in 120s with 8 core machine; 128gb RAM was enough and 32gb wasnt
-pub fn make_and_serialise_nodes_within_120s(year: i32, graph_walk: Vec<NodeWalk>, graph_pt: Vec<NodePT>) {
+pub fn make_and_serialise_nodes_within_120s(graph_walk: Vec<NodeWalk>, graph_pt: Vec<NodePT>) {
     println!("Begun make_and_serialise_nodes_within_120s");
 
     // Convert graphs to TiVec to be indexed by NodeID values

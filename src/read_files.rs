@@ -3,7 +3,7 @@ use serde::de::DeserializeOwned;
 use std::io::BufReader;
 use std::time::Instant;
 
-use crate::shared::{NodeID, NodePT, NodeWalk, Multiplier, SubpurposeScore};
+use crate::shared::{NodePT, NodeWalk, Multiplier, SubpurposeScore};
 
 pub fn read_sparse_node_values_2d_serial(year: i32) -> Vec<Vec<SubpurposeScore>> {
     let now = Instant::now();
