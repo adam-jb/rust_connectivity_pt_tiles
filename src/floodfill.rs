@@ -4,9 +4,10 @@ use crate::shared::{
     Multiplier, NodeID, Score, SecondsPastMidnight,
     SubpurposeScore,
 };
-use std::collections::{BinaryHeap, HashMap, HashSet};
 use typed_index_collections::TiVec;
-
+//use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::BinaryHeap;
+use hashbrown::{HashSet, HashMap};   // Faster hashing than std, same behaviour
 
 
 pub fn get_travel_times(

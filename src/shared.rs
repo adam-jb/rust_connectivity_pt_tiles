@@ -163,7 +163,7 @@ pub struct DestinationReached {
 pub struct FloodfillOutput {
     pub start_node_id: NodeID,
     pub seconds_walk_to_start_node: Cost,
-    pub destinations_reached: Vec<DestinationReached>, // ID of node reached; seconds to get there; previous Node ID
+    pub destinations_reached: Vec<DestinationReached>,
 }
 
 #[derive(Serialize)]
