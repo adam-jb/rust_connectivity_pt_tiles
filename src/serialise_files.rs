@@ -165,7 +165,7 @@ fn serialise_graph_pt_vector(year: i32) { //, len_graph_walk: usize) {
     bincode::serialize_into(file, &graph_pt_vec).unwrap();
 }
 
-fn serialise_route_info(year: i32) {
+pub fn serialise_route_info(year: i32) {
     let contents_filename = format!("data/routes_info_{}.json", year);
     let file = File::open(Path::new(&contents_filename)).unwrap();
     let reader = BufReader::new(file);
@@ -173,11 +173,12 @@ fn serialise_route_info(year: i32) {
     println!("Read routes_info from {}", contents_filename);
 
     // Convert route info dicts to strings
-    let mut output: Vec<String> = Vec::new();
+    let mut output: Vec<HashMap<String, String>> = Vec::new();
     for item in input.iter() {
         let next_val_map: HashMap<String, String> = serde_json::from_value(item.clone()).unwrap(); 
-        let next_val_str = serde_json::to_string(&next_val_map).unwrap();
-        output.push(next_val_str);
+        // If storing as a string rather than hashmap
+        // let next_val_str = serde_json::to_string(&next_val_map).unwrap();
+        output.push(next_val_map);
     }
         
     let outpath = format!("serialised_data/route_info_{}.bin", year);

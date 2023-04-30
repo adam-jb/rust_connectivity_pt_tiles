@@ -2,6 +2,7 @@ use actix_web::{get, post, web, App, HttpServer};
 use rayon::prelude::*;
 use std::time::Instant;
 use typed_index_collections::TiVec;
+use std::collections::{HashMap};
 
 use crate::read_files::{
     deserialize_bincoded_file, read_files_parallel_excluding_node_values,
@@ -31,7 +32,7 @@ struct AppState {
     graph_pt: TiVec<NodeID, NodePT>,
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
     rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]>,
-    route_info: TiVec<NodeID, String>,
+    route_info: TiVec<NodeID, HashMap<String, String>>,  // TiVec<NodeID, String>,
 }
 
 fn get_travel_times_multicore(
@@ -119,6 +120,9 @@ async fn main() -> std::io::Result<()> {
     let year: i32 = 2022;
     
 
+    serialise_files::serialise_route_info(year);
+    
+    
     // make this true on initial run; false otherwise
     if false {
         serialise_files::serialise_files(year);
@@ -148,7 +152,7 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_19,
     ];
 
-    let route_info: Vec<String> = deserialize_bincoded_file(&format!("route_info_{year}"));
+    let route_info: Vec<HashMap<String, String>> = deserialize_bincoded_file(&format!("route_info_{year}"));
     let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
     let node_values_2d = read_sparse_node_values_2d_serial(year);
     let rust_node_longlat_lookup = read_rust_node_longlat_lookup_serial();
@@ -161,7 +165,7 @@ async fn main() -> std::io::Result<()> {
     let node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
     let rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]> = TiVec::from(rust_node_longlat_lookup);
     let nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>> = TiVec::from(nodes_to_neighbouring_nodes);
-    let route_info: TiVec<NodeID, String> = TiVec::from(route_info);
+    let route_info: TiVec<NodeID, HashMap<String, String>> = TiVec::from(route_info);
     println!("Conversion to TiVec's took {:?} seconds", now.elapsed());
     
 

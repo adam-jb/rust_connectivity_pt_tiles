@@ -5,6 +5,7 @@ use crate::shared::{
     SubpurposeScore,
 };
 use typed_index_collections::TiVec;
+use std::time::Instant;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 //use std::collections::BinaryHeap;
 //use hashbrown::{HashSet, HashMap};   // TO TRY: May be faster hashing than std, allegedy same behaviour: not got to run yet
@@ -155,7 +156,7 @@ pub fn get_all_scores_links_and_key_destinations(
     subpurpose_purpose_lookup: &[usize; 32],
     nodes_to_neighbouring_nodes: &TiVec<NodeID, Vec<NodeID>>,
     rust_node_longlat_lookup: &TiVec<NodeID, [f64; 2]>,
-    route_info: &TiVec<NodeID, String>,
+    route_info: &TiVec<NodeID, HashMap<String, String>>, //&TiVec<NodeID, String>,
 ) -> FinalOutput {
     // Got this from 'subpurpose_purpose_lookup_integer_list.json' in connectivity-processing-files
     /*
@@ -226,6 +227,8 @@ pub fn get_all_scores_links_and_key_destinations(
 
     // ********* Get subpurpose level scores overall, and purpose level contribution of each individual node reached
     //for i in 0..destination_ids.len() {
+    let mut now = Instant::now();
+    
     for DestinationReached { node, cost, .. } in destinations_reached.iter() {
         let mut purpose_scores_this_node = [Score(0.0); 5];
 
@@ -256,8 +259,12 @@ pub fn get_all_scores_links_and_key_destinations(
         nodes_reached_set.insert(*node);
         node_values_contributed_each_purpose_vec.push(purpose_scores_this_node);
     }
+    
+    println!("Getting destinations purpose_scores_this_node took {:?}",now.elapsed());
 
     // **** Loops through each subpurpose, scaling them and getting the purpose level scores for the start node
+    now = Instant::now();
+    
     let mut overall_purpose_scores: [Score; 5] = [Score(0.0); 5];
     for subpurpose_ix in 0..subpurpose_scores.len() {
         
@@ -275,16 +282,21 @@ pub fn get_all_scores_links_and_key_destinations(
         let purpose_ix = subpurpose_purpose_lookup[subpurpose_ix];
         overall_purpose_scores[purpose_ix] += subpurpose_score;
     }
+    
+    println!("Getting overall_purpose_scores took {:?}",now.elapsed());
+    
     // ****** Overall scores obtained ******
 
     // ******* Get each link contributions to scores: tells us the relative importance of each link *******
 
+    let now = Instant::now();
+    
     // initialise link data to populate
     let mut link_score_contributions: Vec<[Score; 5]> =
         vec![[Score(0.0); 5]; destinations_reached.len()];
     let mut link_start_end_nodes_string: Vec<Vec<String>> = vec![];
     let mut link_is_pt: Vec<u8> = vec![];
-    let mut node_info_for_output: HashMap<usize, String> = HashMap::new();
+    let mut link_route_details: Vec<HashMap<String, String>> = Vec::new();
 
     // Skip first node reached as this the start node to itself
     for (
@@ -303,15 +315,7 @@ pub fn get_all_scores_links_and_key_destinations(
         // loop until full path to node reached has been explored and each link taken has had the score for this node added to it's total contribution
         loop {
             for k in 0..5 {
-                
                 link_score_contributions[link_ix][k] += node_values_contributed_each_purpose_vec[node_reached_iteration][k];
-
-                // TODO: drop this print & conditional once bug is found
-                /*
-                if node_values_contributed_each_purpose_vec[node_reached_iter][k] > Score(0.0) && node_reached_iter == 1 {
-                    println!("{:?}, {:?}, {:?}, {:?}", node_reached_iteration, k, node_values_contributed_each_purpose_vec[node_reached_iteration][k], link_score_contributions[link_ix][k])}
-                
-                */
             }
 
             if link_ix == 0 {
@@ -342,14 +346,23 @@ pub fn get_all_scores_links_and_key_destinations(
         ]);
 
         link_is_pt.push(*arrived_at_node_by_pt);
-
+        
         if *arrived_at_node_by_pt == 1 {
-            node_info_for_output.insert(*&node_reached_iteration, route_info[*previous_node].clone());
+            link_route_details.push(route_info[*previous_node].clone())
+        } else {
+            let empty_map: HashMap<String, String> = HashMap::new();
+            link_route_details.push(empty_map);
         }
     }
+    
+    println!("Getting link contributions took {:?}",now.elapsed());
+    
     // ****** Contributions to scores obtained ******
 
     // ****** Get top 3 clusters destinations for each purpose *******
+    
+    let now = Instant::now();
+    
 
     // dicts of which of the 3 top 3 nodes, the nodes in the sets above correspond to keys in these hashmaps; each value will be the ID of one of the top 3 nodes
     let mut nearby_nodes_to_current_highest_node_hashmap: [HashMap<NodeID, NodeID>; 5] = [
@@ -505,6 +518,10 @@ pub fn get_all_scores_links_and_key_destinations(
             }
         }
     }
+    
+    println!("Getting node clusters took {:?}",now.elapsed());
+    
+    
     // ******* Clusters obtained *******
 
     // **** Extract keys from each of the 5 of highest_nodes_hashmap_to_adjacent_nodes_vec
@@ -525,6 +542,6 @@ pub fn get_all_scores_links_and_key_destinations(
         link_is_pt: link_is_pt,
         key_destinations_per_purpose: most_important_nodes_longlat,
         init_travel_time: seconds_walk_to_start_node,
-        node_info_for_output: node_info_for_output,
+        link_route_details: link_route_details,
     }
 }
