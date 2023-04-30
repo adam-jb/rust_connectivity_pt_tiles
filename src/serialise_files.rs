@@ -2,19 +2,18 @@ use fs_err::File;
 use smallvec::SmallVec;
 use std::io::{BufReader, BufWriter};
 use std::time::Instant;
-use typed_index_collections::TiVec;
 use std::path::Path;
 
 use crate::shared::{
-    Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, NodeID, Multiplier, SecondsPastMidnight, SubpurposeScore,
+    Cost, EdgePT, EdgeWalk, NodePT, NodeWalk, NodeID, Multiplier, SecondsPastMidnight, SubpurposeScore,
 };
 
 
 pub fn serialise_sparse_node_values_2d(year: i32) {
     let inpath = format!("data/sparse_node_values_6am_{}_2d.json", year);
     let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: TiVec<NodeID, Vec<SubpurposeScore>> =
-        serde_json::from_str::<TiVec<NodeID, Vec<SubpurposeScore>>>(&contents).unwrap().into();
+    let output: Vec<SubpurposeScore> =
+        serde_json::from_str::<Vec<SubpurposeScore>>(&contents).unwrap().into();
 
     println!("Read from {}", inpath);
 
@@ -27,7 +26,7 @@ pub fn serialise_sparse_node_values_2d(year: i32) {
 pub fn serialise_rust_node_longlat_lookup() {
     let inpath = format!("data/rust_nodes_long_lat.json");
     let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: TiVec<NodeID, [f64; 2]> = serde_json::from_str::<TiVec<NodeID, [f64; 2]>>(&contents).unwrap().into();
+    let output: Vec<[f64; 2]> = serde_json::from_str::<Vec<[f64; 2]>>(&contents).unwrap().into();
     println!("Read from {}", inpath);
     
     let outpath = format!("serialised_data/rust_nodes_long_lat.bin");
@@ -70,7 +69,7 @@ fn serialise_graph_walk_vector(year: i32) -> usize {
     let reader = BufReader::new(file);
 
     let input: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
-    let mut graph_walk_vec: TiVec<NodeID, GraphWalk> = Vec::new().into();
+    let mut graph_walk_vec: Vec<NodeWalk> = Vec::new();
 
     for item in input.iter() {
         let pt_status = item["pt_status"].as_bool().unwrap();
@@ -83,7 +82,7 @@ fn serialise_graph_walk_vector(year: i32) -> usize {
                 to: NodeID(array[1]),
             });
         }
-        graph_walk_vec.push(GraphWalk {
+        graph_walk_vec.push(NodeWalk {
             HasPt: pt_status,
             node_connections: edges,
         });
@@ -101,7 +100,7 @@ fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
     let reader = BufReader::new(file);
 
     let input: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
-    let mut graph_pt_vec: TiVec<NodeID, GraphPT> = Vec::new().into();
+    let mut graph_pt_vec: Vec<NodePT> = Vec::new();
     
     for item in input.iter() {
         let next_stop_node: NodeID = serde_json::from_value(item["next_stop_node"].clone()).unwrap();
@@ -114,7 +113,7 @@ fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
                 cost: Cost(array[0]),
             });
         }
-        graph_pt_vec.push(GraphPT {
+        graph_pt_vec.push(NodePT {
             next_stop_node: next_stop_node,
             timetable: edges,
         });
@@ -125,7 +124,7 @@ fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
     /*
     for _ in graph_pt_vec.len()..len_graph_walk {
         let edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
-        graph_walk_vec.push(GraphPT {
+        graph_walk_vec.push(NodePT {
             next_stop_node: NodeID(0),
             timetable: edges,
         });
@@ -142,7 +141,7 @@ fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
 fn serialise_route_info(year: i32) {
     let inpath = format!("data/route_info_{}.json", year);
     let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: TiVec<NodeID, String> = serde_json::from_str(&contents).unwrap();
+    let output: Vec<String> = serde_json::from_str(&contents).unwrap();
     println!("Read from {}", inpath);
 
     let outpath = format!("serialised_data/route_info_{}.bin", year);

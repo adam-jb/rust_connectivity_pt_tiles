@@ -1,6 +1,6 @@
 use crate::priority_queue::PriorityQueueItem;
 use crate::shared::{
-    Cost, DestinationReached, FinalOutput, FloodfillOutput, GraphPT, GraphWalk,
+    Cost, DestinationReached, FinalOutput, FloodfillOutput, NodePT, NodeWalk,
     Multiplier, NodeID, Score, SecondsPastMidnight,
     SubpurposeScore,
 };
@@ -8,8 +8,8 @@ use std::collections::{BinaryHeap, HashMap, HashSet};
 use typed_index_collections::TiVec;
 
 pub fn get_travel_times(
-    graph_walk: &TiVec<NodeID, GraphWalk>,
-    graph_pt: &TiVec<NodeID, GraphPT>,
+    graph_walk: &TiVec<NodeID, NodeWalk>,
+    graph_pt: &TiVec<NodeID, NodePT>,
     start_node_id: NodeID,
     trip_start_seconds: SecondsPastMidnight,
     seconds_walk_to_start_node: Cost,
@@ -98,7 +98,7 @@ pub fn get_travel_times(
 }
 
 fn take_next_pt_route(
-    graph_pt: &TiVec<NodeID, GraphPT>,
+    graph_pt: &TiVec<NodeID, NodePT>,
     time_so_far: Cost,
     queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID, NodeID, usize, u8>>,
     time_limit: Cost,

@@ -134,7 +134,7 @@ pub struct SubpurposeScore {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct GraphWalk {
+pub struct NodeWalk {
     pub HasPt: bool,
     pub node_connections: SmallVec<[EdgeWalk; 4]>,
 }
@@ -146,7 +146,7 @@ pub struct EdgePT {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct GraphPT {
+pub struct NodePT {
     pub next_stop_node: NodeID,
     pub timetable: SmallVec<[EdgePT; 4]>,
 }
