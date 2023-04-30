@@ -3,18 +3,14 @@ use rayon::prelude::*;
 use std::io::BufWriter;
 use typed_index_collections::TiVec;
 
+
 use crate::shared::{NodeID, Cost, SecondsPastMidnight, NodeWalk, NodePT, FloodfillOutput};
 use crate::floodfill::get_travel_times;
-use crate::read_files::read_files_parallel_excluding_node_values;
 
 
-
-pub fn make_and_serialise_nodes_within_120s(year: i32) {
+// For ~10m walking nodes, takes ~90 mins to get all nearby nodes in 120s with 8 core machine; 128gb RAM was enough and 32gb wasnt
+pub fn make_and_serialise_nodes_within_120s(year: i32, graph_walk: Vec<NodeWalk>, graph_pt: Vec<NodePT>) {
     println!("Begun make_and_serialise_nodes_within_120s");
-    
-    // For ~10m walking nodes, takes ~90 mins to get all nearby nodes in 120s with 8 core machine; 128gb RAM was enough and 32gb wasnt
-
-    let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
 
     // Convert graphs to TiVec to be indexed by NodeID values
     let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);

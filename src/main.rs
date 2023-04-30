@@ -129,7 +129,8 @@ async fn main() -> std::io::Result<()> {
     // comment this out to not make the lookup of nodes which are near other nodes
     // this is big preprocessing stage (~90mins with 8cores)
     if true {
-        make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s(year);
+        let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(2022);
+        make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s(year, graph_walk, graph_pt);
     }
 
     let (
@@ -147,21 +148,22 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_19,
     ];
 
-    let route_info: TiVec<NodeID, String> =
-        deserialize_bincoded_file(&format!("route_info_{year}"));
-
-    let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(2022);
-    let node_values_2d = read_sparse_node_values_2d_serial(2022);
+    let route_info: Vec<String> = deserialize_bincoded_file(&format!("route_info_{year}"));
+    let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
+    let node_values_2d = read_sparse_node_values_2d_serial(year);
     let rust_node_longlat_lookup = read_rust_node_longlat_lookup_serial();
-    let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> =
-        deserialize_bincoded_file("nodes_to_neighbouring_nodes");
+    let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> = deserialize_bincoded_file("nodes_to_neighbouring_nodes");
+    
     
     // Convert Vecs to TiVecs
+    let now = Instant::now();
     let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
     let graph_pt: TiVec<NodeID, NodePT> = TiVec::from(graph_pt);
     let node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
     let rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]> = TiVec::from(rust_node_longlat_lookup);
     let nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>> = TiVec::from(nodes_to_neighbouring_nodes);
+    let route_info: TiVec<NodeID, String> = TiVec::from(route_info);
+    println!("Conversion to TiVec's took {:?} seconds", now.elapsed());
 
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,

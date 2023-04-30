@@ -72,6 +72,7 @@ fn serialise_graph_walk_vector(year: i32) -> usize {
     let mut graph_walk_vec: Vec<NodeWalk> = Vec::new();
 
     for item in input.iter() {
+        println!("{:?}", item["pt_status"]);
         let pt_status = item["pt_status"].as_bool().unwrap();
         let node_connections: Vec<[usize; 2]> =
             serde_json::from_value(item["node_connections"].clone()).unwrap();

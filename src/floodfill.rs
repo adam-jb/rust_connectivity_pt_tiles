@@ -7,6 +7,8 @@ use crate::shared::{
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use typed_index_collections::TiVec;
 
+
+
 pub fn get_travel_times(
     graph_walk: &TiVec<NodeID, NodeWalk>,
     graph_pt: &TiVec<NodeID, NodePT>,
@@ -298,7 +300,7 @@ pub fn get_all_scores_links_and_key_destinations(
     ) in destinations_reached.iter().skip(1).enumerate()
     {
         // copying iter as it gets changed during the loop below. This should be an implicit clone() without using *
-        let node_reached_iter = node_reached_iteration;
+        let mut node_reached_iter = node_reached_iteration;
 
         // loop until full path to node reached has been explored and each link taken has had the score for this node added to it's total contribution
        loop {
@@ -335,7 +337,7 @@ pub fn get_all_scores_links_and_key_destinations(
         link_is_pt.push(*arrived_at_node_by_pt);
 
         if *arrived_at_node_by_pt == 1 {
-            node_info_for_output[&node_reached_iteration] = route_info[*previous_node];
+            node_info_for_output.insert(*&node_reached_iteration, route_info[*previous_node].clone());
         }
     }
     // ****** Contributions to scores obtained ******
@@ -380,7 +382,7 @@ pub fn get_all_scores_links_and_key_destinations(
 
     for DestinationReached { node, .. } in destinations_reached.iter() {
     //for node_reached_id in destination_ids {    // original
-        let near_nodes = nodes_to_neighbouring_nodes[*node];
+        let near_nodes = &nodes_to_neighbouring_nodes[*node];
         let mut purpose_scores = [Score(0.0); 5];
 
         // get total scores by purpose, of nodes within 120s of this node

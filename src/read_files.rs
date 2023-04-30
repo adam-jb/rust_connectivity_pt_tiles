@@ -5,18 +5,18 @@ use std::time::Instant;
 
 use crate::shared::{NodeID, NodePT, NodeWalk, Multiplier, SubpurposeScore};
 
-pub fn read_sparse_node_values_2d_serial(year: i32) -> TiVec<NodeID, Vec<SubpurposeScore>> {
+pub fn read_sparse_node_values_2d_serial(year: i32) -> Vec<Vec<SubpurposeScore>> {
     let now = Instant::now();
-    let sparse_node_values_2d: Vec<SubpurposeScore> =
+    let sparse_node_values_2d: Vec<Vec<SubpurposeScore>> =
         deserialize_bincoded_file(&format!("sparse_node_values_6am_{year}_2d"));
     println!("Serial loading took {:?}", now.elapsed());
-    return sparse_node_values_2d;
+    sparse_node_values_2d
 }
 
-pub fn read_rust_node_longlat_lookup_serial() -> Vec[f64; 2]> {
+pub fn read_rust_node_longlat_lookup_serial() -> Vec<[f64; 2]> {
     let rust_node_longlat_lookup: Vec<[f64; 2]> =
         deserialize_bincoded_file(&format!("rust_nodes_long_lat"));
-    return rust_node_longlat_lookup;
+    rust_node_longlat_lookup
 }
 
 pub fn read_files_parallel_excluding_node_values(
