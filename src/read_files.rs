@@ -15,8 +15,8 @@ pub fn read_sparse_node_values_2d_serial(year: i32) -> TiVec<NodeID, Vec<[i32; 2
     return sparse_node_values_2d;
 }
 
-pub fn read_rust_node_longlat_lookup_serial() -> Vec<[f64; 3]> {
-    let rust_node_longlat_lookup: Vec<[f64; 3]> =
+pub fn read_rust_node_longlat_lookup_serial() -> Vec<[f64; 2]> {
+    let rust_node_longlat_lookup: Vec<[f64; 2]> =
         deserialize_bincoded_file(&format!("rust_lookup_long_lat_pt_class_list"));
     return rust_node_longlat_lookup;
 }

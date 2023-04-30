@@ -165,7 +165,7 @@ pub fn get_all_scores_links_and_key_destinations(
     travel_time_relationships: &[f64],
     subpurpose_purpose_lookup: &[i8; 32],
     nodes_to_neighbouring_nodes: &TiVec<NodeID, Vec<NodeID>>,
-    rust_node_longlat_lookup: &TiVec<NodeID, [f64; 3]>,
+    rust_node_longlat_lookup: &TiVec<NodeID, [f64; 2]>,
 ) -> FinalOutput {
     // Got this from 'subpurpose_purpose_lookup_integer_list.json' in connectivity-processing-files
     let subpurpose_purpose_lookup: [usize; 32] = [
@@ -175,7 +175,7 @@ pub fn get_all_scores_links_and_key_destinations(
 
     // Get this from score_multipler_by_subpurpose_id_{mode_simpler}.json in connectivity-processing-files
     // Used to get relative importance of each subpurpose when aggregating them to purpose level
-    // This has subpurposes ['Residential', 'Motor sports', 'Allotment'] set to zero, which would, prior to removal, pertaining to subpurposes [0, 10, 14]
+    // This has subpurposes ['Residential', 'Motor sports', 'Allotment'] set to zero, which pertain to subpurpose indices of [0, 10, 14]
     let score_multipler: [Multiplier; 32] = [
         Multiplier(0.000000000000000),     // set to 0
         Multiplier(0.009586382150013575),

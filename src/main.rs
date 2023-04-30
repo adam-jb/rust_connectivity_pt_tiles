@@ -29,7 +29,7 @@ struct AppState {
     graph_walk: TiVec<NodeID, GraphWalk>,
     graph_pt: TiVec<NodeID, GraphPT>,
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
-    rust_node_longlat_lookup: Vec<[f64; 3]>,
+    rust_node_longlat_lookup: Vec<[f64; 2]>,
 }
 
 fn get_travel_times_multicore(
