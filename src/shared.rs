@@ -93,6 +93,7 @@ impl From<SecondsPastMidnight> for Cost {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct Multiplier(pub f64);
 
 #[derive(Serialize, Deserialize, PartialEq, PartialOrd, Clone, Copy, Debug)]
@@ -102,10 +103,6 @@ pub struct Score(pub f64);
 impl Score {
     pub fn multiply(&self, multiplier: Multiplier) -> Score {
         Score(self.0 * multiplier.0)
-    }
-    
-    pub fn multiply_f64(&self, multiplier: f64) -> Score {
-        Score(self.0 * multiplier)
     }
     
     pub fn ln(self) -> Self {
@@ -153,6 +150,7 @@ pub struct GraphPT {
     pub timetable: SmallVec<[EdgePT; 4]>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct DestinationReached {
     pub node: NodeID,
     pub cost: Cost,

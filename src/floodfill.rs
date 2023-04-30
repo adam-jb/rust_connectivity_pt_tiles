@@ -34,7 +34,7 @@ pub fn get_travel_times(
     // let mut nodes_visited = vec![false; graph_walk.len()];
     let mut nodes_visited: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();
     let mut destinations_reached: Vec<DestinationReached> = vec![];
-
+    
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= Cost(3600) {
         return FloodfillOutput {
@@ -150,7 +150,7 @@ fn take_next_pt_route(
 pub fn get_all_scores_links_and_key_destinations(
     floodfill_output: &FloodfillOutput,
     node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
-    travel_time_relationships: &[f64],
+    travel_time_relationships: &[Multiplier],
     subpurpose_purpose_lookup: &[usize; 32],
     nodes_to_neighbouring_nodes: &TiVec<NodeID, Vec<NodeID>>,
     rust_node_longlat_lookup: &TiVec<NodeID, [f64; 2]>,
@@ -243,7 +243,7 @@ pub fn get_all_scores_links_and_key_destinations(
             let vec_start_pos_this_purpose = subpurpose_purpose_lookup[*subpurpose_ix] * 3601;
             let multiplier =
                 travel_time_relationships[vec_start_pos_this_purpose + (cost.0)];
-            let score_to_add = subpurpose_score.multiply_f64(multiplier);
+            let score_to_add = subpurpose_score.multiply(multiplier);
             subpurpose_scores[*subpurpose_ix] += score_to_add;
 
             // To get purpose level contribution to scores for each node: used for finding key destinations
@@ -336,7 +336,7 @@ pub fn get_all_scores_links_and_key_destinations(
         link_is_pt.push(*arrived_at_node_by_pt);
 
         if *arrived_at_node_by_pt == 1 {
-            node_info_for_output[&node_reached_iteration] = route_info[previous_node];
+            node_info_for_output[&node_reached_iteration] = route_info[*previous_node];
         }
     }
     // ****** Contributions to scores obtained ******
@@ -381,16 +381,16 @@ pub fn get_all_scores_links_and_key_destinations(
 
     for DestinationReached { node, .. } in destinations_reached.iter() {
     //for node_reached_id in destination_ids {    // original
-        let near_nodes = nodes_to_neighbouring_nodes[node];
+        let near_nodes = nodes_to_neighbouring_nodes[*node];
         let mut purpose_scores = [Score(0.0); 5];
 
         // get total scores by purpose, of nodes within 120s of this node
         // node_values_contributed_each_purpose_hashmap tells you score contributed by each node
         for neighbouring_node in near_nodes {
             // nodes which aren't reached in the 3600s won't be in nodes_reached_set
-            if nodes_reached_set.contains(neighbouring_node) {
+            if nodes_reached_set.contains(&neighbouring_node) {
                 let scores_one_node =
-                    &node_values_contributed_each_purpose_hashmap[neighbouring_node];
+                    &node_values_contributed_each_purpose_hashmap[&neighbouring_node];
 
                 // ** to use node_values_contributed_each_purpose_vec instead of node_values_contributed_each_purpose_hashmap
                 // make lookup to convert: neighbouring_node > iter_this_node_reached

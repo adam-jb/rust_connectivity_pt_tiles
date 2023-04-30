@@ -10,7 +10,7 @@ use crate::read_files::{
     read_sparse_node_values_2d_serial,
 };
 use crate::shared::{
-    Cost, EdgePT, EdgeWalk, Score, FinalOutput, FloodfillOutput, GraphPT, GraphWalk, NodeID,
+    Cost, EdgePT, EdgeWalk, Score, Multiplier, FinalOutput, FloodfillOutput, GraphPT, GraphWalk, NodeID,
     SubpurposeScore, UserInputJSON,
 };
 use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};
@@ -25,13 +25,13 @@ mod serialise_files;
 mod shared;
 
 struct AppState {
-    travel_time_relationships_all: Vec<Vec<Score>>,
+    travel_time_relationships_all: Vec<Vec<Multiplier>>,
     subpurpose_purpose_lookup: [usize; 32],
     nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>>,
     graph_walk: TiVec<NodeID, GraphWalk>,
     graph_pt: TiVec<NodeID, GraphPT>,
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
-    rust_node_longlat_lookup: Vec<[f64; 2]>,
+    rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]>,
     route_info: TiVec<NodeID, String>,
 }
 

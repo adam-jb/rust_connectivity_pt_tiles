@@ -6,14 +6,14 @@ use typed_index_collections::TiVec;
 use std::path::Path;
 
 use crate::shared::{
-    Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, NodeID, Score, SecondsPastMidnight, SubpurposeScore,
+    Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, NodeID, Score, Multiplier, SecondsPastMidnight, SubpurposeScore,
 };
 
 pub fn serialise_sparse_node_values_2d(year: i32) {
     let inpath = format!("data/sparse_node_values_6am_{}_2d.json", year);
     let contents = fs_err::read_to_string(&inpath).unwrap();
     let output: TiVec<NodeID, Vec<SubpurposeScore>> =
-        serde_json::from_str::<T>(&contents).unwrap().into();
+        serde_json::from_str::<TiVec<NodeID, Vec<SubpurposeScore>>>(&contents).unwrap().into();
 
     println!("Read from {}", inpath);
 
@@ -26,9 +26,9 @@ pub fn serialise_sparse_node_values_2d(year: i32) {
 pub fn serialise_rust_node_longlat_lookup() {
     let inpath = format!("data/rust_nodes_long_lat.json");
     let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: TiVec<NodeID, [f64; 2]> = serde_json::from_str::<T>(&contents).unwrap().into();
+    let output: TiVec<NodeID, [f64; 2]> = serde_json::from_str::<TiVec<NodeID, [f64; 2]>>(&contents).unwrap().into();
     println!("Read from {}", inpath);
-
+    
     let outpath = format!("serialised_data/rust_nodes_long_lat.bin");
     let file = BufWriter::new(File::create(&outpath).unwrap());
     bincode::serialize_into(file, &output).unwrap();
@@ -44,10 +44,10 @@ pub fn serialise_files(year: i32) {
     serialise_route_info(year);
 
     serialise_list_immutable_array_usize("subpurpose_purpose_lookup");
-    serialise_list_Score("travel_time_relationships_7");
-    serialise_list_Score("travel_time_relationships_10");
-    serialise_list_Score("travel_time_relationships_16");
-    serialise_list_Score("travel_time_relationships_19");
+    serialise_list_Multiplier("travel_time_relationships_7");
+    serialise_list_Multiplier("travel_time_relationships_10");
+    serialise_list_Multiplier("travel_time_relationships_16");
+    serialise_list_Multiplier("travel_time_relationships_19");
     println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
 
@@ -150,10 +150,10 @@ fn serialise_route_info(year: i32) {
     println!("Serialised to {}", outpath);
 }
 
-fn serialise_list_Score(filename: &str) {
+fn serialise_list_Multiplier(filename: &str) {
     let inpath = format!("data/{}.json", filename);
     let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: Vec<Score> = serde_json::from_str(&contents).unwrap();
+    let output: Vec<Multiplier> = serde_json::from_str(&contents).unwrap();
     println!("Read from {}", inpath);
 
     let outpath = format!("serialised_data/{}.bin", filename);

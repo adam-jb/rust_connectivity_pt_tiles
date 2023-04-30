@@ -3,13 +3,13 @@ use crate::shared::{SecondsPastMidnight};
 
 pub fn get_time_of_day_index(trip_start_seconds: SecondsPastMidnight) -> usize {
     let mut time_of_day_ix = 0;
-    if trip_start_seconds > 3600 * 10 {
+    if trip_start_seconds > SecondsPastMidnight(3600 * 10) {
         time_of_day_ix = 1;
     }
-    if trip_start_seconds > 3600 * 16 {
+    if trip_start_seconds > SecondsPastMidnight(3600 * 16) {
         time_of_day_ix = 2;
     }
-    if trip_start_seconds > 3600 * 19 {
+    if trip_start_seconds > SecondsPastMidnight(3600 * 19) {
         time_of_day_ix = 3;
     }
     time_of_day_ix as usize
