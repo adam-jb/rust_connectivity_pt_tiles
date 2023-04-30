@@ -26,7 +26,7 @@ pub fn get_travel_times(
         node: start_node_id,
         cost: seconds_walk_to_start_node,
         previous_node: previous_node,
-        previous_node_iters_taken: iters_taken,
+        previous_node_iters_taken: iters_count,
         arrived_at_node_by_pt: 0,
     });
 
@@ -110,10 +110,10 @@ fn take_next_pt_route(
     iters_count: &usize,
 ) {
     // find time node is arrived: as SecondsPastMidnight
-    let time_of_arrival_current_node = trip_start_seconds.add(time_so_far);
+    let time_of_arrival_current_node = trip_start_seconds.add(&time_so_far);
 
     // find time next service leaves
-    let mut found_next_service = bool;
+    let mut found_next_service = false;
     let mut journey_time_to_next_node = Cost(0);
     let mut next_leaving_time = SecondsPastMidnight(0);
 
@@ -327,12 +327,12 @@ pub fn get_all_scores_links_and_key_destinations(
                 .iter()
                 .map(|n| format!("{:.6}", n))
                 .collect::<Vec<String>>()
-                .join(",");,
+                .join(","),
             longlat_node
                 .iter()
                 .map(|n| format!("{:.6}", n))
                 .collect::<Vec<String>>()
-                .join(",");
+                .join(",")
         ]);
 
         link_is_pt.push(*arrived_at_node_by_pt);
@@ -514,7 +514,7 @@ pub fn get_all_scores_links_and_key_destinations(
     }
 
     FinalOutput {
-        num_iterations: destination_ids.len() as i32,
+        num_iterations: destinations_reached.len() as i32,
         start_node: start,
         score_per_purpose: overall_purpose_scores,
         per_link_score_per_purpose: link_score_contributions,

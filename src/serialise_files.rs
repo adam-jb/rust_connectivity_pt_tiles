@@ -3,6 +3,7 @@ use smallvec::SmallVec;
 use std::io::{BufReader, BufWriter};
 use std::time::Instant;
 use typed_index_collections::TiVec;
+use std::path::Path;
 
 use crate::shared::{
     Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, HasPt, NodeID, Score, SecondsPastMidnight, SubpurposeScore,
@@ -68,9 +69,8 @@ fn serialise_graph_walk_vector(year: i32) -> usize {
     let reader = BufReader::new(file);
 
     let input: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
-
     let mut graph_walk_vec: TiVec<NodeID, GraphWalk> = Vec::new().into();
-    //let mut graph_walk_vec = Vec::new();
+
     for item in input.iter() {
         let pt_status = item["pt_status"].as_bool().unwrap();
         let node_connections: Vec<[usize; 2]> =
@@ -100,11 +100,10 @@ fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
     let reader = BufReader::new(file);
 
     let input: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
-
     let mut graph_pt_vec: TiVec<NodeID, GraphPT> = Vec::new().into();
-    //let mut graph_pt_vec = Vec::new();
+    
     for item in input.iter() {
-        let next_stop_node = item["pt_status"].parse::<i32>().unwrap();
+        let next_stop_node = item["next_stop_node"].parse::<NodeID>().unwrap();
         let timetable: Vec<[usize; 2]> =
             serde_json::from_value(item["timetables"].clone()).unwrap();
         let mut edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
@@ -114,21 +113,24 @@ fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
                 cost: Cost(array[0] as u32),
             });
         }
-        graph_walk_vec.push(GraphPT {
-            next_stop_node: NodeID(next_stop_node),
+        graph_pt_vec.push(GraphPT {
+            next_stop_node: next_stop_node,
             timetable: edges,
         });
     }
 
     // Add empty edges to ensure that each node has the same number of edges
+    // DROPPED as believe this is unnecessary as all nodes with graph connections are first in the graph_walk vec. Adam, 30th April 2023
+    /*
     for _ in graph_pt_vec.len()..len_graph_walk {
         let edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
         graph_walk_vec.push(GraphPT {
-            next_stop_node: NodeID(next_stop_node),
+            next_stop_node: NodeID(0),
             timetable: edges,
         });
     }
     assert!(graph_pt_vec.len() == len_graph_walk);
+    */
 
     // Serialize the graph data into a binary file
     let filename = format!("serialised_data/p2_main_nodes_vector_6am_{}.bin", year);

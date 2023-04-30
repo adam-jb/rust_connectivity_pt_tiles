@@ -2,6 +2,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::cmp::{Ord, PartialEq, PartialOrd};
 use std::collections::HashMap;
 use std::hash::Hash;
+use smallvec::SmallVec;
 use std::ops::{Add, Sub};
 
 // Serializes a `usize` as a `u32` to save space. Useful when you need `usize` for indexing, but
@@ -91,7 +92,7 @@ pub struct HasPt(pub bool);
 
 pub struct Multiplier(pub f64);
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, PartialOrd, Clone, Copy, Debug)]
 pub struct Score(pub f64);
 
 // Allow Score to be multiplied by Multiplier, and to get the natural log of itself
@@ -125,7 +126,7 @@ pub struct SubpurposeScore {
     pub subpurpose_score: Score,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct GraphWalk {
     pub pt_status: HasPt,
     pub node_connections: SmallVec<[EdgeWalk; 4]>,
@@ -137,7 +138,7 @@ pub struct EdgePT {
     pub cost: Cost,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct GraphPT {
     pub next_stop_node: NodeID,
     pub timetable: SmallVec<[EdgePT; 4]>,
@@ -159,7 +160,7 @@ pub struct FloodfillOutput {
 
 #[derive(Serialize)]
 pub struct FinalOutput {
-    pub num_iterations: i32,
+    pub num_iterations: u32,
     pub start_node: NodeID,
     pub score_per_purpose: [Score; 5],
     pub per_link_score_per_purpose: Vec<[Score; 5]>,
@@ -167,7 +168,7 @@ pub struct FinalOutput {
     pub key_destinations_per_purpose: [[[f64; 2]; 3]; 5],
     pub init_travel_time: Cost,
     pub link_is_pt: Vec<u8>,
-    pub node_info_for_output: Hashmap<String>,
+    pub node_info_for_output: HashMap<usize, String>,
 }
 
 // TODO: decide if to use and delete if not

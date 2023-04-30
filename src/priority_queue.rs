@@ -26,6 +26,6 @@ impl<K: Ord, V: Ord, NT: Ord, IT: Ord, NM: Ord> Ord for PriorityQueueItem<K, V, 
         }
         // The tie-breaker is arbitrary, based on the value. Here it's NodeID, which is guaranteed
         // to differ for the one place this is used, so it's safe
-        self.value.cmp(&other.value)
+        self.node.cmp(&other.node)
     }
 }

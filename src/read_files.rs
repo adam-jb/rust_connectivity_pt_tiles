@@ -46,7 +46,7 @@ pub fn read_files_parallel_excluding_node_values(
     (graph_walk, graph_pt)
 }
 
-pub fn read_small_files_serial() -> (Vec<Score>, Vec<Score>, Vec<Score>, Vec<Score>, [i8; 32]) {
+pub fn read_small_files_serial() -> (Vec<Score>, Vec<Score>, Vec<Score>, Vec<Score>, [usize; 32]) {
     let now = Instant::now();
 
     let travel_time_relationships_7: Vec<Score> =

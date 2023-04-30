@@ -10,7 +10,7 @@ use crate::read_files::{
     read_sparse_node_values_2d_serial,
 };
 use crate::shared::{
-    Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, GraphPT, GraphWalk, NodeID,
+    Cost, EdgePT, EdgeWalk, Score, FinalOutput, FloodfillOutput, GraphPT, GraphWalk, NodeID,
     SubpurposeScore, UserInputJSON,
 };
 use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};
