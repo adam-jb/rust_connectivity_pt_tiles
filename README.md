@@ -7,11 +7,11 @@ source "$HOME/.cargo/env"
 
 1. Run `./download_input_json.py` once to download input data
 
-2. Flip the `if false` part of `serialise_files` and `create_graph_walk_len` in `src/main.rs` to `true` so the files are serialised
+2. Flip the `if false` part of main() in `src/main.rs` to `true` so the files are serialised and all nodes within 120s are found for all start nodes
 
-3. Run with`cargo run --release` to serialise all files. End the process once the API is listening
+3. Run with`cargo run --release` to serialise all files and find nearby nodes. End the process once the API is listening
 
-4. Flip the `if false` part of `serialise_files` and `create_graph_walk_len` in `src/main.rs` to `false` to run without serialising any files
+4. Flip the `if false` part of main() in `src/main.rs` to `false` to run without serialising any files
 
 Then build the docker container, or run with `cargo run --release`
 
