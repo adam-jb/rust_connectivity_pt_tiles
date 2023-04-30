@@ -17,7 +17,7 @@ env_logger = "0.10.0"
 actix-cors = "0.6.4"
 typed-index-collections = "3.1.0"
 derive_more = "0.99.0"
-hashbrown = "0.13.2"
+# hashbrown = "0.13.2"
 
 [profile.release]
 lto = true

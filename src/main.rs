@@ -128,7 +128,7 @@ async fn main() -> std::io::Result<()> {
 
     // comment this out to not make the lookup of nodes which are near other nodes
     // this is big preprocessing stage (~90mins with 8cores)
-    if true {
+    if false {
         let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
         make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s(graph_walk, graph_pt);
     }

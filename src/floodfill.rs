@@ -5,9 +5,9 @@ use crate::shared::{
     SubpurposeScore,
 };
 use typed_index_collections::TiVec;
-//use std::collections::{BinaryHeap, HashMap, HashSet};
-use std::collections::BinaryHeap;
-use hashbrown::{HashSet, HashMap};   // Faster hashing than std, same behaviour
+use std::collections::{BinaryHeap, HashMap, HashSet};
+//use std::collections::BinaryHeap;
+//use hashbrown::{HashSet, HashMap};   // TO TRY: May be faster hashing than std, allegedy same behaviour: not got to run yet
 
 
 pub fn get_travel_times(
@@ -277,7 +277,7 @@ pub fn get_all_scores_links_and_key_destinations(
     }
     // ****** Overall scores obtained ******
 
-    // ******* Get contributions to scores: to tell us the relative importance of each link *******
+    // ******* Get each link contributions to scores: tells us the relative importance of each link *******
 
     // initialise link data to populate
     let mut link_score_contributions: Vec<[Score; 5]> =
@@ -286,8 +286,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let mut link_is_pt: Vec<u8> = vec![];
     let mut node_info_for_output: HashMap<usize, String> = HashMap::new();
 
-    // enumerate() produces 'iters' which is usize by default
-    // Skip first node reached as this is the start node, which has no link
+    // Skip first node reached as this the start node to itself
     for (
         node_reached_iteration,
         DestinationReached {
@@ -299,20 +298,29 @@ pub fn get_all_scores_links_and_key_destinations(
     ) in destinations_reached.iter().skip(1).enumerate()
     {
         // copying iter as it gets changed during the loop below. This should be an implicit clone() without using *
-        let mut node_reached_iter = node_reached_iteration;
+        let mut link_ix = node_reached_iteration.clone();
 
         // loop until full path to node reached has been explored and each link taken has had the score for this node added to it's total contribution
-       loop {
+        loop {
             for k in 0..5 {
-                link_score_contributions[node_reached_iter][k] += node_values_contributed_each_purpose_vec[node_reached_iter][k];
+                
+                link_score_contributions[link_ix][k] += node_values_contributed_each_purpose_vec[node_reached_iteration][k];
+
+                // TODO: drop this print & conditional once bug is found
+                /*
+                if node_values_contributed_each_purpose_vec[node_reached_iter][k] > Score(0.0) && node_reached_iter == 1 {
+                    println!("{:?}, {:?}, {:?}, {:?}", node_reached_iteration, k, node_values_contributed_each_purpose_vec[node_reached_iteration][k], link_score_contributions[link_ix][k])}
+                
+                */
             }
 
-            if node_reached_iter == 0 {
+            if link_ix == 0 {
                 break;
             }
 
             // get previous node iter in sequence to reach this node
-            node_reached_iter = destinations_reached[node_reached_iter].previous_node_iters_taken;
+            link_ix = destinations_reached[link_ix].previous_node_iters_taken;
+
         }
 
         // add coords from previous node to this node
