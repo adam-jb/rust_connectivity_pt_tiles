@@ -1,6 +1,5 @@
 use actix_web::{get, post, web, App, HttpServer};
 use rayon::prelude::*;
-use smallvec::SmallVec;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
@@ -10,7 +9,7 @@ use crate::read_files::{
     read_sparse_node_values_2d_serial,
 };
 use crate::shared::{
-    Cost, EdgePT, EdgeWalk, Score, Multiplier, FinalOutput, FloodfillOutput, GraphPT, GraphWalk, NodeID,
+    Cost, Multiplier, FinalOutput, FloodfillOutput, GraphPT, GraphWalk, NodeID,
     SubpurposeScore, UserInputJSON,
 };
 use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};

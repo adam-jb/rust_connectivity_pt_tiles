@@ -1,11 +1,10 @@
 use fs_err::File;
 use serde::de::DeserializeOwned;
-use smallvec::SmallVec;
 use std::io::BufReader;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-use crate::shared::{NodeID, EdgePT, EdgeWalk, GraphPT, GraphWalk, Score, Multiplier, SubpurposeScore};
+use crate::shared::{NodeID, GraphPT, GraphWalk, Multiplier, SubpurposeScore};
 
 pub fn read_sparse_node_values_2d_serial(year: i32) -> TiVec<NodeID, Vec<SubpurposeScore>> {
     let now = Instant::now();

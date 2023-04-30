@@ -6,7 +6,7 @@ use typed_index_collections::TiVec;
 use std::path::Path;
 
 use crate::shared::{
-    Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, NodeID, Score, Multiplier, SecondsPastMidnight, SubpurposeScore,
+    Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, NodeID, Multiplier, SecondsPastMidnight, SubpurposeScore,
 };
 
 

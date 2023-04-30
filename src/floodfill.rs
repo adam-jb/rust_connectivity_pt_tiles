@@ -1,10 +1,9 @@
 use crate::priority_queue::PriorityQueueItem;
 use crate::shared::{
-    Cost, DestinationReached, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, GraphPT, GraphWalk,
+    Cost, DestinationReached, FinalOutput, FloodfillOutput, GraphPT, GraphWalk,
     Multiplier, NodeID, Score, SecondsPastMidnight,
     SubpurposeScore,
 };
-use smallvec::SmallVec;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use typed_index_collections::TiVec;
 
@@ -302,7 +301,7 @@ pub fn get_all_scores_links_and_key_destinations(
         let node_reached_iter = node_reached_iteration;
 
         // loop until full path to node reached has been explored and each link taken has had the score for this node added to it's total contribution
-        while true {
+       loop {
             for k in 0..5 {
                 link_score_contributions[node_reached_iter][k] += node_values_contributed_each_purpose_vec[node_reached_iter][k];
             }
@@ -317,7 +316,7 @@ pub fn get_all_scores_links_and_key_destinations(
 
         // add coords from previous node to this node
         let longlat_previous_node = rust_node_longlat_lookup[*previous_node];
-        let longlat_node = rust_node_longlat_lookup[node];
+        let longlat_node = rust_node_longlat_lookup[*node];
 
         // convert floats to strings and store
         link_start_end_nodes_string.push(vec![
@@ -502,12 +501,9 @@ pub fn get_all_scores_links_and_key_destinations(
     // **** Extract keys from each of the 5 of highest_nodes_hashmap_to_adjacent_nodes_vec
     let mut most_important_nodes_longlat: [[[f64; 2]; 3]; 5] = [[[0.0; 2]; 3]; 5];
     for i in 0..5 {
-        let mut inner_iter = 0;
-        for rust_node_id in highest_nodes_hashmap_to_adjacent_nodes_vec[i].keys() {
-            let node_longlat = rust_node_longlat_lookup[rust_node_id];
-            //let node_longlat: [f64; 2] = node_longlat.try_into().unwrap();// node_longlat is already [f64; 2] so think this does nothing (Adam 30th April)
+        for (inner_iter, rust_node_id) in highest_nodes_hashmap_to_adjacent_nodes_vec[i].keys().enumerate() {
+            let node_longlat = rust_node_longlat_lookup[*rust_node_id];
             most_important_nodes_longlat[i][inner_iter] = node_longlat;
-            inner_iter += 1;
         }
     }
 
