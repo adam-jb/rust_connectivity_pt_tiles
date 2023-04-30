@@ -52,6 +52,7 @@ pub fn get_travel_times(
         }
         nodes_visited[current.node] = true;
 
+        // First destination reached is to itself: this is fine
         destinations_reached.push(DestinationReached {
             cost: current.cost,
             node: current.node,
@@ -59,8 +60,6 @@ pub fn get_travel_times(
             previous_node_iters_taken: current.previous_node_iters_taken,
             arrived_at_node_by_pt: current.arrived_at_node_by_pt,
         });
-
-        // drop destinations_reached of 0
 
         // Finding adjacent walk nodes
         for edge in &graph_walk[current.node].node_connections {
@@ -92,7 +91,7 @@ pub fn get_travel_times(
         }
         iters_count += 1;
     }
-
+    
     FloodfillOutput {
         start_node_id,
         seconds_walk_to_start_node,
