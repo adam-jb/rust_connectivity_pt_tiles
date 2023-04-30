@@ -1,10 +1,10 @@
+use derive_more::{From, Into};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use smallvec::SmallVec;
 use std::cmp::{Ord, PartialEq, PartialOrd};
 use std::collections::HashMap;
 use std::hash::Hash;
-use smallvec::SmallVec;
-use std::ops::{Add, Sub, AddAssign};
-use derive_more::{From, Into};
+use std::ops::{Add, AddAssign, Sub};
 
 // Serializes a `usize` as a `u32` to save space. Useful when you need `usize` for indexing, and
 // the values don't exceed 2^32.
@@ -37,7 +37,9 @@ pub fn deserialize_usize_as_u16<'de, D: Deserializer<'de>>(d: D) -> Result<usize
 }
 
 // NodeID is a usize, which is saved as u32 to save space
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, From, Into)]
+#[derive(
+    Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, From, Into,
+)]
 pub struct NodeID(
     #[serde(
         serialize_with = "serialize_usize",
@@ -46,13 +48,15 @@ pub struct NodeID(
     pub usize,
 );
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug, From, Into)]
+#[derive(
+    Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug, From, Into,
+)]
 pub struct SecondsPastMidnight(
     #[serde(
         serialize_with = "serialize_usize",
         deserialize_with = "deserialize_usize"
     )]
-    pub usize
+    pub usize,
 );
 
 // Allow instances of SecondsPastMidnight type to do minus '-' operation with other instances of this type
@@ -63,7 +67,9 @@ impl Sub for SecondsPastMidnight {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug, From, Into)]
+#[derive(
+    Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug, From, Into,
+)]
 pub struct Cost(
     #[serde(
         serialize_with = "serialize_usize_as_u16",
@@ -105,7 +111,7 @@ impl Score {
     pub fn multiply(&self, multiplier: Multiplier) -> Score {
         Score(self.0 * multiplier.0)
     }
-    
+
     pub fn ln(self) -> Self {
         Score(self.0.ln())
     }
@@ -135,7 +141,7 @@ pub struct SubpurposeScore {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct NodeWalk {
-    pub HasPT: bool,
+    pub has_pt: bool,
     pub node_connections: SmallVec<[EdgeWalk; 4]>,
 }
 
@@ -176,7 +182,7 @@ pub struct FinalOutput {
     pub per_link_score_per_purpose: Vec<[Score; 5]>,
     pub link_coordinates: Vec<Vec<String>>,
     pub link_is_pt: Vec<u8>,
-    pub link_route_details: Vec<HashMap<String, String>>, 
+    pub link_route_details: Vec<HashMap<String, String>>,
 }
 
 #[derive(Deserialize)]

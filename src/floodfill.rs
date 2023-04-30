@@ -1,15 +1,13 @@
 use crate::priority_queue::PriorityQueueItem;
 use crate::shared::{
-    Cost, DestinationReached, FinalOutput, FloodfillOutput, NodePT, NodeWalk,
-    Multiplier, NodeID, Score, SecondsPastMidnight,
-    SubpurposeScore,
+    Cost, DestinationReached, FinalOutput, FloodfillOutput, Multiplier, NodeID, NodePT, NodeWalk,
+    Score, SecondsPastMidnight, SubpurposeScore,
 };
-use typed_index_collections::TiVec;
-use std::time::Instant;
 use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::time::Instant;
+use typed_index_collections::TiVec;
 //use std::collections::BinaryHeap;
 //use hashbrown::{HashSet, HashMap};   // TO TRY: May be faster hashing than std, allegedy same behaviour: not got to run yet
-
 
 pub fn get_travel_times(
     graph_walk: &TiVec<NodeID, NodeWalk>,
@@ -37,7 +35,7 @@ pub fn get_travel_times(
     // let mut nodes_visited = vec![false; graph_walk.len()];
     let mut nodes_visited: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();
     let mut destinations_reached: Vec<DestinationReached> = vec![];
-    
+
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= Cost(3600) {
         return FloodfillOutput {
@@ -53,7 +51,7 @@ pub fn get_travel_times(
         }
         nodes_visited[current.node] = true;
 
-        // First destination reached is to itself: this is fine
+        // First destination reached is to itself: this is fine as we later ignore first val in destinations_reached
         destinations_reached.push(DestinationReached {
             cost: current.cost,
             node: current.node,
@@ -78,7 +76,7 @@ pub fn get_travel_times(
 
         // Find next PT route if there is one
         if !walk_only {
-            if graph_walk[current.node].HasPT {
+            if graph_walk[current.node].has_pt {
                 take_next_pt_route(
                     &graph_pt,
                     current.cost,
@@ -92,7 +90,7 @@ pub fn get_travel_times(
         }
         iters_count += 1;
     }
-    
+
     FloodfillOutput {
         start_node_id,
         seconds_walk_to_start_node,
@@ -132,7 +130,8 @@ fn take_next_pt_route(
     if found_next_service {
         // wait_time_this_stop as Cost, as the difference between two SecondsPastMidnight objects
         let wait_time_this_stop = (next_leaving_time - time_of_arrival_current_node).into();
-        let time_since_start_next_stop_arrival = time_so_far + journey_time_to_next_node + wait_time_this_stop;
+        let time_since_start_next_stop_arrival =
+            time_so_far + journey_time_to_next_node + wait_time_this_stop;
 
         if time_since_start_next_stop_arrival < time_limit {
             let destination_node = graph_pt[current_node].next_stop_node;
@@ -147,7 +146,6 @@ fn take_next_pt_route(
         };
     }
 }
-
 
 pub fn get_all_scores_links_and_key_destinations(
     floodfill_output: &FloodfillOutput,
@@ -228,7 +226,7 @@ pub fn get_all_scores_links_and_key_destinations(
     // ********* Get subpurpose level scores overall, and purpose level contribution of each individual node reached
     //for i in 0..destination_ids.len() {
     let mut now = Instant::now();
-    
+
     for DestinationReached { node, cost, .. } in destinations_reached.iter() {
         let mut purpose_scores_this_node = [Score(0.0); 5];
 
@@ -245,8 +243,7 @@ pub fn get_all_scores_links_and_key_destinations(
             //let subpurpose_ix = subpurpose_score_pair[0];
 
             let vec_start_pos_this_purpose = subpurpose_purpose_lookup[*subpurpose_ix] * 3601;
-            let multiplier =
-                travel_time_relationships[vec_start_pos_this_purpose + (cost.0)];
+            let multiplier = travel_time_relationships[vec_start_pos_this_purpose + (cost.0)];
             let score_to_add = subpurpose_score.multiply(multiplier);
             subpurpose_scores[*subpurpose_ix] += score_to_add;
 
@@ -259,15 +256,17 @@ pub fn get_all_scores_links_and_key_destinations(
         nodes_reached_set.insert(*node);
         node_values_contributed_each_purpose_vec.push(purpose_scores_this_node);
     }
-    
-    println!("Getting destinations purpose_scores_this_node took {:?}",now.elapsed());
+
+    println!(
+        "Getting destinations purpose_scores_this_node took {:?}",
+        now.elapsed()
+    );
 
     // **** Loops through each subpurpose, scaling them and getting the purpose level scores for the start node
     now = Instant::now();
-    
+
     let mut overall_purpose_scores: [Score; 5] = [Score(0.0); 5];
     for subpurpose_ix in 0..subpurpose_scores.len() {
-        
         // Apply score_multipler and apply logarithm to get subpurpose level scores
         let mut subpurpose_score = subpurpose_scores[subpurpose_ix]
             .multiply(score_multipler[subpurpose_ix])
@@ -282,15 +281,15 @@ pub fn get_all_scores_links_and_key_destinations(
         let purpose_ix = subpurpose_purpose_lookup[subpurpose_ix];
         overall_purpose_scores[purpose_ix] += subpurpose_score;
     }
-    
-    println!("Getting overall_purpose_scores took {:?}",now.elapsed());
-    
+
+    println!("Getting overall_purpose_scores took {:?}", now.elapsed());
+
     // ****** Overall scores obtained ******
 
     // ******* Get each link contributions to scores: tells us the relative importance of each link *******
 
     let now = Instant::now();
-    
+
     // initialise link data to populate
     let mut link_score_contributions: Vec<[Score; 5]> =
         vec![[Score(0.0); 5]; destinations_reached.len()];
@@ -312,10 +311,11 @@ pub fn get_all_scores_links_and_key_destinations(
         // copying iter as it gets changed during the loop below. This should be an implicit clone() without using *
         let mut link_ix = node_reached_iteration.clone();
 
-        // loop until full path to node reached has been explored and each link taken has had the score for this node added to it's total contribution
+        // loop until all links taken to node reached have the score for this node added to their score contributions
         loop {
             for k in 0..5 {
-                link_score_contributions[link_ix][k] += node_values_contributed_each_purpose_vec[node_reached_iteration][k];
+                link_score_contributions[link_ix][k] +=
+                    node_values_contributed_each_purpose_vec[node_reached_iteration][k];
             }
 
             if link_ix == 0 {
@@ -324,7 +324,6 @@ pub fn get_all_scores_links_and_key_destinations(
 
             // get previous node iter in sequence to reach this node
             link_ix = destinations_reached[link_ix].previous_node_iters_taken;
-
         }
 
         // add coords from previous node to this node
@@ -342,11 +341,11 @@ pub fn get_all_scores_links_and_key_destinations(
                 .iter()
                 .map(|n| format!("{:.6}", n))
                 .collect::<Vec<String>>()
-                .join(",")
+                .join(","),
         ]);
 
         link_is_pt.push(*arrived_at_node_by_pt);
-        
+
         if *arrived_at_node_by_pt == 1 {
             link_route_details.push(route_info[*previous_node].clone())
         } else {
@@ -354,15 +353,14 @@ pub fn get_all_scores_links_and_key_destinations(
             link_route_details.push(empty_map);
         }
     }
-    
-    println!("Getting link contributions took {:?}",now.elapsed());
-    
+
+    println!("Getting link contributions took {:?}", now.elapsed());
+
     // ****** Contributions to scores obtained ******
 
     // ****** Get top 3 clusters destinations for each purpose *******
-    
+
     let now = Instant::now();
-    
 
     // dicts of which of the 3 top 3 nodes, the nodes in the sets above correspond to keys in these hashmaps; each value will be the ID of one of the top 3 nodes
     let mut nearby_nodes_to_current_highest_node_hashmap: [HashMap<NodeID, NodeID>; 5] = [
@@ -401,7 +399,7 @@ pub fn get_all_scores_links_and_key_destinations(
     ];
 
     for DestinationReached { node, .. } in destinations_reached.iter() {
-    //for node_reached_id in destination_ids {    // original
+        //for node_reached_id in destination_ids {    // original
         let near_nodes = &nodes_to_neighbouring_nodes[*node];
         let mut purpose_scores = [Score(0.0); 5];
 
@@ -417,31 +415,31 @@ pub fn get_all_scores_links_and_key_destinations(
                 // make lookup to convert: neighbouring_node > iter_this_node_reached
                 // node_values_contributed_each_purpose_vec[iter_this_node_reached]
 
-                for k in 0..5 {
-                    purpose_scores[k] += scores_one_node[k];
+                for nth_purpose in 0..5 {
+                    purpose_scores[nth_purpose] += scores_one_node[nth_purpose];
                 }
             }
         }
 
         // Look through each of the purposes, and add to the top 3 if it qualifies for any of them
         // "Adjacent" here means: within 120s of that node via walking
-        for k in 0..5 {
-            if purpose_scores[k] >= id_and_min_scores[k].1 {
+        for nth_purpose in 0..5 {
+            if purpose_scores[nth_purpose] >= id_and_min_scores[nth_purpose].1 {
                 // test if node is an adjacent one
                 let node_to_replace: NodeID;
                 let is_in_adjacent: bool =
-                    nearby_nodes_top_3_scores_sets[k].contains(node);
+                    nearby_nodes_top_3_scores_sets[nth_purpose].contains(node);
                 if is_in_adjacent {
                     node_to_replace =
-                        nearby_nodes_to_current_highest_node_hashmap[k][node];
+                        nearby_nodes_to_current_highest_node_hashmap[nth_purpose][node];
                 } else {
-                    node_to_replace = id_and_min_scores[k].0;
+                    node_to_replace = id_and_min_scores[nth_purpose].0;
                 }
 
                 // find position of the node we want to replace
                 let mut node_to_replace_ix: usize = 0;
                 for i in 0..3 {
-                    if id_and_scores_top_3[k][i].0 == node_to_replace {
+                    if id_and_scores_top_3[nth_purpose][i].0 == node_to_replace {
                         node_to_replace_ix = i;
                     }
                 }
@@ -449,19 +447,22 @@ pub fn get_all_scores_links_and_key_destinations(
                 // if node is adjacent to one of the top 3 nodes, and the cluster score of the adjacent node is above the new one, do nothing
                 let mut do_nothing_as_existing_adjacent_score_larger: bool = false;
                 if is_in_adjacent {
-                    do_nothing_as_existing_adjacent_score_larger =
-                        purpose_scores[k] > id_and_scores_top_3[k][node_to_replace_ix].1;
+                    do_nothing_as_existing_adjacent_score_larger = purpose_scores[nth_purpose]
+                        > id_and_scores_top_3[nth_purpose][node_to_replace_ix].1;
                 }
 
                 // If node is adjacent to one of the top 3 nodes AND the cluster score of the adjacent node is same as new node AND the new node has a higher score
                 // than the current "reigning node", then we want the node with the higher score to become the new reigning node
                 let mut do_nothing_as_existing_node_score_larger: bool = false;
                 if !do_nothing_as_existing_adjacent_score_larger {
-                    if purpose_scores[k] == id_and_scores_top_3[k][node_to_replace_ix].1 {
+                    if purpose_scores[nth_purpose]
+                        == id_and_scores_top_3[nth_purpose][node_to_replace_ix].1
+                    {
                         let purpose_value_node_to_replace =
-                            node_values_contributed_each_purpose_hashmap[&node_to_replace][k];
+                            node_values_contributed_each_purpose_hashmap[&node_to_replace]
+                                [nth_purpose];
                         let purpose_value_node_reached =
-                            node_values_contributed_each_purpose_hashmap[&node][k];
+                            node_values_contributed_each_purpose_hashmap[&node][nth_purpose];
                         if purpose_value_node_to_replace > purpose_value_node_reached {
                             do_nothing_as_existing_node_score_larger = true;
                         }
@@ -478,56 +479,60 @@ pub fn get_all_scores_links_and_key_destinations(
                 // Don't run this if node_to_replace is 0, as node_to_replace=0 is the initialised node ID
                 if node_to_replace != NodeID(0) {
                     let vec_nodes_to_drop_from_set_and_dict =
-                        &highest_nodes_hashmap_to_adjacent_nodes_vec[k][&node_to_replace];
+                        &highest_nodes_hashmap_to_adjacent_nodes_vec[nth_purpose][&node_to_replace];
                     for node_id in vec_nodes_to_drop_from_set_and_dict {
-                        nearby_nodes_to_current_highest_node_hashmap[k].remove(&node_id);
-                        nearby_nodes_top_3_scores_sets[k].remove(&node_id);
+                        nearby_nodes_to_current_highest_node_hashmap[nth_purpose].remove(&node_id);
+                        nearby_nodes_top_3_scores_sets[nth_purpose].remove(&node_id);
                     }
-                    highest_nodes_hashmap_to_adjacent_nodes_vec[k].remove(&node_to_replace);
+                    highest_nodes_hashmap_to_adjacent_nodes_vec[nth_purpose]
+                        .remove(&node_to_replace);
                 }
 
                 // overwrite current top 3: this is fine to do inplace as id_and_scores_top_3 isn't ordered
-                id_and_scores_top_3[k][node_to_replace_ix].0 = *node;
-                id_and_scores_top_3[k][node_to_replace_ix].1 = purpose_scores[k];
+                id_and_scores_top_3[nth_purpose][node_to_replace_ix].0 = *node;
+                id_and_scores_top_3[nth_purpose][node_to_replace_ix].1 =
+                    purpose_scores[nth_purpose];
 
                 // recalculate current minimum
                 let mut current_minimum = Score(999_999_999_999_999_999.0);
                 let mut current_min_ix: usize = 0;
                 for i in 0..3 {
-                    let current_score = id_and_scores_top_3[k][i].1;
+                    let current_score = id_and_scores_top_3[nth_purpose][i].1;
                     if current_score < current_minimum {
                         current_minimum = current_score;
                         current_min_ix = i;
                     }
                 }
 
-                let minimum_node_id = id_and_scores_top_3[k][current_min_ix].0;
-                id_and_min_scores[k].0 = minimum_node_id;
-                id_and_min_scores[k].1 = current_minimum;
+                let minimum_node_id = id_and_scores_top_3[nth_purpose][current_min_ix].0;
+                id_and_min_scores[nth_purpose].0 = minimum_node_id;
+                id_and_min_scores[nth_purpose].1 = current_minimum;
 
                 // add new adjacaents to both hashmap and the set
                 for node_id in near_nodes.to_vec() {
-                    nearby_nodes_to_current_highest_node_hashmap[k]
+                    nearby_nodes_to_current_highest_node_hashmap[nth_purpose]
                         .insert(node_id, *node);
-                    nearby_nodes_top_3_scores_sets[k].insert(node_id);
+                    nearby_nodes_top_3_scores_sets[nth_purpose].insert(node_id);
                 }
 
                 // add new adjacent nodes to highest_nodes_hashmap_to_adjacent_nodes_vec
-                highest_nodes_hashmap_to_adjacent_nodes_vec[k]
+                highest_nodes_hashmap_to_adjacent_nodes_vec[nth_purpose]
                     .insert(*node, near_nodes.to_vec());
             }
         }
     }
-    
-    println!("Getting node clusters took {:?}",now.elapsed());
-    
-    
+
+    println!("Getting node clusters took {:?}", now.elapsed());
+
     // ******* Clusters obtained *******
 
     // **** Extract keys from each of the 5 of highest_nodes_hashmap_to_adjacent_nodes_vec
     let mut most_important_nodes_longlat: [[[f64; 2]; 3]; 5] = [[[0.0; 2]; 3]; 5];
     for i in 0..5 {
-        for (inner_iter, rust_node_id) in highest_nodes_hashmap_to_adjacent_nodes_vec[i].keys().enumerate() {
+        for (inner_iter, rust_node_id) in highest_nodes_hashmap_to_adjacent_nodes_vec[i]
+            .keys()
+            .enumerate()
+        {
             let node_longlat = rust_node_longlat_lookup[*rust_node_id];
             most_important_nodes_longlat[i][inner_iter] = node_longlat;
         }

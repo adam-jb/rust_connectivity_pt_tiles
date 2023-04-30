@@ -1,8 +1,8 @@
 use actix_web::{get, post, web, App, HttpServer};
 use rayon::prelude::*;
+use std::collections::HashMap;
 use std::time::Instant;
 use typed_index_collections::TiVec;
-use std::collections::{HashMap};
 
 use crate::read_files::{
     deserialize_bincoded_file, read_files_parallel_excluding_node_values,
@@ -10,8 +10,8 @@ use crate::read_files::{
     read_sparse_node_values_2d_serial,
 };
 use crate::shared::{
-    Cost, Multiplier, FinalOutput, FloodfillOutput, NodePT, NodeWalk, NodeID,
-    SubpurposeScore, UserInputJSON,
+    Cost, FinalOutput, FloodfillOutput, Multiplier, NodeID, NodePT, NodeWalk, SubpurposeScore,
+    UserInputJSON,
 };
 use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};
 use get_time_of_day_index::get_time_of_day_index;
@@ -32,7 +32,7 @@ struct AppState {
     graph_pt: TiVec<NodeID, NodePT>,
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
     rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]>,
-    route_info: TiVec<NodeID, HashMap<String, String>>,  // TiVec<NodeID, String>,
+    route_info: TiVec<NodeID, HashMap<String, String>>, // TiVec<NodeID, String>,
 }
 
 fn get_travel_times_multicore(
@@ -72,7 +72,6 @@ async fn get_node_id_count() -> String {
 
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
-    
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 
     println!(
@@ -118,11 +117,9 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let year: i32 = 2022;
-    
 
-    serialise_files::serialise_route_info(year);
-    
-    
+    serialise_files::serialise_graph_walk_vector(year);
+
     // make this true on initial run; false otherwise
     if false {
         serialise_files::serialise_files(year);
@@ -134,7 +131,9 @@ async fn main() -> std::io::Result<()> {
     // this is big preprocessing stage (~90mins with 8cores)
     if false {
         let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
-        make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s(graph_walk, graph_pt);
+        make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s(
+            graph_walk, graph_pt,
+        );
     }
 
     let (
@@ -144,7 +143,7 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_19,
         subpurpose_purpose_lookup,
     ) = read_small_files_serial();
-    
+
     let travel_time_relationships_all = vec![
         travel_time_relationships_7,
         travel_time_relationships_10,
@@ -152,22 +151,23 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_19,
     ];
 
-    let route_info: Vec<HashMap<String, String>> = deserialize_bincoded_file(&format!("route_info_{year}"));
+    let route_info: Vec<HashMap<String, String>> =
+        deserialize_bincoded_file(&format!("route_info_{year}"));
     let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
     let node_values_2d = read_sparse_node_values_2d_serial(year);
     let rust_node_longlat_lookup = read_rust_node_longlat_lookup_serial();
-    let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> = deserialize_bincoded_file("nodes_to_neighbouring_nodes");
-    
-    
+    let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> =
+        deserialize_bincoded_file("nodes_to_neighbouring_nodes");
+
     let now = Instant::now();
     let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
     let graph_pt: TiVec<NodeID, NodePT> = TiVec::from(graph_pt);
     let node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
     let rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]> = TiVec::from(rust_node_longlat_lookup);
-    let nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>> = TiVec::from(nodes_to_neighbouring_nodes);
+    let nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>> =
+        TiVec::from(nodes_to_neighbouring_nodes);
     let route_info: TiVec<NodeID, HashMap<String, String>> = TiVec::from(route_info);
     println!("Conversion to TiVec's took {:?} seconds", now.elapsed());
-    
 
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,

@@ -1,5 +1,4 @@
-
-use crate::shared::{SecondsPastMidnight};
+use crate::shared::SecondsPastMidnight;
 
 pub fn get_time_of_day_index(trip_start_seconds: SecondsPastMidnight) -> usize {
     let mut time_of_day_ix = 0;

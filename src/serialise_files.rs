@@ -1,26 +1,27 @@
 use fs_err::File;
 use smallvec::SmallVec;
-use std::io::{BufReader, BufWriter};
-use std::time::Instant;
-use std::path::Path;
 use std::collections::HashMap;
+use std::io::{BufReader, BufWriter};
+use std::path::Path;
+use std::time::Instant;
 
 use crate::shared::{
-    Cost, EdgePT, EdgeWalk, NodePT, NodeWalk, NodeID, Score, Multiplier, SecondsPastMidnight, SubpurposeScore,
+    Cost, EdgePT, EdgeWalk, Multiplier, NodeID, NodePT, NodeWalk, Score, SecondsPastMidnight,
+    SubpurposeScore,
 };
-
 
 pub fn serialise_sparse_node_values_2d(year: i32) {
     let inpath = format!("data/sparse_node_values_6am_{}_2d.json", year);
     let file = File::open(Path::new(&inpath)).unwrap();
     let reader = BufReader::new(file);
     let input: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
-    
+
     let mut output: Vec<Vec<SubpurposeScore>> = Vec::new();
     for item in input.iter() {
-        let sparse_subpurpose_scores_this_node: Vec<[usize; 2]> = serde_json::from_value(item.clone()).unwrap();
+        let sparse_subpurpose_scores_this_node: Vec<[usize; 2]> =
+            serde_json::from_value(item.clone()).unwrap();
         let mut output_this_node: Vec<SubpurposeScore> = Vec::new();
-        
+
         for val in sparse_subpurpose_scores_this_node.iter() {
             output_this_node.push(SubpurposeScore {
                 subpurpose_ix: val[0] as usize,
@@ -40,9 +41,11 @@ pub fn serialise_sparse_node_values_2d(year: i32) {
 pub fn serialise_rust_node_longlat_lookup(year: i32) {
     let inpath = format!("data/rust_nodes_long_lat_{}.json", year);
     let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: Vec<[f64; 2]> = serde_json::from_str::<Vec<[f64; 2]>>(&contents).unwrap().into();
+    let output: Vec<[f64; 2]> = serde_json::from_str::<Vec<[f64; 2]>>(&contents)
+        .unwrap()
+        .into();
     println!("Read from {}", inpath);
-    
+
     let outpath = format!("serialised_data/rust_nodes_long_lat.bin");
     let file = BufWriter::new(File::create(&outpath).unwrap());
     bincode::serialize_into(file, &output).unwrap();
@@ -85,14 +88,14 @@ fn serialise_graph_walk_vector(year: i32) -> usize {
     let input: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
     let mut graph_walk_vec: Vec<NodeWalk> = Vec::new();
 
-    for item in input.iter() {        
-        // Converting 1 or 0 into boolean for HasPT
+    for item in input.iter() {
+        // Converting 1 or 0 into boolean for has_pt
         let pt_status_integer = item["pt_status"].as_i64().unwrap();
         let pt_status_boolean = if pt_status_integer == 1 { true } else { false };
-        
+
         let node_connections: Vec<[usize; 2]> =
             serde_json::from_value(item["node_connections"].clone()).unwrap();
-        
+
         let mut edges: SmallVec<[EdgeWalk; 4]> = SmallVec::new();
         for array in node_connections {
             edges.push(EdgeWalk {
@@ -101,11 +104,10 @@ fn serialise_graph_walk_vector(year: i32) -> usize {
             });
         }
         graph_walk_vec.push(NodeWalk {
-            HasPT: pt_status_boolean,
+            has_pt: pt_status_boolean,
             node_connections: edges,
         });
     }
-    
 
     let filename = format!("serialised_data/p1_main_nodes_vector_6am_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());
@@ -113,26 +115,21 @@ fn serialise_graph_walk_vector(year: i32) -> usize {
     return graph_walk_vec.len();
 }
 
-fn serialise_graph_pt_vector(year: i32) { //, len_graph_walk: usize) {
+fn serialise_graph_pt_vector(year: i32) {
+    //, len_graph_walk: usize) {
     let contents_filename = format!("data/p2_main_nodes_updated_6am_{}.json", year);
     let file = File::open(Path::new(&contents_filename)).unwrap();
     let reader = BufReader::new(file);
 
     let input: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
     let mut graph_pt_vec: Vec<NodePT> = Vec::new();
-    
+
     for item in input.iter() {
-        let next_stop_node: NodeID = serde_json::from_value(item["next_stop_node"].clone()).unwrap();
-        
-        /*
-        println!{"{:?}", item["next_stop_node"]);
-        println!{"{:?}", next_stop_node);
-        println!("{:?}", item["timetable"]);
-        */
-        
-        let timetable: Vec<[usize; 2]> =
-            serde_json::from_value(item["timetable"].clone()).unwrap();
-        
+        let next_stop_node: NodeID =
+            serde_json::from_value(item["next_stop_node"].clone()).unwrap();
+
+        let timetable: Vec<[usize; 2]> = serde_json::from_value(item["timetable"].clone()).unwrap();
+
         let mut edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
         for array in timetable {
             edges.push(EdgePT {
@@ -175,12 +172,12 @@ pub fn serialise_route_info(year: i32) {
     // Convert route info dicts to strings
     let mut output: Vec<HashMap<String, String>> = Vec::new();
     for item in input.iter() {
-        let next_val_map: HashMap<String, String> = serde_json::from_value(item.clone()).unwrap(); 
+        let next_val_map: HashMap<String, String> = serde_json::from_value(item.clone()).unwrap();
         // If storing as a string rather than hashmap
         // let next_val_str = serde_json::to_string(&next_val_map).unwrap();
         output.push(next_val_map);
     }
-        
+
     let outpath = format!("serialised_data/route_info_{}.bin", year);
     let file = BufWriter::new(File::create(&outpath).unwrap());
     bincode::serialize_into(file, &output).unwrap();
