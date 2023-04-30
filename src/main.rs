@@ -26,7 +26,7 @@ mod shared;
 
 struct AppState {
     travel_time_relationships_all: Vec<Vec<Score>>,
-    subpurpose_purpose_lookup: [i8; 32],
+    subpurpose_purpose_lookup: [usize; 32],
     nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>>,
     graph_walk: TiVec<NodeID, GraphWalk>,
     graph_pt: TiVec<NodeID, GraphPT>,

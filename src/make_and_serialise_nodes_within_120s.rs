@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use std::io::BufWriter;
 use typed_index_collections::TiVec;
 
-use crate::shared::{Cost, FloodfillOutput, NodeID};
+use crate::shared::{NodeID, Cost, SecondsPastMidnight, FloodfillOutput};
 
 pub fn make_and_serialise_nodes_within_120s(year: i32) {
     println!("Begun make_and_serialise_nodes_within_120s");
@@ -22,9 +22,9 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
             get_travel_times(
                 &graph_walk,
                 &graph_pt,
-                NodeID(*i as u32),
-                Cost(28800),
-                Cost(0 as u16),
+                NodeID(*i as usize),
+                SecondsPastMidnight(28800),
+                Cost(0),
                 true,
                 Cost(120),
             )
@@ -36,7 +36,7 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
     let mut nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>> =
         vec![vec![]; graph_walk.len()].into();
     for res in results {
-        nodes_to_neighbouring_nodes[res.start_node_id] = res.destination_ids;
+        nodes_to_neighbouring_nodes[res.start_node_id] = res.destinations_reached;
     }
 
     let file =

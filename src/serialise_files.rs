@@ -5,14 +5,14 @@ use std::time::Instant;
 use typed_index_collections::TiVec;
 
 use crate::shared::{
-    Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, HasPt, NodeID, Score, SubpurposeScore,
+    Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, HasPt, NodeID, Score, SecondsPastMidnight, SubpurposeScore,
 };
 
 pub fn serialise_sparse_node_values_2d(year: i32) {
     let inpath = format!("data/sparse_node_values_6am_{}_2d.json", year);
     let contents = fs_err::read_to_string(&inpath).unwrap();
     let output: TiVec<NodeID, Vec<SubpurposeScore>> =
-        serde_json::from_str(&contents).unwrap().into();
+        serde_json::from_str::<T>(&contents).unwrap().into();
 
     println!("Read from {}", inpath);
 
@@ -25,7 +25,7 @@ pub fn serialise_sparse_node_values_2d(year: i32) {
 pub fn serialise_rust_node_longlat_lookup() {
     let inpath = format!("data/rust_nodes_long_lat.json");
     let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: TiVec<NodeID, [f64; 2]> = serde_json::from_str(&contents).unwrap().into();
+    let output: TiVec<NodeID, [f64; 2]> = serde_json::from_str::<T>(&contents).unwrap().into();
     println!("Read from {}", inpath);
 
     let outpath = format!("serialised_data/rust_nodes_long_lat.bin");
@@ -42,7 +42,7 @@ pub fn serialise_files(year: i32) {
     serialise_node_values_padding_count(year);
     serialise_route_info(year);
 
-    serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
+    serialise_list_immutable_array_usize("subpurpose_purpose_lookup");
     serialise_list_Score("travel_time_relationships_7");
     serialise_list_Score("travel_time_relationships_10");
     serialise_list_Score("travel_time_relationships_16");
@@ -78,7 +78,7 @@ fn serialise_graph_walk_vector(year: i32) -> usize {
         let mut edges: SmallVec<[EdgeWalk; 4]> = SmallVec::new();
         for array in node_connections {
             edges.push(EdgeWalk {
-                to: NodeID(array[1] as u32),
+                to: NodeID(array[1] as usize),
                 cost: Cost(array[0] as u32),
             });
         }
@@ -110,7 +110,7 @@ fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
         let mut edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
         for array in timetable {
             edges.push(EdgePT {
-                leavetime: Cost(array[0] as u32),
+                leavetime: SecondsPastMidnight(array[0] as u32),
                 cost: Cost(array[0] as u32),
             });
         }
@@ -160,10 +160,10 @@ fn serialise_list_Score(filename: &str) {
     println!("Serialised to {}", outpath);
 }
 
-fn serialise_list_immutable_array_i8(filename: &str) {
+fn serialise_list_immutable_array_usize(filename: &str) {
     let inpath = format!("data/{}.json", filename);
     let contents = std::fs::read_to_string(&inpath).unwrap();
-    let output: [i8; 32] = serde_json::from_str(&contents).unwrap();
+    let output: [usize; 32] = serde_json::from_str(&contents).unwrap();
     println!("Read from {}", inpath);
 
     let outpath = format!("serialised_data/{}.bin", filename);

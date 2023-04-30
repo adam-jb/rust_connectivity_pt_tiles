@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 #[derive(PartialEq, Eq, Clone)]
 pub struct PriorityQueueItem<K, V, NT, IT, NM> {
     pub cost: K,
-    pub value: V,
+    pub node: V,
     pub previous_node: NT,
     pub previous_node_iters_taken: IT,
     pub arrived_at_node_by_pt: NM,

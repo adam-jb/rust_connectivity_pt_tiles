@@ -2,6 +2,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::cmp::{Ord, PartialEq, PartialOrd};
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::ops::{Add, Sub};
 
 // Serializes a `usize` as a `u32` to save space. Useful when you need `usize` for indexing, but
 // the values don't exceed 2^32.
@@ -20,14 +21,15 @@ pub fn deserialize_usize<'de, D: Deserializer<'de>>(d: D) -> Result<usize, D::Er
 }
 
 // Same as above but for serialising u32 as u16
-pub fn serialize_u32_as_u16<S: Serializer>(x: &u32, s: S) -> Result<S::Ok, S::Error> {
+pub fn serialize_usize_as_u16<S: Serializer>(x: &usize, s: S) -> Result<S::Ok, S::Error> {
     if let Ok(x) = u16::try_from(*x) {
         x.serialize(s)
     } else {
         Err(serde::ser::Error::custom(format!("{} can't fit in u16", x)))
     }
 }
-pub fn deserialize_u32_as_u16<'de, D: Deserializer<'de>>(d: D) -> Result<u32, D::Error> {
+
+pub fn deserialize_usize_as_u16<'de, D: Deserializer<'de>>(d: D) -> Result<usize, D::Error> {
     let x = <u16>::deserialize(d)?;
     Ok(x as usize)
 }
@@ -42,28 +44,30 @@ pub struct NodeID(
     pub usize,
 );
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
-pub struct LinkID(pub u32);
-
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct SecondsPastMidnight(pub u32);
+
+// Allow instances of SecondsPastMidnight type to do minus '-' operation with other instances of this type
+impl Sub for SecondsPastMidnight {
+    type Output = Self;
+    fn sub(self, other: Self) -> Self::Output {
+        SecondsPastMidnight(self.0 - other.0)
+    }
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct Cost(
     #[serde(
-        serialize_with = "serialize_u32_as_u16",
-        deserialize_with = "deserialize_u32_as_u16"
+        serialize_with = "serialize_usize_as_u16",
+        deserialize_with = "deserialize_usize_as_u16"
     )]
-    pub u32,
+    pub usize,
 );
 
-// Allow Cost to be multiplied by SecondsPastMidnight, or compared against, or added
-impl Cost {
-    pub fn multiply(&self, second_past_midnight: SecondsPastMidnight) -> Cost {
-        Cost(self.0 * second_past_midnight.0)
-    }
-
-    pub fn add(&self, other: &SecondsPastMidnight) -> Cost {
+// Allow instances of Cost to be summed
+impl Add for Cost {
+    type Output = Self;
+    fn add(self, other: Self) -> Self::Output {
         Cost(self.0 + other.0)
     }
 }
@@ -85,16 +89,23 @@ impl From<SecondsPastMidnight> for Cost {
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct HasPt(pub bool);
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct Multiplier(pub f64);
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct Score(pub f64);
 
-// Allow Score to be multiplied by Multiplier
+// Allow Score to be multiplied by Multiplier, and to get the natural log of itself
 impl Score {
     pub fn multiply(&self, multiplier: Multiplier) -> Score {
         Score(self.0 * multiplier.0)
+    }
+    
+    pub fn multiply_f64(&self, multiplier: f64) -> Score {
+        Score(self.0 * multiplier)
+    }
+    
+    pub fn ln(self) -> Self {
+        Score(self.0.ln())
     }
 }
 
@@ -132,13 +143,6 @@ pub struct GraphPT {
     pub timetable: SmallVec<[EdgePT; 4]>,
 }
 
-#[derive(Deserialize)]
-pub struct UserInputJSON {
-    pub start_nodes_user_input: Vec<NodeID>,
-    pub init_travel_times_user_input: Vec<Cost>,
-    pub trip_start_seconds: SecondsPastMidnight,
-}
-
 pub struct DestinationReached {
     pub node: NodeID,
     pub cost: Cost,
@@ -154,20 +158,14 @@ pub struct FloodfillOutput {
 }
 
 #[derive(Serialize)]
-pub struct LinkCoords {
-    pub start_node_longlat: [f64; 2],
-    pub end_node_longlat: [f64; 2],
-}
-
-#[derive(Serialize)]
 pub struct FinalOutput {
     pub num_iterations: i32,
     pub start_node: NodeID,
-    pub score_per_purpose: [f64; 5],
+    pub score_per_purpose: [Score; 5],
     pub per_link_score_per_purpose: Vec<[Score; 5]>,
     pub link_coordinates: Vec<Vec<String>>,
     pub key_destinations_per_purpose: [[[f64; 2]; 3]; 5],
-    pub init_travel_time: u16,
+    pub init_travel_time: Cost,
     pub link_is_pt: Vec<u8>,
     pub node_info_for_output: Hashmap<String>,
 }
@@ -180,4 +178,11 @@ pub struct PurposeScores {
     pub Entertainment: f64,
     pub Shopping: f64,
     pub VisitFriends: f64,
+}
+
+#[derive(Deserialize)]
+pub struct UserInputJSON {
+    pub start_nodes_user_input: Vec<NodeID>,
+    pub init_travel_times_user_input: Vec<Cost>,
+    pub trip_start_seconds: SecondsPastMidnight,
 }

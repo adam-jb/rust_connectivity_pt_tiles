@@ -5,7 +5,7 @@ use std::io::BufReader;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-use crate::shared::{EdgePT, EdgeWalk, GraphPT, GraphWalk, Score, SubpurposeScore};
+use crate::shared::{NodeID, EdgePT, EdgeWalk, GraphPT, GraphWalk, Score, SubpurposeScore};
 
 pub fn read_sparse_node_values_2d_serial(year: i32) -> TiVec<NodeID, Vec<[i32; 2]>> {
     let now = Instant::now();
@@ -46,7 +46,7 @@ pub fn read_files_parallel_excluding_node_values(
     (graph_walk, graph_pt)
 }
 
-pub fn read_small_files_serial() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>, [i8; 32]) {
+pub fn read_small_files_serial() -> (Vec<Score>, Vec<Score>, Vec<Score>, Vec<Score>, [i8; 32]) {
     let now = Instant::now();
 
     let travel_time_relationships_7: Vec<Score> =
@@ -57,7 +57,7 @@ pub fn read_small_files_serial() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>, [i8
         deserialize_bincoded_file("travel_time_relationships_16");
     let travel_time_relationships_19: Vec<Score> =
         deserialize_bincoded_file("travel_time_relationships_19");
-    let subpurpose_purpose_lookup: [i8; 32] =
+    let subpurpose_purpose_lookup: [usize; 32] =
         deserialize_bincoded_file("subpurpose_purpose_lookup");
 
     println!("Serial loading took {:?}", now.elapsed());
