@@ -9,10 +9,12 @@ use crate::read_files::{
     read_rust_node_longlat_lookup_serial, read_small_files_serial,
     read_sparse_node_values_2d_serial,
 };
-use crate::shared::{Cost, NodeID, EdgePT, EdgeWalk, SubpurposeScore, GraphWalk, GraphPT, FloodfillOutput, FinalOutput, UserInputJSON};
+use crate::shared::{
+    Cost, EdgePT, EdgeWalk, FinalOutput, FloodfillOutput, GraphPT, GraphWalk, NodeID,
+    SubpurposeScore, UserInputJSON,
+};
 use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};
 use get_time_of_day_index::get_time_of_day_index;
-
 
 mod floodfill;
 mod get_time_of_day_index;
@@ -143,7 +145,7 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_16,
         travel_time_relationships_19,
     ];
-    
+
     let route_info: TiVec<NodeID, String> =
         deserialize_bincoded_file(&format!("route_info_{year}"));
 

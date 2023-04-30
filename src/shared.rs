@@ -32,7 +32,6 @@ pub fn deserialize_u32_as_u16<'de, D: Deserializer<'de>>(d: D) -> Result<u32, D:
     Ok(x as usize)
 }
 
-
 // NodeID is a usize, which is saved as u32 to save space
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
 pub struct NodeID(
@@ -63,7 +62,7 @@ impl Cost {
     pub fn multiply(&self, second_past_midnight: SecondsPastMidnight) -> Cost {
         Cost(self.0 * second_past_midnight.0)
     }
-    
+
     pub fn add(&self, other: &SecondsPastMidnight) -> Cost {
         Cost(self.0 + other.0)
     }
@@ -141,17 +140,17 @@ pub struct UserInputJSON {
 }
 
 pub struct DestinationReached {
-    pub node: NodeID.
+    pub node: NodeID,
     pub cost: Cost,
     pub previous_node: NodeID,
     pub previous_node_iters_taken: usize,
-    pub arrived_at_node_by_pt: u8,     // 0 for walk; 1 for PT
+    pub arrived_at_node_by_pt: u8, // 0 for walk; 1 for PT
 }
 
 pub struct FloodfillOutput {
     pub start_node_id: NodeID,
     pub seconds_walk_to_start_node: Cost,
-    pub destinations_reached: Vec<DestinationReached>    // ID of node reached; seconds to get there; previous Node ID
+    pub destinations_reached: Vec<DestinationReached>, // ID of node reached; seconds to get there; previous Node ID
 }
 
 #[derive(Serialize)]

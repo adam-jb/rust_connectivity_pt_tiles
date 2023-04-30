@@ -33,7 +33,8 @@ pub fn make_and_serialise_nodes_within_120s(year: i32) {
     println!("Floodfill done for all nodes in graph_walk");
 
     // write the neighbouring nodes to a vector. CHECK .into() call is needed to convert initialised vec to TiVec
-    let mut nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>> = vec![vec![]; graph_walk.len()].into();
+    let mut nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>> =
+        vec![vec![]; graph_walk.len()].into();
     for res in results {
         nodes_to_neighbouring_nodes[res.start_node_id] = res.destination_ids;
     }
