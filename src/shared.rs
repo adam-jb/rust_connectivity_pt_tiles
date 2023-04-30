@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use smallvec::SmallVec;
 use std::ops::{Add, Sub, AddAssign};
+use derive_more::{From, Into};
 
 // Serializes a `usize` as a `u32` to save space. Useful when you need `usize` for indexing, but
 // the values don't exceed 2^32.
@@ -36,7 +37,7 @@ pub fn deserialize_usize_as_u16<'de, D: Deserializer<'de>>(d: D) -> Result<usize
 }
 
 // NodeID is a usize, which is saved as u32 to save space
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, From, Into)]
 pub struct NodeID(
     #[serde(
         serialize_with = "serialize_usize",
@@ -45,7 +46,7 @@ pub struct NodeID(
     pub usize,
 );
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug, From, Into)]
 pub struct SecondsPastMidnight(
     #[serde(
         serialize_with = "serialize_usize",
@@ -62,7 +63,7 @@ impl Sub for SecondsPastMidnight {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug, From, Into)]
 pub struct Cost(
     #[serde(
         serialize_with = "serialize_usize_as_u16",
@@ -96,7 +97,7 @@ impl From<SecondsPastMidnight> for Cost {
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct Multiplier(pub f64);
 
-#[derive(Serialize, Deserialize, PartialEq, PartialOrd, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, PartialOrd, Clone, Copy, Debug, From, Into)]
 pub struct Score(pub f64);
 
 // Allow Score to be multiplied by Multiplier, and to get the natural log of itself

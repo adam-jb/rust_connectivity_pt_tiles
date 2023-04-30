@@ -247,7 +247,7 @@ pub fn get_all_scores_links_and_key_destinations(
             subpurpose_scores[*subpurpose_ix] += score_to_add;
 
             // To get purpose level contribution to scores for each node: used for finding key destinations
-            let purpose_ix = subpurpose_purpose_lookup[&subpurpose_ix];
+            let purpose_ix = subpurpose_purpose_lookup[*subpurpose_ix];
             purpose_scores_this_node[purpose_ix] += score_to_add;
         }
 
@@ -316,7 +316,7 @@ pub fn get_all_scores_links_and_key_destinations(
         }
 
         // add coords from previous node to this node
-        let longlat_previous_node = rust_node_longlat_lookup[previous_node];
+        let longlat_previous_node = rust_node_longlat_lookup[*previous_node];
         let longlat_node = rust_node_longlat_lookup[node];
 
         // convert floats to strings and store

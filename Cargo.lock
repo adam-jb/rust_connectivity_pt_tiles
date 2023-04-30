@@ -970,6 +970,7 @@ dependencies = [
  "actix-cors",
  "actix-web",
  "bincode",
+ "derive_more",
  "env_logger",
  "fs-err",
  "rayon",

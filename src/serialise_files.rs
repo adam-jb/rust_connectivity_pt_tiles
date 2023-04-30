@@ -9,6 +9,7 @@ use crate::shared::{
     Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, NodeID, Score, Multiplier, SecondsPastMidnight, SubpurposeScore,
 };
 
+
 pub fn serialise_sparse_node_values_2d(year: i32) {
     let inpath = format!("data/sparse_node_values_6am_{}_2d.json", year);
     let contents = fs_err::read_to_string(&inpath).unwrap();
@@ -103,7 +104,7 @@ fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
     let mut graph_pt_vec: TiVec<NodeID, GraphPT> = Vec::new().into();
     
     for item in input.iter() {
-        let next_stop_node = item["next_stop_node"].parse::<NodeID>().unwrap();
+        let next_stop_node: NodeID = serde_json::from_value(item["next_stop_node"].clone()).unwrap();
         let timetable: Vec<[usize; 2]> =
             serde_json::from_value(item["timetables"].clone()).unwrap();
         let mut edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
