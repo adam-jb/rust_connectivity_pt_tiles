@@ -121,7 +121,7 @@ async fn main() -> std::io::Result<()> {
 
     // make this true on initial run; false otherwise
     if true {
-        serialise_files::serialise_files(year);
+        //serialise_files::serialise_files(year);
         serialise_files::serialise_sparse_node_values_2d(year);
         serialise_files::serialise_rust_node_longlat_lookup();
     }
@@ -155,7 +155,6 @@ async fn main() -> std::io::Result<()> {
     let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> = deserialize_bincoded_file("nodes_to_neighbouring_nodes");
     
     
-    // Convert Vecs to TiVecs
     let now = Instant::now();
     let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
     let graph_pt: TiVec<NodeID, NodePT> = TiVec::from(graph_pt);
@@ -164,6 +163,7 @@ async fn main() -> std::io::Result<()> {
     let nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>> = TiVec::from(nodes_to_neighbouring_nodes);
     let route_info: TiVec<NodeID, String> = TiVec::from(route_info);
     println!("Conversion to TiVec's took {:?} seconds", now.elapsed());
+    
 
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
