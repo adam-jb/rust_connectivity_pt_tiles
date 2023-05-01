@@ -3,10 +3,10 @@ use crate::shared::{
     Cost, DestinationReached, FinalOutput, FloodfillOutput, Multiplier, NodeID, NodePT, NodeWalk,
     Score, SecondsPastMidnight, SubpurposeScore,
 };
-use rayon::prelude::*;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::time::Instant;
 use typed_index_collections::TiVec;
+use std::sync::{Mutex};
 
 //use std::collections::BinaryHeap;
 //use hashbrown::{HashSet, HashMap};   // TO TRY if go back to using hashing instead of vec for finding node clusters: May be faster hashing than std
@@ -157,7 +157,7 @@ pub fn get_all_scores_links_and_key_destinations(
     nodes_to_neighbouring_nodes: &TiVec<NodeID, Vec<NodeID>>,
     rust_node_longlat_lookup: &TiVec<NodeID, [f64; 2]>,
     route_info: &TiVec<NodeID, HashMap<String, String>>, //&TiVec<NodeID, String>,
-    graph_walk_len: usize,
+    non_mutex_mutable_sparse_node_values_contributed: &Mutex<TiVec<NodeID, [Score; 5]>>,
 ) -> FinalOutput {
     // Get this from score_multipler_by_subpurpose_id_{mode_simpler}.json in connectivity-processing-files
     // Used to get relative importance of each subpurpose when aggregating them to purpose level
@@ -204,16 +204,9 @@ pub fn get_all_scores_links_and_key_destinations(
     let seconds_walk_to_start_node = floodfill_output.seconds_walk_to_start_node;
     let destinations_reached = &floodfill_output.destinations_reached;
 
-    let now = Instant::now();
-    // Using all cores to initialise values of 0. This is the most expensive bit: takes 400ms with single core; 40ms on 16core machine with rayon
-    let sparse_node_values_contributed: Vec<[Score; 5]> = (0..graph_walk_len)
-        .into_par_iter()
-        .map(|_| [Score::default(); 5])
-        .collect();
-    let mut sparse_node_values_contributed: TiVec<NodeID, [Score; 5]> =
-        TiVec::from(sparse_node_values_contributed);
-    println!("Making sparse node values took {:?}", now.elapsed());
-
+    let mut sparse_node_values_contributed = non_mutex_mutable_sparse_node_values_contributed.lock().unwrap();
+    
+    
     let mut node_values_contributed_each_purpose_vec: Vec<[Score; 5]> = vec![];
 
     // ********* Get subpurpose level scores overall, and purpose level contribution of each individual node reached
@@ -512,7 +505,13 @@ pub fn get_all_scores_links_and_key_destinations(
             most_important_nodes_longlat[i][inner_iter] = node_longlat;
         }
     }
-
+    
+    // ****** Reset sparse_node_values_contributed for next query
+    for DestinationReached { node, .. } in destinations_reached.iter() {
+        sparse_node_values_contributed[*node] = [Score(0.0); 5];
+    }
+    
+    
     FinalOutput {
         num_iterations: destinations_reached.len() as u32,
         start_node: start,

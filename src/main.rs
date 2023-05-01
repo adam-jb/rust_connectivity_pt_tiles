@@ -3,6 +3,7 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 use std::time::Instant;
 use typed_index_collections::TiVec;
+use std::sync::{Mutex};
 
 use crate::read_files::{
     deserialize_bincoded_file, read_files_parallel_excluding_node_values,
@@ -10,8 +11,8 @@ use crate::read_files::{
     read_sparse_node_values_2d_serial,
 };
 use crate::shared::{
-    Cost, FinalOutput, FloodfillOutput, Multiplier, NodeID, NodePT, NodeWalk, SubpurposeScore,
-    UserInputJSON,
+    Cost, Multiplier, NodeID, NodePT, NodeWalk, SubpurposeScore,
+    UserInputJSON, Score,
 };
 use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};
 use get_time_of_day_index::get_time_of_day_index;
@@ -33,8 +34,9 @@ struct AppState {
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
     rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]>,
     route_info: TiVec<NodeID, HashMap<String, String>>, // TiVec<NodeID, String>,
+    sparse_node_values_contributed_mutex: Mutex<TiVec<NodeID, [Score; 5]>>,
 }
-
+/*
 fn get_travel_times_multicore(
     graph_walk: &TiVec<NodeID, NodeWalk>,
     graph_pt: &TiVec<NodeID, NodePT>,
@@ -57,6 +59,7 @@ fn get_travel_times_multicore(
         })
         .collect();
 }
+*/
 
 #[get("/")]
 async fn index() -> String {
@@ -73,37 +76,34 @@ async fn get_node_id_count() -> String {
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
-
-    println!(
-        "Started running floodfill and node values files read\ttime_of_day_ix: {}\tNodes count: {}",
-        time_of_day_ix,
-        input.start_nodes_user_input.len()
-    );
-
+    
     let now = Instant::now();
-
-    let floodfill_outputs = get_travel_times_multicore(&data.graph_walk, &data.graph_pt, &input);
-
+    // Only looks at first input
+    let floodfill_output = get_travel_times(
+            &data.graph_walk,
+            &data.graph_pt,
+            *&input.start_nodes_user_input[0],
+            *&input.trip_start_seconds,
+            *&input.init_travel_times_user_input[0],
+            false,
+            Cost(3600),
+        );
     println!("Floodfill in {:?}", now.elapsed());
+    
+    //let mut mutable_sparse_node_values_contributed_mutex = data.sparse_node_values_contributed_mutex.lock().unwrap();
 
-    let now = Instant::now();
-    let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
+    let now = Instant::now();    
+    let results = get_all_scores_links_and_key_destinations(
+            &floodfill_output,
+            &data.node_values_2d,
+            &data.travel_time_relationships_all[time_of_day_ix],
+            &data.subpurpose_purpose_lookup,
+            &data.nodes_to_neighbouring_nodes,
+            &data.rust_node_longlat_lookup,
+            &data.route_info,
+            &data.sparse_node_values_contributed_mutex,
+        );
 
-    let results: Vec<FinalOutput> = indices
-        .par_iter()
-        .map(|i| {
-            get_all_scores_links_and_key_destinations(
-                &floodfill_outputs[*i],
-                &data.node_values_2d,
-                &data.travel_time_relationships_all[time_of_day_ix],
-                &data.subpurpose_purpose_lookup,
-                &data.nodes_to_neighbouring_nodes,
-                &data.rust_node_longlat_lookup,
-                &data.route_info,
-                data.graph_walk.len(),
-            )
-        })
-        .collect();
     println!(
         "Getting destinations, scores, link importances and clusters took {:?}",
         now.elapsed()
@@ -167,7 +167,19 @@ async fn main() -> std::io::Result<()> {
         TiVec::from(nodes_to_neighbouring_nodes);
     let route_info: TiVec<NodeID, HashMap<String, String>> = TiVec::from(route_info);
     println!("Conversion to TiVec's took {:?} seconds", now.elapsed());
+    
+    // create 
+    let now = Instant::now();
+    let sparse_node_values_contributed: Vec<[Score; 5]> = (0..graph_walk.len())
+        .into_par_iter()
+        .map(|_| [Score::default(); 5])
+        .collect();
+    let non_mutex_sparse_node_values_contributed: TiVec<NodeID, [Score; 5]> =
+        TiVec::from(sparse_node_values_contributed);
+    let sparse_node_values_contributed_mutex = Mutex::new(non_mutex_sparse_node_values_contributed);
+    println!("Making sparse node values took {:?}", now.elapsed());
 
+    
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
         subpurpose_purpose_lookup,
@@ -177,6 +189,7 @@ async fn main() -> std::io::Result<()> {
         node_values_2d,
         rust_node_longlat_lookup,
         route_info,
+        sparse_node_values_contributed_mutex,
     });
     println!("Starting server");
     // The 500MB warning is wrong, the decorator on line below silences it

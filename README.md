@@ -22,15 +22,8 @@ Check it's listening:
 ```
 curl http://0.0.0.0:7328/
 ```
-    
 
-Run PT algorithm on 3 start nodes: 
-```
-wget -O- --post-data='{"start_nodes_user_input": [9380647, 9183046, 2420336], "init_travel_times_user_input": [16, 10, 10], "trip_start_seconds": 28800}' \
-  --header='Content-Type:application/json' \
-  'http://0.0.0.0:7328/floodfill_pt/'
-```
-
+The payload send to the API consists of 3 lists; each should be of length 1; subsequent values will be ignored
 
 Run PT algorithm on one start node and save the output: 
 ```
