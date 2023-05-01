@@ -118,8 +118,6 @@ async fn main() -> std::io::Result<()> {
 
     let year: i32 = 2022;
 
-    serialise_files::serialise_graph_walk_vector(year);
-
     // make this true on initial run; false otherwise
     if false {
         serialise_files::serialise_files(year);
