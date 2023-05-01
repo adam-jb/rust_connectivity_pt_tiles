@@ -123,6 +123,13 @@ impl AddAssign for Score {
     }
 }
 
+// To allow creation of empty vec of scores
+impl Default for Score {
+    fn default() -> Self {
+        Score(0.0)
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct EdgeWalk {
     pub to: NodeID,

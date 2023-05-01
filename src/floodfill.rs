@@ -3,11 +3,13 @@ use crate::shared::{
     Cost, DestinationReached, FinalOutput, FloodfillOutput, Multiplier, NodeID, NodePT, NodeWalk,
     Score, SecondsPastMidnight, SubpurposeScore,
 };
+use rayon::prelude::*;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::time::Instant;
 use typed_index_collections::TiVec;
+
 //use std::collections::BinaryHeap;
-//use hashbrown::{HashSet, HashMap};   // TO TRY: May be faster hashing than std, allegedy same behaviour: not got to run yet
+//use hashbrown::{HashSet, HashMap};   // TO TRY if go back to using hashing instead of vec for finding node clusters: May be faster hashing than std
 
 pub fn get_travel_times(
     graph_walk: &TiVec<NodeID, NodeWalk>,
@@ -155,15 +157,8 @@ pub fn get_all_scores_links_and_key_destinations(
     nodes_to_neighbouring_nodes: &TiVec<NodeID, Vec<NodeID>>,
     rust_node_longlat_lookup: &TiVec<NodeID, [f64; 2]>,
     route_info: &TiVec<NodeID, HashMap<String, String>>, //&TiVec<NodeID, String>,
+    graph_walk_len: usize,
 ) -> FinalOutput {
-    // Got this from 'subpurpose_purpose_lookup_integer_list.json' in connectivity-processing-files
-    /*
-    let subpurpose_purpose_lookup: [usize; 32] = [
-        2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1,
-        2, 1,
-    ];
-    */
-
     // Get this from score_multipler_by_subpurpose_id_{mode_simpler}.json in connectivity-processing-files
     // Used to get relative importance of each subpurpose when aggregating them to purpose level
     // This has subpurposes ['Residential', 'Motor sports', 'Allotment'] set to zero, which pertain to subpurpose indices of [0, 10, 14]
@@ -209,29 +204,23 @@ pub fn get_all_scores_links_and_key_destinations(
     let seconds_walk_to_start_node = floodfill_output.seconds_walk_to_start_node;
     let destinations_reached = &floodfill_output.destinations_reached;
 
-    let mut node_values_contributed_each_purpose_hashmap: HashMap<NodeID, [Score; 5]> =
-        HashMap::new();
+    let now = Instant::now();
+    // Using all cores to initialise values of 0. This is the most expensive bit: takes 400ms with single core; 40ms on 16core machine with rayon
+    let sparse_node_values_contributed: Vec<[Score; 5]> = (0..graph_walk_len)
+        .into_par_iter()
+        .map(|_| [Score::default(); 5])
+        .collect();
+    let mut sparse_node_values_contributed: TiVec<NodeID, [Score; 5]> =
+        TiVec::from(sparse_node_values_contributed);
+    println!("Making sparse node values took {:?}", now.elapsed());
 
-    // 0th node is used as starting point when finding node clusters later in process, so ensure Node 0 is always
-    // populated
-    node_values_contributed_each_purpose_hashmap.insert(
-        NodeID(0),
-        [Score(0.0), Score(0.0), Score(0.0), Score(0.0), Score(0.0)],
-    );
-
-    // TODO delete 2 lines above by using this instead
     let mut node_values_contributed_each_purpose_vec: Vec<[Score; 5]> = vec![];
-    let mut nodes_reached_set: HashSet<NodeID> = HashSet::new();
 
     // ********* Get subpurpose level scores overall, and purpose level contribution of each individual node reached
-    //for i in 0..destination_ids.len() {
     let mut now = Instant::now();
 
     for DestinationReached { node, cost, .. } in destinations_reached.iter() {
         let mut purpose_scores_this_node = [Score(0.0); 5];
-
-        // old!
-        // for subpurpose. in node_values_2d[current_node].iter() {
 
         for SubpurposeScore {
             subpurpose_ix,
@@ -239,9 +228,6 @@ pub fn get_all_scores_links_and_key_destinations(
         } in node_values_2d[*node].iter()
         {
             // store scores for each subpurpose for this node
-            // Old!
-            //let subpurpose_ix = subpurpose_score_pair[0];
-
             let vec_start_pos_this_purpose = subpurpose_purpose_lookup[*subpurpose_ix] * 3601;
             let multiplier = travel_time_relationships[vec_start_pos_this_purpose + (cost.0)];
             let score_to_add = subpurpose_score.multiply(multiplier);
@@ -252,8 +238,7 @@ pub fn get_all_scores_links_and_key_destinations(
             purpose_scores_this_node[purpose_ix] += score_to_add;
         }
 
-        node_values_contributed_each_purpose_hashmap.insert(*node, purpose_scores_this_node);
-        nodes_reached_set.insert(*node);
+        sparse_node_values_contributed[*node] = purpose_scores_this_node;
         node_values_contributed_each_purpose_vec.push(purpose_scores_this_node);
     }
 
@@ -406,18 +391,9 @@ pub fn get_all_scores_links_and_key_destinations(
         // get total scores by purpose, of nodes within 120s of this node
         // node_values_contributed_each_purpose_hashmap tells you score contributed by each node
         for neighbouring_node in near_nodes {
-            // nodes which aren't reached in the 3600s won't be in nodes_reached_set
-            if nodes_reached_set.contains(&neighbouring_node) {
-                let scores_one_node =
-                    &node_values_contributed_each_purpose_hashmap[&neighbouring_node];
-
-                // ** to use node_values_contributed_each_purpose_vec instead of node_values_contributed_each_purpose_hashmap
-                // make lookup to convert: neighbouring_node > iter_this_node_reached
-                // node_values_contributed_each_purpose_vec[iter_this_node_reached]
-
-                for nth_purpose in 0..5 {
-                    purpose_scores[nth_purpose] += scores_one_node[nth_purpose];
-                }
+            let scores_one_node = sparse_node_values_contributed[*neighbouring_node];
+            for nth_purpose in 0..5 {
+                purpose_scores[nth_purpose] += scores_one_node[nth_purpose];
             }
         }
 
@@ -459,10 +435,9 @@ pub fn get_all_scores_links_and_key_destinations(
                         == id_and_scores_top_3[nth_purpose][node_to_replace_ix].1
                     {
                         let purpose_value_node_to_replace =
-                            node_values_contributed_each_purpose_hashmap[&node_to_replace]
-                                [nth_purpose];
+                            sparse_node_values_contributed[node_to_replace][nth_purpose];
                         let purpose_value_node_reached =
-                            node_values_contributed_each_purpose_hashmap[&node][nth_purpose];
+                            sparse_node_values_contributed[*node][nth_purpose];
                         if purpose_value_node_to_replace > purpose_value_node_reached {
                             do_nothing_as_existing_node_score_larger = true;
                         }

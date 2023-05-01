@@ -100,6 +100,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
                 &data.nodes_to_neighbouring_nodes,
                 &data.rust_node_longlat_lookup,
                 &data.route_info,
+                data.graph_walk.len(),
             )
         })
         .collect();

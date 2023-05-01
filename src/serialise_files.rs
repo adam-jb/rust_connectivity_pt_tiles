@@ -143,19 +143,6 @@ fn serialise_graph_pt_vector(year: i32) {
         });
     }
 
-    // Add empty edges to ensure that each node has the same number of edges
-    // DROPPED as believe this is unnecessary as all nodes with graph connections are at front of the graph_walk vec. Adam, 30th April 2023
-    /*
-    for _ in graph_pt_vec.len()..len_graph_walk {
-        let edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
-        graph_walk_vec.push(NodePT {
-            next_stop_node: NodeID(0),
-            timetable: edges,
-        });
-    }
-    assert!(graph_pt_vec.len() == len_graph_walk);
-    */
-
     // Serialize the graph data into a binary file
     let filename = format!("serialised_data/p2_main_nodes_vector_6am_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());

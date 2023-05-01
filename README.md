@@ -37,6 +37,11 @@ Run PT algorithm on one start node and save the output:
 wget -O- --post-data='{"start_nodes_user_input": [9380647], "init_travel_times_user_input": [16], "trip_start_seconds": 28800}' \
   --header='Content-Type:application/json' \
   'http://0.0.0.0:7328/floodfill_pt/' > example_returned_payload_May1st_API.txt
+  
+# Returns larger payload
+wget -O- --post-data='{"start_nodes_user_input": [2780647], "init_travel_times_user_input": [16], "trip_start_seconds": 28800}' \
+  --header='Content-Type:application/json' \
+  'http://0.0.0.0:7328/floodfill_pt/' > example_returned_payload_May1st_API.txt
 ```
 
 
@@ -57,3 +62,9 @@ docker tag rust_connectivity_pt_tiles:latest gcr.io/dft-dst-prt-connectivitymetr
 docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/rust_connectivity_pt_tiles:latest
 ```
 
+
+
+
+# FOR DEV: Significant commits
+
+Last one using hashmap and hashset instead of the vec sparse_node_values_contributed: e9ce405a5b4fb0f8eaeee2b460a5349fee9234bf
