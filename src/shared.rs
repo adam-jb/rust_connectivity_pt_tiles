@@ -167,6 +167,12 @@ pub struct NodePT {
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
+pub struct NodeScore {
+    pub node: NodeID,
+    pub score: Score,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct DestinationReached {
     pub node: NodeID,
     pub cost: Cost,

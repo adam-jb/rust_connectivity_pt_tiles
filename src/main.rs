@@ -1,9 +1,9 @@
 use actix_web::{get, post, web, App, HttpServer};
 use rayon::prelude::*;
 use std::collections::HashMap;
+use std::sync::Mutex;
 use std::time::Instant;
 use typed_index_collections::TiVec;
-use std::sync::{Mutex};
 
 use crate::read_files::{
     deserialize_bincoded_file, read_files_parallel_excluding_node_values,
@@ -11,8 +11,7 @@ use crate::read_files::{
     read_sparse_node_values_2d_serial,
 };
 use crate::shared::{
-    Cost, Multiplier, NodeID, NodePT, NodeWalk, SubpurposeScore,
-    UserInputJSON, Score,
+    Cost, Multiplier, NodeID, NodePT, NodeWalk, Score, SubpurposeScore, UserInputJSON,
 };
 use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};
 use get_time_of_day_index::get_time_of_day_index;
@@ -52,31 +51,31 @@ async fn get_node_id_count() -> String {
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
-    
+
     let now = Instant::now();
     // Only looks at first input
     let floodfill_output = get_travel_times(
-            &data.graph_walk,
-            &data.graph_pt,
-            *&input.start_nodes_user_input[0],
-            *&input.trip_start_seconds,
-            *&input.init_travel_times_user_input[0],
-            false,
-            Cost(3600),
-        );
+        &data.graph_walk,
+        &data.graph_pt,
+        *&input.start_nodes_user_input[0],
+        *&input.trip_start_seconds,
+        *&input.init_travel_times_user_input[0],
+        false,
+        Cost(3600),
+    );
     println!("Floodfill in {:?}", now.elapsed());
-    
-    let now = Instant::now();    
+
+    let now = Instant::now();
     let results = get_all_scores_links_and_key_destinations(
-            &floodfill_output,
-            &data.node_values_2d,
-            &data.travel_time_relationships_all[time_of_day_ix],
-            &data.subpurpose_purpose_lookup,
-            &data.nodes_to_neighbouring_nodes,
-            &data.rust_node_longlat_lookup,
-            &data.route_info,
-            &data.mutex_sparse_node_values_contributed,
-        );
+        &floodfill_output,
+        &data.node_values_2d,
+        &data.travel_time_relationships_all[time_of_day_ix],
+        &data.subpurpose_purpose_lookup,
+        &data.nodes_to_neighbouring_nodes,
+        &data.rust_node_longlat_lookup,
+        &data.route_info,
+        &data.mutex_sparse_node_values_contributed,
+    );
 
     println!(
         "Getting destinations, scores, link importances and clusters took {:?}",
@@ -92,7 +91,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let year: i32 = 2022;
-        
+
     // make this true on initial run; false otherwise
     if false {
         serialise_files::serialise_files(year);
@@ -141,8 +140,8 @@ async fn main() -> std::io::Result<()> {
         TiVec::from(nodes_to_neighbouring_nodes);
     let route_info: TiVec<NodeID, HashMap<String, String>> = TiVec::from(route_info);
     println!("Conversion to TiVec's took {:?} seconds", now.elapsed());
-    
-    // create 
+
+    // create
     let now = Instant::now();
     let sparse_node_values_contributed: Vec<[Score; 5]> = (0..graph_walk.len())
         .into_par_iter()
@@ -153,7 +152,6 @@ async fn main() -> std::io::Result<()> {
     let mutex_sparse_node_values_contributed = Mutex::new(non_mutex_sparse_node_values_contributed);
     println!("Making sparse node values took {:?}", now.elapsed());
 
-    
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
         subpurpose_purpose_lookup,
