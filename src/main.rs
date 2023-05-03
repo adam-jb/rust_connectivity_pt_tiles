@@ -36,30 +36,6 @@ struct AppState {
     route_info: TiVec<NodeID, HashMap<String, String>>, // TiVec<NodeID, String>,
     sparse_node_values_contributed_mutex: Mutex<TiVec<NodeID, [Score; 5]>>,
 }
-/*
-fn get_travel_times_multicore(
-    graph_walk: &TiVec<NodeID, NodeWalk>,
-    graph_pt: &TiVec<NodeID, NodePT>,
-    input: &web::Json<UserInputJSON>,
-) -> Vec<FloodfillOutput> {
-    let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
-
-    return indices
-        .par_iter()
-        .map(|i| {
-            get_travel_times(
-                &graph_walk,
-                &graph_pt,
-                *&input.start_nodes_user_input[*i],
-                *&input.trip_start_seconds,
-                *&input.init_travel_times_user_input[*i],
-                false,
-                Cost(3600),
-            )
-        })
-        .collect();
-}
-*/
 
 #[get("/")]
 async fn index() -> String {
@@ -87,11 +63,10 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
             *&input.init_travel_times_user_input[0],
             false,
             Cost(3600),
+            &data.rust_node_longlat_lookup,
         );
     println!("Floodfill in {:?}", now.elapsed());
     
-    //let mut mutable_sparse_node_values_contributed_mutex = data.sparse_node_values_contributed_mutex.lock().unwrap();
-
     let now = Instant::now();    
     let results = get_all_scores_links_and_key_destinations(
             &floodfill_output,
@@ -118,7 +93,9 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let year: i32 = 2022;
-
+    
+    serialise_files::serialise_rust_node_longlat_lookup(year);
+    
     // make this true on initial run; false otherwise
     if false {
         serialise_files::serialise_files(year);

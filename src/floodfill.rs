@@ -19,6 +19,7 @@ pub fn get_travel_times(
     seconds_walk_to_start_node: Cost,
     walk_only: bool,
     time_limit: Cost,
+    rust_node_longlat_lookup: &TiVec<NodeID, [f64; 2]>,
 ) -> FloodfillOutput {
     let previous_node = start_node_id;
     let mut iters_count: usize = 0;
@@ -33,8 +34,6 @@ pub fn get_travel_times(
         arrived_at_node_by_pt: 0,
     });
 
-    // Old: delete line below when TiVec is defo running!:
-    // let mut nodes_visited = vec![false; graph_walk.len()];
     let mut nodes_visited: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();
     let mut destinations_reached: Vec<DestinationReached> = vec![];
 
@@ -61,6 +60,14 @@ pub fn get_travel_times(
             previous_node_iters_taken: current.previous_node_iters_taken,
             arrived_at_node_by_pt: current.arrived_at_node_by_pt,
         });
+        
+        /*
+        let previous = rust_node_longlat_lookup[current.previous_node];
+        let node_now = rust_node_longlat_lookup[current.node];
+        if (previous[0] - node_now[0]).abs() > 1.0 {
+            println!("{:?}, {:?}, {:?}, {:?}, {:?}, {:?}", current.previous_node, current.node, previous, node_now, current.arrived_at_node_by_pt, &graph_walk[current.node].node_connections);
+        }
+        */
 
         // Finding adjacent walk nodes
         for edge in &graph_walk[current.node].node_connections {
@@ -275,7 +282,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let mut link_is_pt: Vec<u8> = vec![];
     let mut link_route_details: Vec<HashMap<String, String>> = Vec::new();
 
-    // Skip first node reached as this the start node to itself
+    // Skip first node reached as this is the start node to itself
     for (
         node_reached_iteration,
         DestinationReached {

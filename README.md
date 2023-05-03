@@ -48,15 +48,6 @@ docker build --progress=plain -t rust_connectivity_pt_tiles:latest .
 docker run -p 0.0.0.0:7328:7328 rust_connectivity_pt_tiles:latest
 ```
 
-To deploy with Cloud Run do the below, then use Cloud Run UI in GCP to deploy
-```
-docker build --progress=plain -t rust_connectivity_pt_tiles:latest . && \
-docker tag rust_connectivity_pt_tiles:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/rust_connectivity_pt_tiles:latest && \
-docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/rust_connectivity_pt_tiles:latest
-```
-
-
-
 
 # FOR DEV: Significant commits
 
