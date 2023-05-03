@@ -8,7 +8,7 @@ use crate::shared::{Cost, FloodfillOutput, NodeID, NodePT, NodeWalk, SecondsPast
 
 // For ~10m walking nodes, takes ~90 mins to get all nearby nodes in 120s with 8 core machine; 128gb RAM was enough and 32gb wasnt
 pub fn make_and_serialise_nodes_within_n_seconds(seconds_travel_time: Cost, graph_walk: Vec<NodeWalk>, graph_pt: Vec<NodePT>) {
-    println!("Begun make_and_serialise_nodes_within_120s");
+    println!("Begun make_and_serialise_nodes");
 
     // Convert graphs to TiVec to be indexed by NodeID values
     let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
