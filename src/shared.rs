@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::ops::{Add, AddAssign, Sub};
 
+pub const TOP_CLUSTERS_COUNT: usize = 10;
+
 // Serializes a `usize` as a `u32` to save space. Useful when you need `usize` for indexing, and
 // the values don't exceed 2^32.
 pub fn serialize_usize<S: Serializer>(x: &usize, s: S) -> Result<S::Ok, S::Error> {
@@ -185,7 +187,7 @@ pub struct FinalOutput {
     pub init_travel_time: Cost,
     pub num_iterations: u32,
     pub score_per_purpose: [Score; 5],
-    pub key_destinations_per_purpose: [[[f64; 2]; 3]; 5],
+    pub key_destinations_per_purpose: [[[f64; 2]; TOP_CLUSTERS_COUNT]; 5],
     pub per_link_score_per_purpose: Vec<[Score; 5]>,
     pub link_coordinates: Vec<Vec<String>>,
     pub link_is_pt: Vec<u8>,

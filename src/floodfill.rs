@@ -2,6 +2,7 @@ use crate::priority_queue::PriorityQueueItem;
 use crate::shared::{
     Cost, DestinationReached, FinalOutput, FloodfillOutput, Multiplier, NodeID, NodePT, NodeWalk,
     Score, SecondsPastMidnight, SubpurposeScore,
+    TOP_CLUSTERS_COUNT,
 };
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::time::Instant;
@@ -342,8 +343,6 @@ pub fn get_all_scores_links_and_key_destinations(
     // ****** Contributions to scores and link info obtained ******
     
     
-    let TOP_CLUSTERS_COUNT = 10;
-
     // ****** Get top X clusters destinations for each purpose *******
 
     let now = Instant::now();
@@ -358,7 +357,7 @@ pub fn get_all_scores_links_and_key_destinations(
     ];
 
     // sets of all nodes which are close to those in the top 3 (eg: if there are 24 nodes within 120s of the 3 top nodes for business, those 24 node ids will be in the set corresponding to business)
-    let mut nearby_nodes_top_3_scores_sets: [HashSet<NodeID>; 5] = [
+    let mut nearby_nodes_top_n_scores_sets: [HashSet<NodeID>; 5] = [
         HashSet::new(),
         HashSet::new(),
         HashSet::new(),
@@ -369,13 +368,9 @@ pub fn get_all_scores_links_and_key_destinations(
     // to log minimum scores for each purpose: this is the threshold to exceed to get into the running top 3
     let mut id_and_min_scores: [(NodeID, Score); 5] = [(NodeID(0), Score(0.0)); 5];
 
-    let mut id_and_scores_top_3: [[(NodeID, Score); 3]; 5] = [[
-        (NodeID(0), Score(0.0)),
-        (NodeID(0), Score(0.0)),
-        (NodeID(0), Score(0.0)),
-    ]; 5];
+    let mut id_and_scores_top_n: [[(NodeID, Score); TOP_CLUSTERS_COUNT]; 5] = [[(NodeID(0), Score(0.0));TOP_CLUSTERS_COUNT]; 5];
 
-    // Dicts of nodeID to adjacent nodes (each Dict will have 3 keys of node IDs, corresponding to vec of Node IDs in each cluster)
+    // Dicts of nodeID to adjacent nodes (each Dict will have n keys of node IDs, corresponding to vec of Node IDs in each cluster)
     let mut highest_nodes_hashmap_to_adjacent_nodes_vec: [HashMap<NodeID, Vec<NodeID>>; 5] = [
         HashMap::new(),
         HashMap::new(),
@@ -398,14 +393,14 @@ pub fn get_all_scores_links_and_key_destinations(
             }
         }
 
-        // Look through each of the purposes, and add to the top 3 if it qualifies for any of them
+        // Look through each of the purposes, and add to the top n if it qualifies for any of them
         // "Adjacent" here means: within 120s of that node via walking
         for nth_purpose in 0..5 {
             if purpose_scores[nth_purpose] >= id_and_min_scores[nth_purpose].1 {
                 // test if node is an adjacent one
                 let node_to_replace: NodeID;
                 let is_in_adjacent: bool =
-                    nearby_nodes_top_3_scores_sets[nth_purpose].contains(node);
+                    nearby_nodes_top_n_scores_sets[nth_purpose].contains(node);
                 if is_in_adjacent {
                     node_to_replace =
                         nearby_nodes_to_current_highest_node_hashmap[nth_purpose][node];
@@ -415,25 +410,25 @@ pub fn get_all_scores_links_and_key_destinations(
 
                 // find position of the node we want to replace
                 let mut node_to_replace_ix: usize = 0;
-                for i in 0..3 {
-                    if id_and_scores_top_3[nth_purpose][i].0 == node_to_replace {
+                for i in 0..TOP_CLUSTERS_COUNT {
+                    if id_and_scores_top_n[nth_purpose][i].0 == node_to_replace {
                         node_to_replace_ix = i;
                     }
                 }
 
-                // if node is adjacent to one of the top 3 nodes, and the cluster score of the adjacent node is above the new one, do nothing
+                // if node is adjacent to one of the top n nodes, and the cluster score of the adjacent node is above the new one, do nothing
                 let mut do_nothing_as_existing_adjacent_score_larger: bool = false;
                 if is_in_adjacent {
                     do_nothing_as_existing_adjacent_score_larger = purpose_scores[nth_purpose]
-                        > id_and_scores_top_3[nth_purpose][node_to_replace_ix].1;
+                        > id_and_scores_top_n[nth_purpose][node_to_replace_ix].1;
                 }
 
-                // If node is adjacent to one of the top 3 nodes AND the cluster score of the adjacent node is same as new node AND the new node has a higher score
+                // If node is adjacent to one of the top n nodes AND the cluster score of the adjacent node is same as new node AND the new node has a higher score
                 // than the current "reigning node", then we want the node with the higher score to become the new reigning node
                 let mut do_nothing_as_existing_node_score_larger: bool = false;
                 if !do_nothing_as_existing_adjacent_score_larger {
                     if purpose_scores[nth_purpose]
-                        == id_and_scores_top_3[nth_purpose][node_to_replace_ix].1
+                        == id_and_scores_top_n[nth_purpose][node_to_replace_ix].1
                     {
                         let purpose_value_node_to_replace =
                             sparse_node_values_contributed[node_to_replace][nth_purpose];
@@ -458,29 +453,29 @@ pub fn get_all_scores_links_and_key_destinations(
                         &highest_nodes_hashmap_to_adjacent_nodes_vec[nth_purpose][&node_to_replace];
                     for node_id in vec_nodes_to_drop_from_set_and_dict {
                         nearby_nodes_to_current_highest_node_hashmap[nth_purpose].remove(&node_id);
-                        nearby_nodes_top_3_scores_sets[nth_purpose].remove(&node_id);
+                        nearby_nodes_top_n_scores_sets[nth_purpose].remove(&node_id);
                     }
                     highest_nodes_hashmap_to_adjacent_nodes_vec[nth_purpose]
                         .remove(&node_to_replace);
                 }
 
-                // overwrite current top 3: this is fine to do inplace as id_and_scores_top_3 isn't ordered
-                id_and_scores_top_3[nth_purpose][node_to_replace_ix].0 = *node;
-                id_and_scores_top_3[nth_purpose][node_to_replace_ix].1 =
+                // overwrite current top n: this is fine to do inplace as id_and_scores_top_n isn't ordered
+                id_and_scores_top_n[nth_purpose][node_to_replace_ix].0 = *node;
+                id_and_scores_top_n[nth_purpose][node_to_replace_ix].1 =
                     purpose_scores[nth_purpose];
 
                 // recalculate current minimum
                 let mut current_minimum = Score(999_999_999_999_999_999.0);
                 let mut current_min_ix: usize = 0;
-                for i in 0..3 {
-                    let current_score = id_and_scores_top_3[nth_purpose][i].1;
+                for i in 0..TOP_CLUSTERS_COUNT {
+                    let current_score = id_and_scores_top_n[nth_purpose][i].1;
                     if current_score < current_minimum {
                         current_minimum = current_score;
                         current_min_ix = i;
                     }
                 }
 
-                let minimum_node_id = id_and_scores_top_3[nth_purpose][current_min_ix].0;
+                let minimum_node_id = id_and_scores_top_n[nth_purpose][current_min_ix].0;
                 id_and_min_scores[nth_purpose].0 = minimum_node_id;
                 id_and_min_scores[nth_purpose].1 = current_minimum;
 
@@ -488,7 +483,7 @@ pub fn get_all_scores_links_and_key_destinations(
                 for node_id in near_nodes.to_vec() {
                     nearby_nodes_to_current_highest_node_hashmap[nth_purpose]
                         .insert(node_id, *node);
-                    nearby_nodes_top_3_scores_sets[nth_purpose].insert(node_id);
+                    nearby_nodes_top_n_scores_sets[nth_purpose].insert(node_id);
                 }
 
                 // add new adjacent nodes to highest_nodes_hashmap_to_adjacent_nodes_vec
@@ -503,7 +498,7 @@ pub fn get_all_scores_links_and_key_destinations(
     // ******* Clusters obtained *******
 
     // **** Extract keys from each of the 5 of highest_nodes_hashmap_to_adjacent_nodes_vec
-    let mut most_important_nodes_longlat: [[[f64; 2]; 3]; 5] = [[[0.0; 2]; 3]; 5];
+    let mut most_important_nodes_longlat: [[[f64; 2]; TOP_CLUSTERS_COUNT]; 5] = [[[0.0; 2]; TOP_CLUSTERS_COUNT]; 5];
     for i in 0..5 {
         for (inner_iter, rust_node_id) in highest_nodes_hashmap_to_adjacent_nodes_vec[i]
             .keys()

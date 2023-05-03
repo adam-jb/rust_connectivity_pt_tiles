@@ -23,6 +23,8 @@ Check it's listening:
 curl http://0.0.0.0:7328/
 ```
 
+To specify the number of top scoring node clusters returned, change TOP_CLUSTERS_COUNT in src/shared.rs
+
 The payload send to the API consists of 3 lists; each should be of length 1; subsequent values will be ignored
 
 Run PT algorithm on one start node and save the output: 
