@@ -197,8 +197,9 @@ pub fn get_all_scores_links_and_key_destinations(
     let start = floodfill_output.start_node_id;
     let seconds_walk_to_start_node = floodfill_output.seconds_walk_to_start_node;
     let destinations_reached = &floodfill_output.destinations_reached;
+    println!("{:?} destinations reached", destinations_reached.len());
 
-    // load 
+    // get lock so can edit: we reset all changes at end of this func
     let mut sparse_node_values_contributed = mutex_sparse_node_values_contributed.lock().unwrap();
     
     
@@ -269,8 +270,9 @@ pub fn get_all_scores_links_and_key_destinations(
     let mut link_start_end_nodes_string: Vec<Vec<String>> = vec![];
     let mut link_is_pt: Vec<u8> = vec![];
     let mut link_route_details: Vec<HashMap<String, String>> = Vec::new();
-
-    // Skip first node reached as this is the start node to itself
+    
+    
+    // First 'link' this finds is the start node to itself, so after populating link info vecs in this loop, we remove the first value
     for (
         node_reached_iteration,
         DestinationReached {
@@ -279,13 +281,12 @@ pub fn get_all_scores_links_and_key_destinations(
             arrived_at_node_by_pt,
             ..
         },
-    ) in destinations_reached.iter().skip(1).enumerate()
+    ) in destinations_reached.iter().enumerate()
     {
+
         // copying iter as it gets changed during the loop below. This should be an implicit clone() without using *
         let mut link_ix = node_reached_iteration.clone();
         
-        println!("New seq"); 
-
         // loop until all links taken to node reached have the score for this node added to their score contributions
         loop {
             for k in 0..5 {
@@ -299,11 +300,8 @@ pub fn get_all_scores_links_and_key_destinations(
 
             // get previous node iter in sequence to reach this node
             link_ix = destinations_reached[link_ix].previous_node_iters_taken;
-            
-            let previous_node_ix = destinations_reached[link_ix].previous_node;
-            println!("{:?}", route_info[previous_node_ix]);
-            
         }
+        
 
         // add coords from previous node to this node
         let longlat_previous_node = rust_node_longlat_lookup[*previous_node];
@@ -332,12 +330,21 @@ pub fn get_all_scores_links_and_key_destinations(
             link_route_details.push(empty_map);
         }
     }
+ 
+    // Pop the first link, which is the start node to the start node
+    link_score_contributions.remove(0);
+    link_start_end_nodes_string.remove(0);
+    link_is_pt.remove(0);
+    link_route_details.remove(0);
 
-    println!("Getting link contributions took {:?}", now.elapsed());
+    println!("Populating link info took {:?}", now.elapsed());
+    
+    // ****** Contributions to scores and link info obtained ******
+    
+    
+    let TOP_CLUSTERS_COUNT = 10;
 
-    // ****** Contributions to scores obtained ******
-
-    // ****** Get top 3 clusters destinations for each purpose *******
+    // ****** Get top X clusters destinations for each purpose *******
 
     let now = Instant::now();
 

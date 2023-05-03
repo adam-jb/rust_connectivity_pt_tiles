@@ -31,8 +31,13 @@ wget -O- --post-data='{"start_nodes_user_input": [9380647], "init_travel_times_u
   --header='Content-Type:application/json' \
   'http://0.0.0.0:7328/floodfill_pt/' > example_returned_payload_May1st_API.txt
   
-# Returns larger payload
+# Returns larger payload: 4Bb
 wget -O- --post-data='{"start_nodes_user_input": [2780647], "init_travel_times_user_input": [16], "trip_start_seconds": 28800}' \
+  --header='Content-Type:application/json' \
+  'http://0.0.0.0:7328/floodfill_pt/' > example_returned_payload_May1st_API.txt
+  
+# Start point close to Bethnal Green tube station. Returns 20Mb payload
+wget -O- --post-data='{"start_nodes_user_input": [5850631], "init_travel_times_user_input": [14], "trip_start_seconds": 28800}' \
   --header='Content-Type:application/json' \
   'http://0.0.0.0:7328/floodfill_pt/' > example_returned_payload_May1st_API.txt
 ```

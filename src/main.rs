@@ -92,9 +92,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let year: i32 = 2022;
-    
-    serialise_files::serialise_rust_node_longlat_lookup(year);
-    
+        
     // make this true on initial run; false otherwise
     if false {
         serialise_files::serialise_files(year);
