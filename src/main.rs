@@ -34,7 +34,7 @@ struct AppState {
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
     rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]>,
     route_info: TiVec<NodeID, HashMap<String, String>>, // TiVec<NodeID, String>,
-    sparse_node_values_contributed_mutex: Mutex<TiVec<NodeID, [Score; 5]>>,
+    mutex_sparse_node_values_contributed: Mutex<TiVec<NodeID, [Score; 5]>>,
 }
 
 #[get("/")]
@@ -63,7 +63,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
             *&input.init_travel_times_user_input[0],
             false,
             Cost(3600),
-            &data.rust_node_longlat_lookup,
         );
     println!("Floodfill in {:?}", now.elapsed());
     
@@ -76,7 +75,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
             &data.nodes_to_neighbouring_nodes,
             &data.rust_node_longlat_lookup,
             &data.route_info,
-            &data.sparse_node_values_contributed_mutex,
+            &data.mutex_sparse_node_values_contributed,
         );
 
     println!(
@@ -153,7 +152,7 @@ async fn main() -> std::io::Result<()> {
         .collect();
     let non_mutex_sparse_node_values_contributed: TiVec<NodeID, [Score; 5]> =
         TiVec::from(sparse_node_values_contributed);
-    let sparse_node_values_contributed_mutex = Mutex::new(non_mutex_sparse_node_values_contributed);
+    let mutex_sparse_node_values_contributed = Mutex::new(non_mutex_sparse_node_values_contributed);
     println!("Making sparse node values took {:?}", now.elapsed());
 
     
@@ -166,7 +165,7 @@ async fn main() -> std::io::Result<()> {
         node_values_2d,
         rust_node_longlat_lookup,
         route_info,
-        sparse_node_values_contributed_mutex,
+        mutex_sparse_node_values_contributed,
     });
     println!("Starting server");
     // The 500MB warning is wrong, the decorator on line below silences it

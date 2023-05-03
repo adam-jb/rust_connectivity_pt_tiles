@@ -8,9 +8,6 @@ use std::time::Instant;
 use typed_index_collections::TiVec;
 use std::sync::{Mutex};
 
-//use std::collections::BinaryHeap;
-//use hashbrown::{HashSet, HashMap};   // TO TRY if go back to using hashing instead of vec for finding node clusters: May be faster hashing than std
-
 pub fn get_travel_times(
     graph_walk: &TiVec<NodeID, NodeWalk>,
     graph_pt: &TiVec<NodeID, NodePT>,
@@ -19,7 +16,6 @@ pub fn get_travel_times(
     seconds_walk_to_start_node: Cost,
     walk_only: bool,
     time_limit: Cost,
-    rust_node_longlat_lookup: &TiVec<NodeID, [f64; 2]>,
 ) -> FloodfillOutput {
     let previous_node = start_node_id;
     let mut iters_count: usize = 0;
@@ -61,14 +57,6 @@ pub fn get_travel_times(
             arrived_at_node_by_pt: current.arrived_at_node_by_pt,
         });
         
-        /*
-        let previous = rust_node_longlat_lookup[current.previous_node];
-        let node_now = rust_node_longlat_lookup[current.node];
-        if (previous[0] - node_now[0]).abs() > 1.0 {
-            println!("{:?}, {:?}, {:?}, {:?}, {:?}, {:?}", current.previous_node, current.node, previous, node_now, current.arrived_at_node_by_pt, &graph_walk[current.node].node_connections);
-        }
-        */
-
         // Finding adjacent walk nodes
         for edge in &graph_walk[current.node].node_connections {
             let new_cost = current.cost + edge.cost;
@@ -116,7 +104,6 @@ fn take_next_pt_route(
     current_node: NodeID,
     iters_count: usize,
 ) {
-    // find time node is arrived: as SecondsPastMidnight
     let time_of_arrival_current_node = trip_start_seconds.add(&time_so_far);
 
     // find time next service leaves
@@ -164,7 +151,7 @@ pub fn get_all_scores_links_and_key_destinations(
     nodes_to_neighbouring_nodes: &TiVec<NodeID, Vec<NodeID>>,
     rust_node_longlat_lookup: &TiVec<NodeID, [f64; 2]>,
     route_info: &TiVec<NodeID, HashMap<String, String>>, //&TiVec<NodeID, String>,
-    non_mutex_mutable_sparse_node_values_contributed: &Mutex<TiVec<NodeID, [Score; 5]>>,
+    mutex_sparse_node_values_contributed: &Mutex<TiVec<NodeID, [Score; 5]>>,
 ) -> FinalOutput {
     // Get this from score_multipler_by_subpurpose_id_{mode_simpler}.json in connectivity-processing-files
     // Used to get relative importance of each subpurpose when aggregating them to purpose level
@@ -211,7 +198,8 @@ pub fn get_all_scores_links_and_key_destinations(
     let seconds_walk_to_start_node = floodfill_output.seconds_walk_to_start_node;
     let destinations_reached = &floodfill_output.destinations_reached;
 
-    let mut sparse_node_values_contributed = non_mutex_mutable_sparse_node_values_contributed.lock().unwrap();
+    // load 
+    let mut sparse_node_values_contributed = mutex_sparse_node_values_contributed.lock().unwrap();
     
     
     let mut node_values_contributed_each_purpose_vec: Vec<[Score; 5]> = vec![];
@@ -295,6 +283,8 @@ pub fn get_all_scores_links_and_key_destinations(
     {
         // copying iter as it gets changed during the loop below. This should be an implicit clone() without using *
         let mut link_ix = node_reached_iteration.clone();
+        
+        println!("New seq"); 
 
         // loop until all links taken to node reached have the score for this node added to their score contributions
         loop {
@@ -309,6 +299,10 @@ pub fn get_all_scores_links_and_key_destinations(
 
             // get previous node iter in sequence to reach this node
             link_ix = destinations_reached[link_ix].previous_node_iters_taken;
+            
+            let previous_node_ix = destinations_reached[link_ix].previous_node;
+            println!("{:?}", route_info[previous_node_ix]);
+            
         }
 
         // add coords from previous node to this node
