@@ -18,7 +18,7 @@ use get_time_of_day_index::get_time_of_day_index;
 
 mod floodfill;
 mod get_time_of_day_index;
-mod make_and_serialise_nodes_within_120s;
+mod make_and_serialise_nodes_within_n_seconds;
 mod priority_queue;
 mod read_files;
 mod serialise_files;
@@ -91,7 +91,8 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let year: i32 = 2022;
-
+    let seconds_travel_for_destination_clustering = 120;
+    
     // make this true on initial run; false otherwise
     if false {
         serialise_files::serialise_files(year);
@@ -101,11 +102,13 @@ async fn main() -> std::io::Result<()> {
 
     // comment this out to not make the lookup of nodes which are near other nodes
     // this is big preprocessing stage (~90mins with 8cores)
-    if false {
-        let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
-        make_and_serialise_nodes_within_120s::make_and_serialise_nodes_within_120s(
-            graph_walk, graph_pt,
-        );
+    if true {
+        for time_seconds in [120, 180, 240, 300] {
+            let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
+            make_and_serialise_nodes_within_n_seconds::make_and_serialise_nodes_within_n_seconds(
+                Cost(time_seconds), graph_walk, graph_pt,
+            );
+        }
     }
 
     let (
@@ -129,7 +132,7 @@ async fn main() -> std::io::Result<()> {
     let node_values_2d = read_sparse_node_values_2d_serial(year);
     let rust_node_longlat_lookup = read_rust_node_longlat_lookup_serial();
     let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> =
-        deserialize_bincoded_file("nodes_to_neighbouring_nodes");
+        deserialize_bincoded_file(format!("nodes_to_neighbouring_nodes_{}", seconds_travel_for_destination_clustering).as_str());
 
     let now = Instant::now();
     let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
