@@ -10,6 +10,25 @@ use crate::shared::{
     SubpurposeScore,
 };
 
+pub fn serialise_files(year: i32) {
+    let now = Instant::now();
+
+    let _len_graph_walk = serialise_graph_walk_vector(year);
+    serialise_graph_pt_vector(year);
+    serialise_node_values_padding_count(year);
+    serialise_route_info(year);
+
+    serialise_list_immutable_array_usize("subpurpose_purpose_lookup");
+    serialise_list_multiplier("travel_time_relationships_7");
+    serialise_list_multiplier("travel_time_relationships_10");
+    serialise_list_multiplier("travel_time_relationships_16");
+    serialise_list_multiplier("travel_time_relationships_19");
+    
+    serialise_files::serialise_sparse_node_values_2d(year);
+    serialise_files::serialise_rust_node_longlat_lookup(year);
+    println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
+}
+
 pub fn serialise_sparse_node_values_2d(year: i32) {
     let inpath = format!("data/sparse_node_values_6am_{}_2d.json", year);
     let file = File::open(Path::new(&inpath)).unwrap();
@@ -50,22 +69,6 @@ pub fn serialise_rust_node_longlat_lookup(year: i32) {
     let file = BufWriter::new(File::create(&outpath).unwrap());
     bincode::serialize_into(file, &output).unwrap();
     println!("Serialised rust_node_longlat_lookup to {}", outpath);
-}
-
-pub fn serialise_files(year: i32) {
-    let now = Instant::now();
-
-    let _len_graph_walk = serialise_graph_walk_vector(year);
-    serialise_graph_pt_vector(year);
-    serialise_node_values_padding_count(year);
-    serialise_route_info(year);
-
-    serialise_list_immutable_array_usize("subpurpose_purpose_lookup");
-    serialise_list_multiplier("travel_time_relationships_7");
-    serialise_list_multiplier("travel_time_relationships_10");
-    serialise_list_multiplier("travel_time_relationships_16");
-    serialise_list_multiplier("travel_time_relationships_19");
-    println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
 
 fn serialise_node_values_padding_count(year: i32) {

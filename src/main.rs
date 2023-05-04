@@ -96,8 +96,6 @@ async fn main() -> std::io::Result<()> {
     // make this true on initial run; false otherwise
     if false {
         serialise_files::serialise_files(year);
-        serialise_files::serialise_sparse_node_values_2d(year);
-        serialise_files::serialise_rust_node_longlat_lookup(year);
     }
 
     // comment this out to not make the lookup of nodes which are near other nodes
