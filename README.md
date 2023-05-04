@@ -1,5 +1,6 @@
 # Getting started
 
+Install rust: 
 ```
 curl https://sh.rustup.rs -sSf | sh && \
 source "$HOME/.cargo/env"
