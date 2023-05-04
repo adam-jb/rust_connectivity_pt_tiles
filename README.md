@@ -57,6 +57,3 @@ docker run -p 0.0.0.0:7328:7328 rust_connectivity_pt_tiles:latest
 ```
 
 
-# FOR DEV: Significant commits
-
-Last one using hashmap and hashset instead of the vec sparse_node_values_contributed: e9ce405a5b4fb0f8eaeee2b460a5349fee9234bf
