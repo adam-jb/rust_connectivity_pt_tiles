@@ -7,7 +7,11 @@ use crate::floodfill::get_travel_times;
 use crate::shared::{Cost, FloodfillOutput, NodeID, NodePT, NodeWalk, SecondsPastMidnight};
 
 // For ~10m walking nodes, takes ~90 mins to get all nearby nodes in 120s with 8 core machine; 128gb RAM was enough and 32gb wasnt
-pub fn make_and_serialise_nodes_within_n_seconds(seconds_travel_time: Cost, graph_walk: Vec<NodeWalk>, graph_pt: Vec<NodePT>) {
+pub fn make_and_serialise_nodes_within_n_seconds(
+    seconds_travel_time: Cost,
+    graph_walk: Vec<NodeWalk>,
+    graph_pt: Vec<NodePT>,
+) {
     println!("Begun make_and_serialise_nodes");
 
     // Convert graphs to TiVec to be indexed by NodeID values
@@ -43,9 +47,11 @@ pub fn make_and_serialise_nodes_within_n_seconds(seconds_travel_time: Cost, grap
         nodes_to_neighbouring_nodes[res.start_node_id.0] = nodes_reached;
     }
 
-    let outpath = format!("serialised_data/nodes_to_neighbouring_nodes_{}.bin", seconds_travel_time.0);
-    let file =
-        BufWriter::new(File::create(outpath.clone()).unwrap());
+    let outpath = format!(
+        "serialised_data/nodes_to_neighbouring_nodes_{}.bin",
+        seconds_travel_time.0
+    );
+    let file = BufWriter::new(File::create(outpath.clone()).unwrap());
     bincode::serialize_into(file, &nodes_to_neighbouring_nodes).unwrap();
     println!("Serialised {}", outpath);
 }

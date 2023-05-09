@@ -23,9 +23,9 @@ pub fn serialise_files(year: i32) {
     serialise_list_multiplier("travel_time_relationships_10");
     serialise_list_multiplier("travel_time_relationships_16");
     serialise_list_multiplier("travel_time_relationships_19");
-    
-    serialise_files::serialise_sparse_node_values_2d(year);
-    serialise_files::serialise_rust_node_longlat_lookup(year);
+
+    serialise_sparse_node_values_2d(year);
+    serialise_rust_node_longlat_lookup(year);
     println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
 
