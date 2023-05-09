@@ -369,7 +369,7 @@ pub fn get_all_scores_links_and_key_destinations(
         score: Score(0.0),
     }; 5];
 
-    let mut id_and_scores_top_n = [[NodeScore {
+    let mut top_nodes = [[NodeScore {
         node: NodeID(0),
         score: Score(0.0),
     }; TOP_CLUSTERS_COUNT]; 5];
@@ -387,8 +387,7 @@ pub fn get_all_scores_links_and_key_destinations(
         let near_nodes = &nodes_to_neighbouring_nodes[*node];
         let mut purpose_scores_current_node = [Score(0.0); 5];
 
-        // get total scores by purpose, of nodes within 120s of this node
-        // node_values_contributed_each_purpose_hashmap tells you score contributed by each node
+        // get total scores by purpose, of nodes within N seconds of this node
         for neighbouring_node in near_nodes {
             let scores_one_node = sparse_node_values_contributed[*neighbouring_node];
             for nth_purpose in 0..5 {
@@ -396,31 +395,29 @@ pub fn get_all_scores_links_and_key_destinations(
             }
         }
 
-        // Look through each of the purposes, and add to the top n if it qualifies for any of them
+        // Look through each of the purposes: does this node become a top node?
         for nth_purpose in 0..5 {
-            // If new node has a higher score
             if purpose_scores_current_node[nth_purpose] >= thresholds_for_update[nth_purpose].score
             {
                 let mut top_node_may_replace: NodeID = NodeID(0);
                 let top_nodes_may_replace: Vec<NodeID>;
 
-                // test if node is a near one
+                // test if node is near 1+ existing nodes
                 let node_contributes_to_existing_top_node: bool =
                     all_near_nodes[nth_purpose].contains(node);
                 if node_contributes_to_existing_top_node {
-                    // replace the 'top node' which is within 120s of this one
+                    // top_nodes_may_replace will have a length of 1+ in this case
                     top_nodes_may_replace = near_nodes_to_top_node[nth_purpose][node].to_vec();
                 } else {
-                    // replace lowest scoring node in the current 'top nodes' . top_nodes_may_replace will have a length of 1 in this case
+                    // replace lowest scoring node in the current 'top nodes'. top_nodes_may_replace will have a length of 1 in this case
                     top_nodes_may_replace = vec![thresholds_for_update[nth_purpose].node];
                 }
 
-                // find position of the node we want to replace in
+                // find position of the top nodes we may replace in the top_nodes vec
                 let mut top_nodes_may_replace_ix: Vec<usize> = vec![];
                 for top_node_may_replace in &top_nodes_may_replace {
                     for i in 0..TOP_CLUSTERS_COUNT {
-                        if id_and_scores_top_n[nth_purpose][i].node == *top_node_may_replace {
-                            //top_node_may_replace_ix = i;
+                        if top_nodes[nth_purpose][i].node == *top_node_may_replace {
                             top_nodes_may_replace_ix.push(i);
                         }
                     }
@@ -433,7 +430,7 @@ pub fn get_all_scores_links_and_key_destinations(
                     top_nodes_may_replace_ix.iter().enumerate()
                 {
                     let top_node_score =
-                        id_and_scores_top_n[nth_purpose][*candidate_top_node_may_replace_ix].score;
+                        top_nodes[nth_purpose][*candidate_top_node_may_replace_ix].score;
                     if top_node_score > near_top_nodes_max_score {
                         near_top_nodes_max_score = top_node_score;
                         top_node_may_replace_ix = *candidate_top_node_may_replace_ix;
@@ -446,7 +443,7 @@ pub fn get_all_scores_links_and_key_destinations(
                 if node_contributes_to_existing_top_node {
                     do_nothing_as_existing_near_score_larger = purpose_scores_current_node
                         [nth_purpose]
-                        < id_and_scores_top_n[nth_purpose][top_node_may_replace_ix].score;
+                        < top_nodes[nth_purpose][top_node_may_replace_ix].score;
                 }
 
                 if do_nothing_as_existing_near_score_larger {
@@ -456,7 +453,7 @@ pub fn get_all_scores_links_and_key_destinations(
                 // If new node has same cluster-level score as existing 'top-node', replace 'top-node' if the single node score is higher for current node
                 let mut do_nothing_as_existing_node_score_larger: bool = false;
                 if purpose_scores_current_node[nth_purpose]
-                    == id_and_scores_top_n[nth_purpose][top_node_may_replace_ix].score
+                    == top_nodes[nth_purpose][top_node_may_replace_ix].score
                 {
                     let purpose_value_node_to_replace =
                         sparse_node_values_contributed[top_node_may_replace][nth_purpose];
@@ -487,18 +484,17 @@ pub fn get_all_scores_links_and_key_destinations(
                     }
                 }
 
-                // overwrite current top n: this is fine to do inplace as id_and_scores_top_n isn't ordered
+                // overwrite current top n: do inplace as top_nodes isn't ordered
                 // Replace the first top node with new top node; any subsequent top nodes being replaced
                 // are assigned 0's
                 for (i, top_node_may_replace_ix) in top_nodes_may_replace_ix.iter().enumerate() {
                     if i == 0 {
-                        id_and_scores_top_n[nth_purpose][*top_node_may_replace_ix].node = *node;
-                        id_and_scores_top_n[nth_purpose][*top_node_may_replace_ix].score =
+                        top_nodes[nth_purpose][*top_node_may_replace_ix].node = *node;
+                        top_nodes[nth_purpose][*top_node_may_replace_ix].score =
                             purpose_scores_current_node[nth_purpose];
                     } else {
-                        id_and_scores_top_n[nth_purpose][*top_node_may_replace_ix].node = NodeID(0);
-                        id_and_scores_top_n[nth_purpose][*top_node_may_replace_ix].score =
-                            Score(0.0);
+                        top_nodes[nth_purpose][*top_node_may_replace_ix].node = NodeID(0);
+                        top_nodes[nth_purpose][*top_node_may_replace_ix].score = Score(0.0);
                     }
                 }
 
@@ -506,20 +502,20 @@ pub fn get_all_scores_links_and_key_destinations(
                 let mut current_minimum = Score(999_999_999_999_999_999.0);
                 let mut current_min_ix: usize = 0;
                 for i in 0..TOP_CLUSTERS_COUNT {
-                    let current_score = id_and_scores_top_n[nth_purpose][i].score;
+                    let current_score = top_nodes[nth_purpose][i].score;
                     if current_score < current_minimum {
                         current_minimum = current_score;
                         current_min_ix = i;
                     }
                 }
 
-                let minimum_node_id = id_and_scores_top_n[nth_purpose][current_min_ix].node;
+                let minimum_node_id = top_nodes[nth_purpose][current_min_ix].node;
                 thresholds_for_update[nth_purpose].node = minimum_node_id;
                 thresholds_for_update[nth_purpose].score = current_minimum;
 
                 // add new nodes near to both hashmap and the set
                 for node_id in near_nodes.to_vec() {
-                    // all nodes which are near to this new top node, find is they already in highest nodes hashmap; if they are then append; if not make as new list of len 1
+                    // if near node is already near a top node, push to existing vector of top nodes that near node is close to, otherwise create new one
                     if near_nodes_to_top_node[nth_purpose].contains_key(&node_id) {
                         let mut current_top_nodes_vec =
                             near_nodes_to_top_node[nth_purpose][&node_id].to_vec();
@@ -534,7 +530,7 @@ pub fn get_all_scores_links_and_key_destinations(
 
                 top_nodes_to_near_nodes[nth_purpose].insert(*node, near_nodes.to_vec());
 
-                // add extra nodes if 2+ top nodes were replaced by one new one
+                // add extra top nodes with value 0 if 2+ top nodes were replaced by one new one
                 if top_nodes_may_replace_ix.len() > 1 {
                     top_nodes_to_near_nodes[nth_purpose].insert(NodeID(0), vec![]);
                 }
