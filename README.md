@@ -57,3 +57,6 @@ docker run -p 0.0.0.0:7328:7328 rust_connectivity_pt_tiles:latest
 ```
 
 
+Latest commit before trying to amalgamate the APIs: 26262b764a9b06025c411cf41c8050d3f91fa1a2
+
+
