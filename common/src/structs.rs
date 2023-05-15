@@ -132,10 +132,22 @@ impl Default for Score {
     }
 }
 
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
+pub struct LinkID(pub u32);
+
 #[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub struct EdgeWalk {
     pub to: NodeID,
     pub cost: Cost,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub struct EdgeWalkCyclingCar {
+    pub to: NodeID,
+    pub cost: Cost,
+    pub angle_leaving_node_from: Angle,
+    pub angle_arrived_from: Angle,
+    pub link_arrived_from: LinkID,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
@@ -153,6 +165,12 @@ pub struct NodeWalk {
     pub has_pt: bool,
     pub node_connections: SmallVec<[EdgeWalk; 4]>,
 }
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct NodeWalkCyclingCar {
+    pub node_connections: SmallVec<[EdgeWalkCyclingCar; 4]>,
+}
+
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct EdgeRoute {
@@ -181,11 +199,25 @@ pub struct DestinationReached {
     pub arrived_at_node_by_pt: u8, // 0 for walk; 1 for PT
 }
 
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub struct OriginDestinationPair {
+    pub node: NodeID,
+    pub cost: Cost,
+}
+
 pub struct FloodfillOutput {
     pub start_node_id: NodeID,
     pub seconds_walk_to_start_node: Cost,
     pub purpose_scores: [Score; 5],
     pub destinations_reached: Vec<DestinationReached>,
+}
+
+pub struct FloodfillWalkCyclingCarOutput {
+    pub start_node_id: NodeID,
+    pub seconds_walk_to_start_node: Cost,
+    pub iters: u32,
+    pub purpose_scores: [Score; 5],
+    pub od_pairs: Vec<OriginDestinationPair>,
 }
 
 #[derive(Serialize)]

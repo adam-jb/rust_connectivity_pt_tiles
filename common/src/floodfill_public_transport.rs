@@ -102,7 +102,6 @@ pub fn floodfill_public_transport(
 
         // First destination reached is to itself: this is fine as we later ignore first val in destinations_reached
         if store_od_pairs {
-            
             destinations_reached.push(DestinationReached {
                 cost: current.cost,
                 node: current.node,

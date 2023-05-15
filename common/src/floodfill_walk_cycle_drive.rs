@@ -1,16 +1,16 @@
 use std::collections::BinaryHeap;
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, NodeID, Angle, LinkID, EdgeWalk};
-use smallvec::SmallVec;
+use crate::shared::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCyclingCar, OriginDestinationPair, FloodfillWalkCyclingCarOutput, SubpurposeScore};
 use std::collections::HashSet;
 use std::cmp::Ordering;
+use typed_index_collections::TiVec;
 
 /// Use with `BinaryHeap`. Since it's a max-heap, reverse the comparison to get the smallest cost
 /// first.
 #[derive(PartialEq, Eq, Clone)]
 pub struct PriorityQueueItem<K, V, A, L> {
     pub cost: K,
-    pub value: V,
+    pub node: V,
     pub angle_arrived_from: A,
     pub link_arrived_from: L,
 }
@@ -27,106 +27,74 @@ impl<K: Ord, V: Ord, A: Ord, L: Ord> Ord for PriorityQueueItem<K, V, A, L> {
         if ord != Ordering::Equal {
             return ord;
         }
-        // The tie-breaker is arbitrary, based on the value
-        self.value.cmp(&other.value)
+        // The tie-breaker is arbitrary, based on the node
+        self.node.cmp(&other.node)
     }
 }
 
-// TODO change types
 pub fn get_scores_and_od_pairs(
-                travel_time_relationships: &[i32],
-                subpurpose_purpose_lookup: &[i8; 32],
-                sparse_node_values: &Vec<Vec<[i32;2]>>,
-                graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
-                time_costs_turn: &[u16; 4],
-                start: NodeID,
-                init_travel_time: Cost,
-                target_destinations_vector: &[u32],
-                time_limit_seconds: Cost,
-            ) -> (i32, u32, [i64; 32], Vec<u32>, Vec<u16>) {
-    
+                travel_time_relationships: &[Multiplier],  // travel_time_relationships: &[i32],
+                node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,    // sparse_node_values: &Vec<Vec<[i32;2]>>,
+                graph_walk: &TiVec<NodeID, NodeWalkCyclingCar>,  // graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
+                time_costs_turn: &[Cost; 4],    //&[u16; 4],
+                start_node_id: NodeID,
+                seconds_walk_to_start_node: Cost,
+                target_destinations_vector: &[Node], //&[u32],
+                time_limit_seconds: Cost,    
+            ) -> FloodfillWalkCyclingCarOutput {
+
     // initialise values
     let mut subpurpose_scores = [Score(0.0); 32];
     let subpurpose_purpose_lookup = initialise_subpurpose_purpose_lookup();
     let score_multipliers = initialise_score_multiplers();
-    let mut nodes_visited: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();
-    
-    let mut destinations_reached: Vec<[NodeID, Cost]> = vec![];
-    
+        
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Angle, LinkID>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
-        cost: init_travel_time,
-        value: start,
+        cost: seconds_walk_to_start_node,
+        node: start_node_id,
         angle_arrived_from: Angle(0),
         link_arrived_from: LinkID(99_999_999),
     });
-                
+         
+    // storing for outputs
     let mut subpurpose_scores = [Score(0.0); 32];
-                
-    // TODO change types
-    let mut target_destination_travel_times: Vec<u16> = vec![];
-                
-    // TODO change types
-    let mut target_destination_ids: Vec<u32> = vec![];
-    let mut iters: i32 = 0;
+    let mut od_pairs: Vec<OriginDestinationPair>;
+
+    let mut iters: u32 = 0;
     let mut links_visited = HashSet::new();
-    let mut nodes_visited = HashSet::new();
-                
-    // TODO change types
-    let mut target_destinations_binary_vec = vec![false; graph_walk.len() as usize];
-    for id in target_destinations_vector.into_iter() {
-        target_destinations_binary_vec[*id as usize] = true;
+    let mut nodes_visited: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();
+
+    // make boolean vec to quickly check if a node is a target node for OD pair finding
+    let mut target_destinations_binary_vec: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();                
+    for node_id in target_destinations_vector.into_iter() {
+        target_destinations_binary_vec[node_id] = true;
     }
 
     // catch where start node is over an hour from centroid
-    if init_travel_time >= Cost(3600) {
+    if seconds_walk_to_start_node >= Cost(3600) {
         return (
-            iters,
-            start.0,
-            subpurpose_scores,
-            target_destination_ids,
-            target_destination_travel_times,
-        );
+            FloodfillWalkCyclingCarOutput{
+                start_node_id,
+                seconds_walk_to_start_node,
+                iters,
+                purpose_scores,
+                od_pairs,
+        });
     }
                 
-    // declare variables which are used below
-    // TODO change types
-    let mut time_turn_previous_node: u16;
-    let mut angle_turn_previous_node: u16;
+    // declared here to widen scoep (ie, the availability)
+    let mut time_turn_previous_node: Cost;
                 
-    
     while let Some(current) = queue.pop() {
         
-        // TODO change from set to boolean vec
+        // Optional speed improvement: see if links_visited can be stored as a boolean vector rather than a hashset
         if links_visited.contains(&current.link_arrived_from) {
             continue
         }
         links_visited.insert(current.link_arrived_from);
         
-        // Store OD pairs and get scores if this node hasn't been visited yet
-        if !nodes_visited.contains(&current.value.0) {
-
-            // store OD pair
-            // TODO change types
-            if target_destinations_binary_vec[current.value.0 as usize] {
-                target_destination_ids.push(current.value.0);
-                target_destination_travel_times.push(current.cost.0);
-            }
-
-            // get scores
-            // TODO use function for subpurposes
-            for subpurpose_score_pair in sparse_node_values[current.value.0 as usize].iter() {
-                let subpurpose_ix = subpurpose_score_pair[0];
-                let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[subpurpose_ix as usize] as i32) * 3601;
-                let multiplier = travel_time_relationships[(vec_start_pos_this_purpose + current.cost.0 as i32) as usize];
-                scores[subpurpose_ix as usize] += (subpurpose_score_pair[1] as i64) * (multiplier as i64);
-            }
-            
-            nodes_visited.insert(current.value.0);
-            iters += 1;
-        } 
-
-        for edge in &graph_walk[(current.value.0 as usize)] {
+        // so long as this is the first time a link is taken, we add the link; a node can be reached multiple times: once for each link
+        for edge in &graph_walk[(current.node.0 as usize)] {
             
             let time_turn_previous_node = get_cost_of_turn(
                 angle_leaving_node_from: edge.angle_leaving_node_from,
@@ -139,25 +107,49 @@ pub fn get_scores_and_od_pairs(
             if new_cost < time_limit_seconds {
                 queue.push(PriorityQueueItem {
                     cost: new_cost,
-                    value: edge.to,
+                    node: edge.to,
                     angle_arrived_from: edge.angle_arrived_from,
                     link_arrived_from: edge.link_arrived_from,
                 });
             }
         }
         
-        // TODO find purpose level scores
+        iters += 1;
         
+        // we only add scroes and od pairs if this node has been reached before: a node may be reached via multiple links
+        if nodes_visited[current.node] {
+            continue;
+        }
+        nodes_visited[current.node] = true;
+        
+        if target_destinations_binary_vec[current.node] {
+            od_pairs.push(OriginDestinationPair{
+                NodeID: current.node
+                Cost: current.cost
+            })
+        }
+
+        add_to_subpurpose_scores_for_node_reached(
+              subpurpose_scores,
+              node_values_2d,
+              subpurpose_purpose_lookup,
+              travel_time_relationships,
+        )
         
     }
                 
-    return (
+    let purpose_scores = calculate_purpose_scores_from_subpurpose_scores(
+        subpurpose_scores,
+        subpurpose_purpose_lookup,
+        score_multipliers,
+    )
+    
+    FloodfillWalkCyclingCarOutput{
+        start_node_id,
+        seconds_walk_to_start_node,
         iters,
-        start.0,
-        scores,
-        target_destination_ids,
-        target_destination_travel_times,
-    );
-                
-                
+        purpose_scores,
+        od_pairs,
+    }
+
 }

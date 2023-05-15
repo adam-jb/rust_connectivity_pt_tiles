@@ -1,5 +1,5 @@
 use crate::shared::SecondsPastMidnight;
-
+use crate::shared::{Cost, NodeID, Angle, LinkID, EdgeWalk, OriginDestinationPair};
 
 
 pub fn initialise_subpurpose_purpose_lookup() -> [u8; 32] {
@@ -113,7 +113,7 @@ pub fn calculate_purpose_scores_from_subpurpose_scores(
 pub fn get_cost_of_turn(
     angle_leaving_node_from: Angle,
     angle_arrived_from: Angle,
-    time_costs_turn: &[u16; 4], 
+    time_costs_turn: &[Cost; 4], 
     ) -> u16 {
 
     let mut time_turn_previous_node: u16;
