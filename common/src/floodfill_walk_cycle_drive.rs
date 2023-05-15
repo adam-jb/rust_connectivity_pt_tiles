@@ -32,6 +32,7 @@ impl<K: Ord, V: Ord, A: Ord, L: Ord> Ord for PriorityQueueItem<K, V, A, L> {
     }
 }
 
+// TODO change types
 pub fn get_scores_and_od_pairs(
                 travel_time_relationships: &[i32],
                 subpurpose_purpose_lookup: &[i8; 32],
@@ -41,9 +42,16 @@ pub fn get_scores_and_od_pairs(
                 start: NodeID,
                 init_travel_time: Cost,
                 target_destinations_vector: &[u32],
+                time_limit_seconds: Cost,
             ) -> (i32, u32, [i64; 32], Vec<u32>, Vec<u16>) {
     
-    let time_limit: Cost = Cost(3600);
+    // initialise values
+    let mut subpurpose_scores = [Score(0.0); 32];
+    let subpurpose_purpose_lookup = initialise_subpurpose_purpose_lookup();
+    let score_multipliers = initialise_score_multiplers();
+    let mut nodes_visited: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();
+    
+    let mut destinations_reached: Vec<[NodeID, Cost]> = vec![];
     
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Angle, LinkID>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
@@ -53,13 +61,18 @@ pub fn get_scores_and_od_pairs(
         link_arrived_from: LinkID(99_999_999),
     });
                 
-    let mut scores: [i64; 32] = [0; 32];
+    let mut subpurpose_scores = [Score(0.0); 32];
+                
+    // TODO change types
     let mut target_destination_travel_times: Vec<u16> = vec![];
+                
+    // TODO change types
     let mut target_destination_ids: Vec<u32> = vec![];
     let mut iters: i32 = 0;
     let mut links_visited = HashSet::new();
     let mut nodes_visited = HashSet::new();
                 
+    // TODO change types
     let mut target_destinations_binary_vec = vec![false; graph_walk.len() as usize];
     for id in target_destinations_vector.into_iter() {
         target_destinations_binary_vec[*id as usize] = true;
@@ -70,19 +83,21 @@ pub fn get_scores_and_od_pairs(
         return (
             iters,
             start.0,
-            scores,
+            subpurpose_scores,
             target_destination_ids,
             target_destination_travel_times,
         );
     }
                 
     // declare variables which are used below
+    // TODO change types
     let mut time_turn_previous_node: u16;
     let mut angle_turn_previous_node: u16;
                 
     
     while let Some(current) = queue.pop() {
         
+        // TODO change from set to boolean vec
         if links_visited.contains(&current.link_arrived_from) {
             continue
         }
@@ -92,12 +107,14 @@ pub fn get_scores_and_od_pairs(
         if !nodes_visited.contains(&current.value.0) {
 
             // store OD pair
+            // TODO change types
             if target_destinations_binary_vec[current.value.0 as usize] {
                 target_destination_ids.push(current.value.0);
                 target_destination_travel_times.push(current.cost.0);
             }
 
             // get scores
+            // TODO use function for subpurposes
             for subpurpose_score_pair in sparse_node_values[current.value.0 as usize].iter() {
                 let subpurpose_ix = subpurpose_score_pair[0];
                 let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[subpurpose_ix as usize] as i32) * 3601;
@@ -119,7 +136,7 @@ pub fn get_scores_and_od_pairs(
             
             let new_cost = Cost(current.cost.0 + edge.cost.0 + time_turn_previous_node);
             
-            if new_cost < time_limit {
+            if new_cost < time_limit_seconds {
                 queue.push(PriorityQueueItem {
                     cost: new_cost,
                     value: edge.to,
@@ -128,7 +145,10 @@ pub fn get_scores_and_od_pairs(
                 });
             }
         }
-
+        
+        // TODO find purpose level scores
+        
+        
     }
                 
     return (
