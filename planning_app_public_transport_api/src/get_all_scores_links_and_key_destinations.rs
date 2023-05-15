@@ -33,7 +33,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let mut node_values_contributed_each_purpose_vec: Vec<[Score; 5]> = vec![];
 
     // ********* Get subpurpose level scores overall, and purpose level contribution of each individual node reached
-    let mut now = Instant::now();
+    let now = Instant::now();
 
     for DestinationReached { node, cost, .. } in destinations_reached.iter() {
         let mut purpose_scores_this_node = [Score(0.0); 5];

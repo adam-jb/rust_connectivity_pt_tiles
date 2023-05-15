@@ -49,7 +49,6 @@ pub fn floodfill_public_transport(
     seconds_walk_to_start_node: Cost,
     walk_only: bool,
     time_limit: Cost,
-    store_od_pairs: bool,
     node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
     travel_time_relationships: &[Multiplier],
     find_scores: bool,
@@ -57,7 +56,7 @@ pub fn floodfill_public_transport(
     
     let previous_node = start_node_id;
     let mut iters_count: usize = 0;
-
+    
     // Notable change (Adam 11th May): changed PriorityQueueItem to accept 'unit' primitive type so dont have to pass things around if not needed
     //let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, NodeID, usize, u8>> =
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, NodeID, usize, u8>> = BinaryHeap::new();
@@ -105,15 +104,13 @@ pub fn floodfill_public_transport(
         }
 
         // First destination reached is to itself: this is fine as we later ignore first val in destinations_reached
-        if store_od_pairs {
-            destinations_reached.push(DestinationReached {
-                cost: current.cost,
-                node: current.node,
-                previous_node: current.previous_node,
-                previous_node_iters_taken: current.previous_node_iters_taken,
-                arrived_at_node_by_pt: current.arrived_at_node_by_pt,
-            });
-        }
+        destinations_reached.push(DestinationReached {
+            cost: current.cost,
+            node: current.node,
+            previous_node: current.previous_node,
+            previous_node_iters_taken: current.previous_node_iters_taken,
+            arrived_at_node_by_pt: current.arrived_at_node_by_pt,
+        });
 
         // Finding adjacent walk nodes
         for edge in &graph_walk[current.node].node_connections {

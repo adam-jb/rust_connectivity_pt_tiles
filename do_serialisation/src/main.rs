@@ -5,18 +5,19 @@ use std::io::{BufReader, BufWriter};
 use std::path::Path;
 use std::time::Instant;
 
-use crate::shared::{
-    Cost, EdgePT, EdgeWalk, Multiplier, NodeID, NodeRoute, NodeWalk, Score, SecondsPastMidnight,
+use common::structs::{
+    Cost, EdgeRoute, EdgeWalk, Multiplier, NodeID, NodeRoute, NodeWalk, Score, SecondsPastMidnight,
     SubpurposeScore,
 };
 
 // All serialisation you want to do should go here
-serialise_graph_routes_vector(2022);
-println!("File serialisation done");
-
+fn main() {
+    let year: i32 = 2022;
+    serialise_graph_routes_vector(year);
+    println!("File serialisation done");
+}
 
 fn serialise_graph_routes_vector(year: i32) {
-    //, len_graph_walk: usize) {
     let contents_filename = format!("data/p2_main_nodes_updated_6am_{}.json", year);
     let file = File::open(Path::new(&contents_filename)).unwrap();
     let reader = BufReader::new(file);
@@ -30,9 +31,9 @@ fn serialise_graph_routes_vector(year: i32) {
 
         let timetable: Vec<[usize; 2]> = serde_json::from_value(item["timetable"].clone()).unwrap();
 
-        let mut edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
+        let mut edges: SmallVec<[EdgeRoute; 4]> = SmallVec::new();
         for array in timetable {
-            edges.push(EdgePT {
+            edges.push(EdgeRoute {
                 leavetime: SecondsPastMidnight(array[0]),
                 cost: Cost(array[1]),
             });

@@ -24,6 +24,10 @@ lto = true
 codegen-units = 1
 
 [[bin]]
+name = "do_serialisation"
+path = "do_serialisation/src/main.rs"
+
+[[bin]]
 name = "walk_cycling_car_batch"
 path = "walk_cycling_car_batch/src/main.rs"
 

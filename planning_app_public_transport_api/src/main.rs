@@ -19,13 +19,7 @@ use get_all_scores_links_and_key_destinations::get_all_scores_links_and_key_dest
 
 mod get_all_scores_links_and_key_destinations;
 
-/*
-mod floodfill_public_transport;
-mod get_time_of_day_index;
-mod read_files;
-mod structs;
-mod get_all_scores_links_and_key_destinations;
-*/
+use std::env;
 
 struct AppState {
     travel_time_relationships_all: Vec<Vec<Multiplier>>,
@@ -64,7 +58,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         *&input.init_travel_times_user_input[0],
         false,
         Cost(3600),
-        false,
         &data.node_values_2d,
         &data.travel_time_relationships_all[time_of_day_ix],
         false,
@@ -94,6 +87,11 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     env_logger::init();
+    
+    let path = env::current_dir()?;
+    println!("The current directory is {}", path.display());
+
+    
 
     let year: i32 = 2022;
     let seconds_travel_for_destination_clustering = 120;
