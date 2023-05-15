@@ -135,6 +135,9 @@ impl Default for Score {
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
 pub struct LinkID(pub u32);
 
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
+pub struct Angle(pub u16);
+
 #[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub struct EdgeWalk {
     pub to: NodeID,

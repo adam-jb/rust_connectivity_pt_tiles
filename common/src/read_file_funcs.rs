@@ -69,3 +69,21 @@ pub fn deserialize_bincoded_file<T: DeserializeOwned>(filename: &str) -> T {
     let file = BufReader::new(File::open(path).unwrap());
     bincode::deserialize_from(file).unwrap()
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

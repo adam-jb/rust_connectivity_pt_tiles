@@ -62,8 +62,8 @@ pub fn floodfill_public_transport(
 
     // Notable change (Adam 11th May): changed PriorityQueueItem to accept 'unit' primitive type so dont have to pass things around if not needed
     //let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, NodeID, usize, u8>> =
-    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, (), (), ()>> =
-        BinaryHeap::new();
+    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, (), (), ()>> = BinaryHeap::new();
+    queue.push({
         node: start_node_id,
         cost: seconds_walk_to_start_node,
         previous_node: previous_node,

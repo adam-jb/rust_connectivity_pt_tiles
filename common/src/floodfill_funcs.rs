@@ -63,13 +63,11 @@ pub fn get_time_of_day_index(trip_start_seconds: SecondsPastMidnight) -> usize {
     time_of_day_ix as usize
 }
 
-
-
 pub fn add_to_subpurpose_scores_for_node_reached(subpurpose_scores: &mut [Score; 32],
                           node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
                           subpurpose_purpose_lookup: &[u8; 32],
                           travel_time_relationships: &[Multiplier],
-                          )
+                          )  {
     for SubpurposeScore {
             subpurpose_ix,
             subpurpose_score,
@@ -80,6 +78,7 @@ pub fn add_to_subpurpose_scores_for_node_reached(subpurpose_scores: &mut [Score;
         let score_to_add = subpurpose_score.multiply(travel_time_multiplier);
         subpurpose_scores[*subpurpose_ix] += score_to_add;
     }
+}
 
 
 pub fn calculate_purpose_scores_from_subpurpose_scores(

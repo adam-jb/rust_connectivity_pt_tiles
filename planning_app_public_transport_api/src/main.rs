@@ -1,5 +1,3 @@
-//extern crate common;
-
 use actix_web::{get, post, web, App, HttpServer};
 use rayon::prelude::*;
 use std::collections::HashMap;
@@ -7,7 +5,6 @@ use std::sync::Mutex;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-// use create::read_files::{ (this was the original one
 use common::read_file_funcs::{
     deserialize_bincoded_file, read_files_parallel_excluding_node_values,
     read_rust_node_longlat_lookup_serial, read_small_files_serial,
