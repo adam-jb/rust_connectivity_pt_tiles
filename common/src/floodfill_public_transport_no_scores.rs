@@ -40,8 +40,8 @@ impl<K: Ord, V: Ord, NT: Ord, IT: Ord, NM: Ord> Ord for PriorityQueueItem<K, V, 
 }
 // ***** BinaryHeap specc'ed
 
-
-pub fn floodfill_public_transport(
+// doesn't record scores as it goes
+pub fn floodfill_public_transport_no_scores(
     graph_walk: &TiVec<NodeID, NodeWalk>,
     graph_routes: &TiVec<NodeID, NodeRoute>,
     start_node_id: NodeID,
@@ -51,7 +51,6 @@ pub fn floodfill_public_transport(
     time_limit: Cost,
     node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
     travel_time_relationships: &[Multiplier],
-    find_scores: bool,
 ) -> FloodfillOutput {
     
     let previous_node = start_node_id;
@@ -91,17 +90,6 @@ pub fn floodfill_public_transport(
             continue;
         }
         nodes_visited[current.node] = true;
-        
-        if find_scores {
-            add_to_subpurpose_scores_for_node_reached(
-                  &mut subpurpose_scores,
-                  node_values_2d,
-                  &subpurpose_purpose_lookup,
-                  &travel_time_relationships,
-                  current.cost.0,
-                  current.node,
-            )
-        }
 
         // First destination reached is to itself: this is fine as we later ignore first val in destinations_reached
         destinations_reached.push(DestinationReached {
@@ -145,13 +133,6 @@ pub fn floodfill_public_transport(
     }
     
     let mut purpose_scores = [Score(0.0); 5];
-    if find_scores {
-        let purpose_scores = calculate_purpose_scores_from_subpurpose_scores(
-            &subpurpose_scores,
-            &subpurpose_purpose_lookup,
-            &score_multipliers,
-        );
-    }
 
     FloodfillOutput {
         start_node_id,

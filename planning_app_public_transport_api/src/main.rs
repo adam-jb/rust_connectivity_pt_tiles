@@ -13,7 +13,7 @@ use common::read_file_funcs::{
 use common::structs::{
     Cost, Multiplier, NodeID, NodeRoute, NodeWalk, Score, SubpurposeScore, UserInputJSON,
 };
-use common::floodfill_public_transport::{floodfill_public_transport};
+use common::floodfill_public_transport_no_scores::floodfill_public_transport_no_scores;
 use common::floodfill_funcs::get_time_of_day_index;
 use get_all_scores_links_and_key_destinations::get_all_scores_links_and_key_destinations;
 
@@ -50,7 +50,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
 
     let now = Instant::now();
     // Only looks at first input if the request has >1 start nodes
-    let floodfill_output = floodfill_public_transport(
+    let floodfill_output = floodfill_public_transport_no_scores(
         &data.graph_walk,
         &data.graph_pt,
         *&input.start_nodes_user_input[0],
@@ -60,7 +60,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         Cost(3600),
         &data.node_values_2d,
         &data.travel_time_relationships_all[time_of_day_ix],
-        false,
     );
     println!("Floodfill in {:?}", now.elapsed());
     

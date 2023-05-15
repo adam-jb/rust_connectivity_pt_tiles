@@ -229,6 +229,13 @@ pub struct FloodfillOutput {
     pub destinations_reached: Vec<DestinationReached>,
 }
 
+pub struct FloodfillOutputOriginDestinationPair {
+    pub start_node_id: NodeID,
+    pub seconds_walk_to_start_node: Cost,
+    pub purpose_scores: [Score; 5],
+    pub destinations_reached: Vec<OriginDestinationPair>,
+}
+
 pub struct FloodfillWalkCyclingCarOutput {
     pub start_node_id: NodeID,
     pub seconds_walk_to_start_node: Cost,
@@ -252,6 +259,14 @@ pub struct PlanningToolOutput {
 #[derive(Deserialize)]
 pub struct UserInputJSON {
     pub start_nodes_user_input: Vec<NodeID>,
+    pub init_travel_times_user_input: Vec<Cost>,
+    pub trip_start_seconds: SecondsPastMidnight,
+}
+
+#[derive(Deserialize)]
+pub struct PublicTransportIncDestinationsUserInputJSON {
+    pub start_nodes_user_input: Vec<NodeID>,
+    pub destination_nodes: Vec<NodeID>,
     pub init_travel_times_user_input: Vec<Cost>,
     pub trip_start_seconds: SecondsPastMidnight,
 }
