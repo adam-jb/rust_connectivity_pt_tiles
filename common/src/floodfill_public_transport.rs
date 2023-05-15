@@ -54,6 +54,7 @@ pub fn floodfill_public_transport(
     store_route_trace: bool,
     node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
     travel_time_relationships: &[Multiplier],
+    find_scores: bool,
 ) -> FloodfillOutput {
     
     let previous_node = start_node_id;
@@ -93,12 +94,14 @@ pub fn floodfill_public_transport(
         }
         nodes_visited[current.node] = true;
         
-        add_to_subpurpose_scores_for_node_reached(
-              subpurpose_scores,
-              node_values_2d,
-              subpurpose_purpose_lookup,
-              travel_time_relationships: &[Multiplier],
-        )
+        if find_scores {
+            add_to_subpurpose_scores_for_node_reached(
+                  subpurpose_scores,
+                  node_values_2d,
+                  subpurpose_purpose_lookup,
+                  travel_time_relationships: &[Multiplier],
+            )
+        }
 
         // First destination reached is to itself: this is fine as we later ignore first val in destinations_reached
         if store_od_pairs {
@@ -152,11 +155,14 @@ pub fn floodfill_public_transport(
         iters_count += 1;
     }
     
-    let purpose_scores = calculate_purpose_scores_from_subpurpose_scores(
-        subpurpose_scores,
-        subpurpose_purpose_lookup,
-        score_multipliers,
-    )
+    let mut purpose_scores = [Score(0.0); 5];
+    if find_scores {
+        let purpose_scores = calculate_purpose_scores_from_subpurpose_scores(
+            subpurpose_scores,
+            subpurpose_purpose_lookup,
+            score_multipliers,
+        )
+    }
 
     FloodfillOutput {
         start_node_id,

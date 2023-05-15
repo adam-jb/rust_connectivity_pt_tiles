@@ -1,3 +1,5 @@
+extern crate common;
+
 use actix_web::{get, post, web, App, HttpServer};
 use rayon::prelude::*;
 use std::collections::HashMap;
@@ -5,16 +7,19 @@ use std::sync::Mutex;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-use crate::read_files::{
+use common::some_module::some_function;
+
+// use create::read_files::{ (this was the original one
+use common::read_files::{
     deserialize_bincoded_file, read_files_parallel_excluding_node_values,
     read_rust_node_longlat_lookup_serial, read_small_files_serial,
     read_sparse_node_values_2d_serial,
 };
-use crate::shared::{
+use common::shared::{
     Cost, Multiplier, NodeID, NodePT, NodeWalk, Score, SubpurposeScore, UserInputJSON,
 };
-use floodfill::{get_all_scores_links_and_key_destinations, get_travel_times};
-use get_time_of_day_index::get_time_of_day_index;
+use common::floodfill_public_transport::{floodfill_public_transport};
+use common::floodfill_funcs::get_time_of_day_index;
 
 mod floodfill;
 mod get_time_of_day_index;
@@ -23,6 +28,7 @@ mod priority_queue;
 mod read_files;
 mod serialise_files;
 mod shared;
+mod get_all_scores_links_and_key_destinations;
 
 struct AppState {
     travel_time_relationships_all: Vec<Vec<Multiplier>>,
@@ -53,8 +59,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 
     let now = Instant::now();
-    // Only looks at first input
-    let floodfill_output = get_travel_times(
+    // Only looks at first input if the request has >1 start nodes
+    let floodfill_output = floodfill_public_transport(
         &data.graph_walk,
         &data.graph_pt,
         *&input.start_nodes_user_input[0],
@@ -62,9 +68,14 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         *&input.init_travel_times_user_input[0],
         false,
         Cost(3600),
+        false,
+        true,
+        &data.node_values_2d,
+        &data.travel_time_relationships_all[time_of_day_ix],
+        false,
     );
     println!("Floodfill in {:?}", now.elapsed());
-
+    
     let now = Instant::now();
     let results = get_all_scores_links_and_key_destinations(
         &floodfill_output,
