@@ -3,7 +3,7 @@ use serde::de::DeserializeOwned;
 use std::io::BufReader;
 use std::time::Instant;
 
-use crate::structs::{Multiplier, NodePT, NodeWalk, SubpurposeScore};
+use crate::structs::{Multiplier, NodeRoute, NodeWalk, SubpurposeScore};
 
 pub fn read_sparse_node_values_2d_serial(year: i32) -> Vec<Vec<SubpurposeScore>> {
     let now = Instant::now();
@@ -19,12 +19,12 @@ pub fn read_rust_node_longlat_lookup_serial() -> Vec<[f64; 2]> {
     rust_node_longlat_lookup
 }
 
-pub fn read_files_parallel_excluding_node_values(year: i32) -> (Vec<NodeWalk>, Vec<NodePT>) {
+pub fn read_files_parallel_excluding_node_values(year: i32) -> (Vec<NodeWalk>, Vec<NodeRoute>) {
     let now = Instant::now();
 
     let (graph_walk, graph_pt) = rayon::join(
         || deserialize_bincoded_file::<Vec<NodeWalk>>(&format!("p1_main_nodes_vector_6am_{year}")),
-        || deserialize_bincoded_file::<Vec<NodePT>>(&format!("p2_main_nodes_vector_6am_{year}")),
+        || deserialize_bincoded_file::<Vec<NodeRoute>>(&format!("p2_main_nodes_vector_6am_{year}")),
     );
 
     println!(

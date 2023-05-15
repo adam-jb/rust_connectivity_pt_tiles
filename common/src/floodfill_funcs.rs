@@ -2,13 +2,13 @@ use typed_index_collections::TiVec;
 
 
 
-use crate::struct::{
+use crate::structs::{
     Cost, DestinationReached, FloodfillOutput, Multiplier, NodeID, NodeRoute,Angle,LinkID,EdgeWalk,OriginDestinationPair,
     NodeWalk, Score, SecondsPastMidnight, SubpurposeScore,
 };
 
 pub fn initialise_subpurpose_purpose_lookup() -> [usize; 32] {
-        [
+        return [
             2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1,
             2, 1,
         ];
@@ -16,7 +16,7 @@ pub fn initialise_subpurpose_purpose_lookup() -> [usize; 32] {
 
 
 pub fn initialise_score_multiplers() -> [Multiplier; 32] {
-    [
+    return [
         Multiplier(0.000000000000000), // set to 0
         Multiplier(0.009586382150013575),
         Multiplier(0.00902817799219063),
@@ -70,7 +70,7 @@ pub fn get_time_of_day_index(trip_start_seconds: SecondsPastMidnight) -> usize {
 
 pub fn add_to_subpurpose_scores_for_node_reached(subpurpose_scores: &mut [Score; 32],
                           node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
-                          subpurpose_purpose_lookup: &[u8; 32],
+                          subpurpose_purpose_lookup: &[usize; 32],
                           travel_time_relationships: &[Multiplier],
                           seconds_so_far: usize,
                           node_id: NodeID,
@@ -78,7 +78,7 @@ pub fn add_to_subpurpose_scores_for_node_reached(subpurpose_scores: &mut [Score;
     for SubpurposeScore {
             subpurpose_ix,
             subpurpose_score,
-    } in node_values_2d[*node_id].iter()
+    } in node_values_2d[node_id].iter()
     {
         let vec_start_pos_this_purpose = subpurpose_purpose_lookup[*subpurpose_ix] * 3601;
         let travel_time_multiplier = travel_time_relationships[vec_start_pos_this_purpose + seconds_so_far];
@@ -90,7 +90,7 @@ pub fn add_to_subpurpose_scores_for_node_reached(subpurpose_scores: &mut [Score;
 
 pub fn calculate_purpose_scores_from_subpurpose_scores(
         subpurpose_scores: &[Score; 32],
-        subpurpose_purpose_lookup: &[u8; 32],
+        subpurpose_purpose_lookup: &[usize; 32],
         score_multipler: &[Multiplier; 32],
     ) -> [Score; 5] {
 
@@ -120,25 +120,25 @@ pub fn get_cost_of_turn(
     angle_leaving_node_from: Angle,
     angle_arrived_from: Angle,
     time_costs_turn: &[Cost; 4], 
-    ) -> u16 {
+    ) -> Cost {
 
-    let mut time_turn_previous_node: u16;
-    let mut angle_turn_previous_node: u16;
+    let time_turn_previous_node: Cost;
+    let mut angle_turn_previous_node: Angle;
 
     if angle_leaving_node_from < angle_arrived_from {
-        angle_turn_previous_node = angle_leaving_node_from + Angle(360) - current.angle_arrived_from;
+        angle_turn_previous_node = angle_leaving_node_from + Angle(360) - angle_arrived_from;
     } else {
         angle_turn_previous_node = angle_leaving_node_from -  angle_arrived_from;
     }
 
     // right turn
-    if 45 <= angle_turn_previous_node && angle_turn_previous_node < 135 {
+    if Angle(45) <= angle_turn_previous_node && angle_turn_previous_node < Angle(135) {
         time_turn_previous_node = time_costs_turn[1];
     // u turn
-    } else if 135 <= angle_turn_previous_node && angle_turn_previous_node < 225 {
+    } else if Angle(135) <= angle_turn_previous_node && angle_turn_previous_node < Angle(225) {
         time_turn_previous_node = time_costs_turn[2];
     // left turn
-    } else if 225 <= angle_turn_previous_node && angle_turn_previous_node < 315 {
+    } else if Angle(225) <= angle_turn_previous_node && angle_turn_previous_node < Angle(315) {
        time_turn_previous_node = time_costs_turn[3];
     // no turn
     } else {
@@ -157,7 +157,7 @@ pub fn extract_od_pairs(
     let mut od_pairs: Vec<[usize; 2]> = Vec::new();
     for destination_reached in destinations_reached {
 
-        od_pairs.push([destinations_reached.node.0, destinations_reached.cost.0]);
+        od_pairs.push([destination_reached.node.0, destination_reached.cost.0]);
 
     }
     od_pairs

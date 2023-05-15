@@ -1,11 +1,9 @@
-use crate::priority_queue::PriorityQueueItem;
-use crate::struct::{
+use crate::structs::{
     Cost, DestinationReached, FloodfillOutput, Multiplier, NodeID, NodeRoute,
     NodeWalk, Score, SecondsPastMidnight, SubpurposeScore,
 };
-use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, add_to_subpurpose_scores_for_node_reached}
-use std::collections::{BinaryHeap, HashMap, HashSet};
-use std::sync::Mutex;
+use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, add_to_subpurpose_scores_for_node_reached};
+use std::collections::{BinaryHeap};
 use std::time::Instant;
 use typed_index_collections::TiVec;
 use std::cmp::Ordering;
@@ -45,14 +43,13 @@ impl<K: Ord, V: Ord, NT: Ord, IT: Ord, NM: Ord> Ord for PriorityQueueItem<K, V, 
 
 pub fn floodfill_public_transport(
     graph_walk: &TiVec<NodeID, NodeWalk>,
-    graph_pt: &TiVec<NodeID, NodeRoute>,
+    graph_routes: &TiVec<NodeID, NodeRoute>,
     start_node_id: NodeID,
     trip_start_seconds: SecondsPastMidnight,
     seconds_walk_to_start_node: Cost,
     walk_only: bool,
     time_limit: Cost,
     store_od_pairs: bool,
-    store_route_trace: bool,
     node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
     travel_time_relationships: &[Multiplier],
     find_scores: bool,
@@ -63,10 +60,10 @@ pub fn floodfill_public_transport(
 
     // Notable change (Adam 11th May): changed PriorityQueueItem to accept 'unit' primitive type so dont have to pass things around if not needed
     //let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, NodeID, usize, u8>> =
-    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, (), (), ()>> = BinaryHeap::new();
-    queue.push({
-        node: start_node_id,
+    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, NodeID, usize, u8>> = BinaryHeap::new();
+    queue.push( PriorityQueueItem{
         cost: seconds_walk_to_start_node,
+        node: start_node_id,
         previous_node: previous_node,
         previous_node_iters_taken: iters_count,
         arrived_at_node_by_pt: 0,
@@ -98,10 +95,10 @@ pub fn floodfill_public_transport(
         
         if find_scores {
             add_to_subpurpose_scores_for_node_reached(
-                  subpurpose_scores,
+                  &mut subpurpose_scores,
                   node_values_2d,
-                  subpurpose_purpose_lookup,
-                  travel_time_relationships: &[Multiplier],
+                  &subpurpose_purpose_lookup,
+                  &travel_time_relationships,
                   current.cost.0,
                   current.node,
             )
@@ -123,21 +120,13 @@ pub fn floodfill_public_transport(
             let new_cost = current.cost + edge.cost;
             if new_cost < time_limit {
                 
-                if store_route_trace {
-                    queue.push(PriorityQueueItem {
-                        cost: new_cost,
-                        node: edge.to,
-                        previous_node: current.node,
-                        previous_node_iters_taken: iters_count,
-                        arrived_at_node_by_pt: 0,
-                    });
-                } else {
-                     queue.push(PriorityQueueItem {
-                        cost: new_cost,
-                        node: edge.to,
-                        ..           // all other values are default: 'unit'
-                    });   
-                }
+                queue.push(PriorityQueueItem {
+                    cost: new_cost,
+                    node: edge.to,
+                    previous_node: current.node,
+                    previous_node_iters_taken: iters_count,
+                    arrived_at_node_by_pt: 0,
+                });
             }
         }
 
@@ -145,14 +134,13 @@ pub fn floodfill_public_transport(
         if !walk_only {
             if graph_walk[current.node].has_pt {
                 take_next_pt_route(
-                    &graph_pt,
+                    &graph_routes,
                     current.cost,
                     &mut queue,
                     time_limit,
                     trip_start_seconds,
                     current.node,
                     iters_count,
-                    store_route_trace,
                 );
             }
         }
@@ -162,9 +150,9 @@ pub fn floodfill_public_transport(
     let mut purpose_scores = [Score(0.0); 5];
     if find_scores {
         let purpose_scores = calculate_purpose_scores_from_subpurpose_scores(
-            subpurpose_scores,
-            subpurpose_purpose_lookup,
-            score_multipliers,
+            &subpurpose_scores,
+            &subpurpose_purpose_lookup,
+            &score_multipliers,
         );
     }
 
@@ -179,12 +167,11 @@ pub fn floodfill_public_transport(
 fn take_next_pt_route(
     graph_routes: &TiVec<NodeID, NodeRoute>,
     time_so_far: Cost,
-    queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID, (), (), ()>>, //BinaryHeap<PriorityQueueItem<Cost, NodeID, NodeID, usize, u8>>,
+    queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID, NodeID, usize, u8>>, //BinaryHeap<PriorityQueueItem<Cost, NodeID, NodeID, usize, u8>>,
     time_limit: Cost,
     trip_start_seconds: SecondsPastMidnight,
     current_node: NodeID,
     iters_count: usize,
-    store_route_trace: bool,
 ) {
     let time_of_arrival_current_node = trip_start_seconds.add(&time_so_far);
 
@@ -195,7 +182,7 @@ fn take_next_pt_route(
 
     // Could try: test switching from scanning search to binary search
     // See 'Binary search timetable' under Rust in Notion (Adam's notes, April 2023)
-    for edge in &graph_pt[current_node].timetable {
+    for edge in &graph_routes[current_node].timetable {
         if time_of_arrival_current_node <= edge.leavetime {
             next_leaving_time = edge.leavetime;
             journey_time_to_next_node = edge.cost;
@@ -213,23 +200,15 @@ fn take_next_pt_route(
             time_so_far + journey_time_to_next_node + wait_time_this_stop;
 
         if time_since_start_next_stop_arrival < time_limit {
-            let destination_node = graph_pt[current_node].next_stop_node;
+            let destination_node = graph_routes[current_node].next_stop_node;
 
-            if store_route_trace {
-                queue.push(PriorityQueueItem {
-                    cost: time_since_start_next_stop_arrival,
-                    node: destination_node,
-                    previous_node: current.node,
-                    previous_node_iters_taken: iters_count,
-                    arrived_at_node_by_pt: 1,
-                });
-            } else {
-                 queue.push(PriorityQueueItem {
-                    cost: time_since_start_next_stop_arrival,
-                    node: destination_node,
-                    ..           // all other values are default: 'unit'
-                });   
-            }
+            queue.push(PriorityQueueItem {
+                cost: time_since_start_next_stop_arrival,
+                node: destination_node,
+                previous_node: current_node,
+                previous_node_iters_taken: iters_count,
+                arrived_at_node_by_pt: 1,
+            });
             
             
         };

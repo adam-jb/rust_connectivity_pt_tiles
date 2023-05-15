@@ -138,6 +138,20 @@ pub struct LinkID(pub u32);
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
 pub struct Angle(pub u16);
 
+impl Add for Angle {
+    type Output = Self;
+    fn add(self, other: Self) -> Self::Output {
+        Angle(self.0 + other.0)
+    }
+}
+
+impl Sub for Angle {
+    type Output = Self;
+    fn sub(self, other: Self) -> Self::Output {
+        Angle(self.0 - other.0)
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub struct EdgeWalk {
     pub to: NodeID,
@@ -171,7 +185,7 @@ pub struct NodeWalk {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct NodeWalkCyclingCar {
-    pub node_connections: SmallVec<[EdgeWalkCyclingCar; 4]>,
+    pub connections: SmallVec<[EdgeWalkCyclingCar; 4]>,
 }
 
 

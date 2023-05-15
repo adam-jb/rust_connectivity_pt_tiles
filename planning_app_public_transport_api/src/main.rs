@@ -11,7 +11,7 @@ use common::read_file_funcs::{
     read_sparse_node_values_2d_serial,
 };
 use common::structs::{
-    Cost, Multiplier, NodeID, NodePT, NodeWalk, Score, SubpurposeScore, UserInputJSON,
+    Cost, Multiplier, NodeID, NodeRoute, NodeWalk, Score, SubpurposeScore, UserInputJSON,
 };
 use common::floodfill_public_transport::{floodfill_public_transport};
 use common::floodfill_funcs::get_time_of_day_index;
@@ -31,7 +31,7 @@ struct AppState {
     travel_time_relationships_all: Vec<Vec<Multiplier>>,
     nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>>,
     graph_walk: TiVec<NodeID, NodeWalk>,
-    graph_pt: TiVec<NodeID, NodePT>,
+    graph_pt: TiVec<NodeID, NodeRoute>,
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
     rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]>,
     route_info: TiVec<NodeID, HashMap<String, String>>,
@@ -65,7 +65,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         false,
         Cost(3600),
         false,
-        true,
         &data.node_values_2d,
         &data.travel_time_relationships_all[time_of_day_ix],
         false,
@@ -129,7 +128,7 @@ async fn main() -> std::io::Result<()> {
 
     let now = Instant::now();
     let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
-    let graph_pt: TiVec<NodeID, NodePT> = TiVec::from(graph_pt);
+    let graph_pt: TiVec<NodeID, NodeRoute> = TiVec::from(graph_pt);
     let node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
     let rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]> = TiVec::from(rust_node_longlat_lookup);
     let nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>> =

@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-use common::floodfull_funcs::{initialise_subpurpose_purpose_lookup, initialise_score_multiplers};
+use common::floodfill_funcs::{initialise_subpurpose_purpose_lookup, initialise_score_multiplers};
 
 pub fn get_all_scores_links_and_key_destinations(
     floodfill_output: &FloodfillOutput,

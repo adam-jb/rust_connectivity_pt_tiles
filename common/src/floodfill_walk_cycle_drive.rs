@@ -1,11 +1,10 @@
 use std::collections::BinaryHeap;
-use crate::priority_queue::PriorityQueueItem;
 use std::collections::HashSet;
 use std::cmp::Ordering;
 use typed_index_collections::TiVec;
 
 
-use crate::shared::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCyclingCar, OriginDestinationPair, FloodfillWalkCyclingCarOutput, SubpurposeScore};
+use crate::structs::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCyclingCar, OriginDestinationPair, FloodfillWalkCyclingCarOutput, SubpurposeScore};
 use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, add_to_subpurpose_scores_for_node_reached, get_cost_of_turn};
 
 
@@ -43,7 +42,7 @@ pub fn get_scores_and_od_pairs(
                 time_costs_turn: &[Cost; 4],    //&[u16; 4],
                 start_node_id: NodeID,
                 seconds_walk_to_start_node: Cost,
-                target_destinations_vector: &[Node], //&[u32],
+                target_destinations_vector: &[NodeID], //&[u32],
                 time_limit_seconds: Cost,    
             ) -> FloodfillWalkCyclingCarOutput {
 
@@ -61,8 +60,7 @@ pub fn get_scores_and_od_pairs(
     });
          
     // storing for outputs
-    let mut subpurpose_scores = [Score(0.0); 32];
-    let mut od_pairs: Vec<OriginDestinationPair>;
+    let mut od_pairs: Vec<OriginDestinationPair> = Vec::new();
 
     let mut iters: u32 = 0;
     let mut links_visited = HashSet::new();
@@ -71,20 +69,20 @@ pub fn get_scores_and_od_pairs(
     // make boolean vec to quickly check if a node is a target node for OD pair finding
     let mut target_destinations_binary_vec: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();                
     for node_id in target_destinations_vector.into_iter() {
-        target_destinations_binary_vec[node_id] = true;
+        target_destinations_binary_vec[*node_id] = true;
     }
 
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= Cost(3600) {
         let purpose_scores = [Score(0.0); 5];
-        return (
+        return
             FloodfillWalkCyclingCarOutput{
                 start_node_id,
                 seconds_walk_to_start_node,
                 iters,
                 purpose_scores,
                 od_pairs,
-        });
+        };
     }
                 
     // declared here to widen scoep (ie, the availability)
@@ -99,11 +97,11 @@ pub fn get_scores_and_od_pairs(
         links_visited.insert(current.link_arrived_from);
         
         // so long as this is the first time a link is taken, we add the link; a node can be reached multiple times: once for each link
-        for edge in &graph_walk[current.node] {
+        for edge in graph_walk[current.node].connections.iter() {
             
             let time_turn_previous_node = get_cost_of_turn(
-                angle_leaving_node_from: edge.angle_leaving_node_from,
-                angle_arrived_from: current.angle_arrived_from,
+                edge.angle_leaving_node_from,
+                current.angle_arrived_from,
                 time_costs_turn, 
             );
             
@@ -129,27 +127,27 @@ pub fn get_scores_and_od_pairs(
         
         if target_destinations_binary_vec[current.node] {
             od_pairs.push(OriginDestinationPair{
-                NodeID: current.node
-                Cost: current.cost
+                node: current.node,
+                cost: current.cost,
             })
         }
 
         add_to_subpurpose_scores_for_node_reached(
-              subpurpose_scores,
+              &mut subpurpose_scores,
               node_values_2d,
-              subpurpose_purpose_lookup,
+              &subpurpose_purpose_lookup,
               travel_time_relationships,
               current.cost.0,
-              current_node,
+              current.node,
         )
         
     }
                 
     let purpose_scores = calculate_purpose_scores_from_subpurpose_scores(
-        subpurpose_scores,
-        subpurpose_purpose_lookup,
-        score_multipliers,
-    )
+        &subpurpose_scores,
+        &subpurpose_purpose_lookup,
+        &score_multipliers,
+    );
     
     FloodfillWalkCyclingCarOutput{
         start_node_id,
