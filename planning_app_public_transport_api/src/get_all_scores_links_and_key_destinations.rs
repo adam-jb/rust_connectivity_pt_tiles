@@ -1,56 +1,27 @@
+use common::structs::{
+    Cost, DestinationReached, PlanningToolOutput, FloodfillOutput, Multiplier, NodeID, NodeScore,
+    Score, SubpurposeScore, TOP_CLUSTERS_COUNT,
+};
+use std::collections::{HashMap, HashSet};
+use std::sync::Mutex;
+use std::time::Instant;
+use typed_index_collections::TiVec;
 
+use common::floodfull_funcs::{initialise_subpurpose_purpose_lookup, initialise_score_multiplers};
 
 pub fn get_all_scores_links_and_key_destinations(
     floodfill_output: &FloodfillOutput,
     node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
     travel_time_relationships: &[Multiplier],
-    subpurpose_purpose_lookup: &[usize; 32],
     nodes_to_neighbouring_nodes: &TiVec<NodeID, Vec<NodeID>>,
     rust_node_longlat_lookup: &TiVec<NodeID, [f64; 2]>,
-    route_info: &TiVec<NodeID, HashMap<String, String>>, //&TiVec<NodeID, String>,
+    route_info: &TiVec<NodeID, HashMap<String, String>>,
     mutex_sparse_node_values_contributed: &Mutex<TiVec<NodeID, [Score; 5]>>,
-) -> FinalOutput {
-    // Get this from score_multipler_by_subpurpose_id_{mode_simpler}.json in connectivity-processing-files
-    // Used to get relative importance of each subpurpose when aggregating them to purpose level
-    // This has subpurposes ['Residential', 'Motor sports', 'Allotment'] set to zero, which pertain to subpurpose indices of [0, 10, 14]
-    let score_multipler: [Multiplier; 32] = [
-        Multiplier(0.000000000000000), // set to 0
-        Multiplier(0.009586382150013575),
-        Multiplier(0.00902817799219063),
-        Multiplier(0.008461272650878338),
-        Multiplier(0.008889733875203568),
-        Multiplier(0.008921736222033676),
-        Multiplier(0.022264233988222335),
-        Multiplier(0.008314147237807904),
-        Multiplier(0.010321099162180719),
-        Multiplier(0.00850878998927169),
-        Multiplier(0.00000000000000), // set to 0
-        Multiplier(0.009256043337142108),
-        Multiplier(0.008338366940103991),
-        Multiplier(0.009181584368558857),
-        Multiplier(0.000000000000000), // set to 0
-        Multiplier(0.009124946989519319),
-        Multiplier(0.008332774189837317),
-        Multiplier(0.046128804773287346),
-        Multiplier(0.009503140563990153),
-        Multiplier(0.01198700845708387),
-        Multiplier(0.009781270599036206),
-        Multiplier(0.00832427047935188),
-        Multiplier(0.008843645925786448),
-        Multiplier(0.008531419360132648),
-        Multiplier(0.009034318952510731),
-        Multiplier(0.008829954505680167),
-        Multiplier(0.011168757794031156),
-        Multiplier(0.017255946829128663),
-        Multiplier(0.008374145360142223),
-        Multiplier(0.008578983146921768),
-        Multiplier(0.008467735739894604),
-        Multiplier(0.012110456385386992),
-    ];
-
-    // subpurpose_scores includes the 3 subpurposes to ignore as postproc scripts are expecting them ['Residential', 'Motor sports', 'Allotment'] though they will always be 0
-    let mut subpurpose_scores: [Score; 32] = [Score(0.0); 32];
-
+) -> PlanningToolOutput {
+    
+    let subpurpose_purpose_lookup = initialise_subpurpose_purpose_lookup();
+    let score_multipler = initialise_score_multiplers();
+    
     let start = floodfill_output.start_node_id;
     let seconds_walk_to_start_node = floodfill_output.seconds_walk_to_start_node;
     let destinations_reached = &floodfill_output.destinations_reached;
@@ -72,13 +43,10 @@ pub fn get_all_scores_links_and_key_destinations(
             subpurpose_score,
         } in node_values_2d[*node].iter()
         {
-            // store scores for each subpurpose for this node
+            // store scores for each subpurpose's purpose, for this node
             let vec_start_pos_this_purpose = subpurpose_purpose_lookup[*subpurpose_ix] * 3601;
             let multiplier = travel_time_relationships[vec_start_pos_this_purpose + (cost.0)];
             let score_to_add = subpurpose_score.multiply(multiplier);
-            subpurpose_scores[*subpurpose_ix] += score_to_add;
-
-            // To get purpose level contribution to scores for each node: used for finding key destinations
             let purpose_ix = subpurpose_purpose_lookup[*subpurpose_ix];
             purpose_scores_this_node[purpose_ix] += score_to_add;
         }
@@ -91,29 +59,8 @@ pub fn get_all_scores_links_and_key_destinations(
         "Getting destinations purpose_scores_this_node took {:?}",
         now.elapsed()
     );
-
-    // **** Loops through each subpurpose, scaling them and getting the purpose level scores for the start node
-    now = Instant::now();
-
-    let mut overall_purpose_scores: [Score; 5] = [Score(0.0); 5];
-    for subpurpose_ix in 0..subpurpose_scores.len() {
-        // Apply score_multipler and apply logarithm to get subpurpose level scores
-        let mut subpurpose_score = subpurpose_scores[subpurpose_ix]
-            .multiply(score_multipler[subpurpose_ix])
-            .ln();
-
-        // make negative values zero: this corrects for an effect of using log()
-        if subpurpose_score < Score(0.0) {
-            subpurpose_score = Score(0.0);
-        }
-
-        // add to purpose level scores
-        let purpose_ix = subpurpose_purpose_lookup[subpurpose_ix];
-        overall_purpose_scores[purpose_ix] += subpurpose_score;
-    }
-
-    println!("Getting overall_purpose_scores took {:?}", now.elapsed());
-
+    
+    
     // ****** Overall scores obtained ******
 
     // ******* Get each link contributions to scores: tells us the relative importance of each link *******
@@ -423,10 +370,9 @@ pub fn get_all_scores_links_and_key_destinations(
         sparse_node_values_contributed[*node] = [Score(0.0); 5];
     }
 
-    FinalOutput {
+    PlanningToolOutput {
         num_iterations: destinations_reached.len() as u32,
         start_node: start,
-        score_per_purpose: overall_purpose_scores,
         per_link_score_per_purpose: link_score_contributions,
         link_coordinates: link_start_end_nodes_string,
         link_is_pt: link_is_pt,

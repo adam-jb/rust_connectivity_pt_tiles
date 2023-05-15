@@ -1,7 +1,8 @@
 [package]
-name = "planning_app_public_transport_api"
+name = "make_and_serialise_nodes_within_n_seconds"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-common = { path = "../common" }
+
+[dependencies]

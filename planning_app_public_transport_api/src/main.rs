@@ -1,4 +1,4 @@
-extern crate common;
+//extern crate common;
 
 use actix_web::{get, post, web, App, HttpServer};
 use rayon::prelude::*;
@@ -7,38 +7,37 @@ use std::sync::Mutex;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-use common::some_module::some_function;
-
 // use create::read_files::{ (this was the original one
-use common::read_files::{
+use common::read_file_funcs::{
     deserialize_bincoded_file, read_files_parallel_excluding_node_values,
     read_rust_node_longlat_lookup_serial, read_small_files_serial,
     read_sparse_node_values_2d_serial,
 };
-use common::shared::{
+use common::structs::{
     Cost, Multiplier, NodeID, NodePT, NodeWalk, Score, SubpurposeScore, UserInputJSON,
 };
 use common::floodfill_public_transport::{floodfill_public_transport};
 use common::floodfill_funcs::get_time_of_day_index;
+use get_all_scores_links_and_key_destinations::get_all_scores_links_and_key_destinations;
 
-mod floodfill;
-mod get_time_of_day_index;
-mod make_and_serialise_nodes_within_n_seconds;
-mod priority_queue;
-mod read_files;
-mod serialise_files;
-mod shared;
 mod get_all_scores_links_and_key_destinations;
+
+/*
+mod floodfill_public_transport;
+mod get_time_of_day_index;
+mod read_files;
+mod structs;
+mod get_all_scores_links_and_key_destinations;
+*/
 
 struct AppState {
     travel_time_relationships_all: Vec<Vec<Multiplier>>,
-    subpurpose_purpose_lookup: [usize; 32],
     nodes_to_neighbouring_nodes: TiVec<NodeID, Vec<NodeID>>,
     graph_walk: TiVec<NodeID, NodeWalk>,
     graph_pt: TiVec<NodeID, NodePT>,
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
     rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]>,
-    route_info: TiVec<NodeID, HashMap<String, String>>, // TiVec<NodeID, String>,
+    route_info: TiVec<NodeID, HashMap<String, String>>,
     mutex_sparse_node_values_contributed: Mutex<TiVec<NodeID, [Score; 5]>>,
 }
 
@@ -81,7 +80,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         &floodfill_output,
         &data.node_values_2d,
         &data.travel_time_relationships_all[time_of_day_ix],
-        &data.subpurpose_purpose_lookup,
         &data.nodes_to_neighbouring_nodes,
         &data.rust_node_longlat_lookup,
         &data.route_info,
@@ -103,37 +101,13 @@ async fn main() -> std::io::Result<()> {
 
     let year: i32 = 2022;
     let seconds_travel_for_destination_clustering = 120;
-
-    // make this true on initial run; false otherwise
-    if false {
-        serialise_files::serialise_files(year);
-    }
-
-    // comment this out to not make the lookup of nodes which are near other nodes
-    // this is big preprocessing stage (~90mins with 8cores for 120 seconds)
-    if false {
-        for time_seconds in [120, 180, 240, 300] {
-            let now = Instant::now();
-            let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
-            make_and_serialise_nodes_within_n_seconds::make_and_serialise_nodes_within_n_seconds(
-                Cost(time_seconds),
-                graph_walk,
-                graph_pt,
-            );
-            println!(
-                "All nearby nodes for {} seconds took {:?} seconds",
-                time_seconds,
-                now.elapsed()
-            );
-        }
-    }
-
+    
     let (
         travel_time_relationships_7,
         travel_time_relationships_10,
         travel_time_relationships_16,
         travel_time_relationships_19,
-        subpurpose_purpose_lookup,
+        _subpurpose_purpose_lookup,
     ) = read_small_files_serial();
 
     let travel_time_relationships_all = vec![
@@ -166,7 +140,7 @@ async fn main() -> std::io::Result<()> {
     let route_info: TiVec<NodeID, HashMap<String, String>> = TiVec::from(route_info);
     println!("Conversion to TiVec's took {:?} seconds", now.elapsed());
 
-    // create
+    // create mutex of empty values that nodes contribute. Do this now to save 0.4seconds initialising whenever the API is called. It is reset after each API call
     let now = Instant::now();
     let sparse_node_values_contributed: Vec<[Score; 5]> = (0..graph_walk.len())
         .into_par_iter()
@@ -179,7 +153,6 @@ async fn main() -> std::io::Result<()> {
 
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
-        subpurpose_purpose_lookup,
         nodes_to_neighbouring_nodes,
         graph_walk,
         graph_pt,
@@ -193,7 +166,7 @@ async fn main() -> std::io::Result<()> {
     #[allow(deprecated)]
     HttpServer::new(move || {
         App::new()
-            // TODO Fix before deploying for real!
+            // TODO only allow certain CORS origins before deploying for real!
             .wrap(actix_cors::Cors::permissive())
             .app_data(app_state.clone())
             .data(web::JsonConfig::default().limit(1024 * 1024 * 500)) // allow POST'd JSON payloads up to 500mb to cover all eventualities

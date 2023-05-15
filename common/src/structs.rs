@@ -221,11 +221,10 @@ pub struct FloodfillWalkCyclingCarOutput {
 }
 
 #[derive(Serialize)]
-pub struct FinalOutput {
+pub struct PlanningToolOutput {
     pub start_node: NodeID,
     pub init_travel_time: Cost,
     pub num_iterations: u32,
-    pub score_per_purpose: [Score; 5],
     pub key_destinations_per_purpose: [[[f64; 2]; TOP_CLUSTERS_COUNT]; 5],
     pub per_link_score_per_purpose: Vec<[Score; 5]>,
     pub link_coordinates: Vec<Vec<String>>,

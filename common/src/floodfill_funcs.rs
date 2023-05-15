@@ -2,7 +2,7 @@ use crate::shared::SecondsPastMidnight;
 use crate::shared::{Cost, NodeID, Angle, LinkID, EdgeWalk, OriginDestinationPair};
 
 
-pub fn initialise_subpurpose_purpose_lookup() -> [u8; 32] {
+pub fn initialise_subpurpose_purpose_lookup() -> [usize; 32] {
         [
             2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1,
             2, 1,
