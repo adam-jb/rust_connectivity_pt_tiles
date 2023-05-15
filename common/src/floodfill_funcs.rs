@@ -1,6 +1,11 @@
-use crate::shared::SecondsPastMidnight;
-use crate::shared::{Cost, NodeID, Angle, LinkID, EdgeWalk, OriginDestinationPair};
+use typed_index_collections::TiVec;
 
+
+
+use crate::struct::{
+    Cost, DestinationReached, FloodfillOutput, Multiplier, NodeID, NodeRoute,Angle,LinkID,EdgeWalk,OriginDestinationPair,
+    NodeWalk, Score, SecondsPastMidnight, SubpurposeScore,
+};
 
 pub fn initialise_subpurpose_purpose_lookup() -> [usize; 32] {
         [
@@ -67,14 +72,16 @@ pub fn add_to_subpurpose_scores_for_node_reached(subpurpose_scores: &mut [Score;
                           node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
                           subpurpose_purpose_lookup: &[u8; 32],
                           travel_time_relationships: &[Multiplier],
+                          seconds_so_far: usize,
+                          node_id: NodeID,
                           )  {
     for SubpurposeScore {
             subpurpose_ix,
             subpurpose_score,
-    } in node_values_2d[*node].iter()
+    } in node_values_2d[*node_id].iter()
     {
         let vec_start_pos_this_purpose = subpurpose_purpose_lookup[*subpurpose_ix] * 3601;
-        let travel_time_multiplier = travel_time_relationships[vec_start_pos_this_purpose + (cost.0)];
+        let travel_time_multiplier = travel_time_relationships[vec_start_pos_this_purpose + seconds_so_far];
         let score_to_add = subpurpose_score.multiply(travel_time_multiplier);
         subpurpose_scores[*subpurpose_ix] += score_to_add;
     }

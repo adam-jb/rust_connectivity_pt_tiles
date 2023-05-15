@@ -1,9 +1,13 @@
 use std::collections::BinaryHeap;
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCyclingCar, OriginDestinationPair, FloodfillWalkCyclingCarOutput, SubpurposeScore};
 use std::collections::HashSet;
 use std::cmp::Ordering;
 use typed_index_collections::TiVec;
+
+
+use crate::shared::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCyclingCar, OriginDestinationPair, FloodfillWalkCyclingCarOutput, SubpurposeScore};
+use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, add_to_subpurpose_scores_for_node_reached, get_cost_of_turn};
+
 
 /// Use with `BinaryHeap`. Since it's a max-heap, reverse the comparison to get the smallest cost
 /// first.
@@ -72,6 +76,7 @@ pub fn get_scores_and_od_pairs(
 
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= Cost(3600) {
+        let purpose_scores = [Score(0.0); 5];
         return (
             FloodfillWalkCyclingCarOutput{
                 start_node_id,
@@ -94,7 +99,7 @@ pub fn get_scores_and_od_pairs(
         links_visited.insert(current.link_arrived_from);
         
         // so long as this is the first time a link is taken, we add the link; a node can be reached multiple times: once for each link
-        for edge in &graph_walk[(current.node.0 as usize)] {
+        for edge in &graph_walk[current.node] {
             
             let time_turn_previous_node = get_cost_of_turn(
                 angle_leaving_node_from: edge.angle_leaving_node_from,
@@ -102,7 +107,7 @@ pub fn get_scores_and_od_pairs(
                 time_costs_turn, 
             );
             
-            let new_cost = Cost(current.cost.0 + edge.cost.0 + time_turn_previous_node);
+            let new_cost = current.cost + edge.cost + time_turn_previous_node;
             
             if new_cost < time_limit_seconds {
                 queue.push(PriorityQueueItem {
@@ -134,6 +139,8 @@ pub fn get_scores_and_od_pairs(
               node_values_2d,
               subpurpose_purpose_lookup,
               travel_time_relationships,
+              current.cost.0,
+              current_node,
         )
         
     }

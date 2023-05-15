@@ -1,8 +1,9 @@
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{
-    Cost, DestinationReached, FinalOutput, FloodfillOutput, Multiplier, NodeID, NodeRoute, NodeScore,
-    NodeWalk, Score, SecondsPastMidnight, SubpurposeScore, TOP_CLUSTERS_COUNT,
+use crate::struct::{
+    Cost, DestinationReached, FloodfillOutput, Multiplier, NodeID, NodeRoute,
+    NodeWalk, Score, SecondsPastMidnight, SubpurposeScore,
 };
+use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, add_to_subpurpose_scores_for_node_reached}
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::sync::Mutex;
 use std::time::Instant;
@@ -79,6 +80,7 @@ pub fn floodfill_public_transport(
 
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= Cost(3600) {
+        let purpose_scores = [Score(0.0); 5];
         return FloodfillOutput {
             start_node_id,
             seconds_walk_to_start_node,
@@ -100,6 +102,8 @@ pub fn floodfill_public_transport(
                   node_values_2d,
                   subpurpose_purpose_lookup,
                   travel_time_relationships: &[Multiplier],
+                  current.cost.0,
+                  current.node,
             )
         }
 
@@ -161,7 +165,7 @@ pub fn floodfill_public_transport(
             subpurpose_scores,
             subpurpose_purpose_lookup,
             score_multipliers,
-        )
+        );
     }
 
     FloodfillOutput {

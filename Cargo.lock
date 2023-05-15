@@ -329,6 +329,19 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "common"
 version = "0.1.0"
+dependencies = [
+ "actix-cors",
+ "actix-web",
+ "bincode",
+ "derive_more",
+ "env_logger",
+ "fs-err",
+ "rayon",
+ "serde",
+ "serde_json",
+ "smallvec",
+ "typed-index-collections",
+]
 
 [[package]]
 name = "convert_case"
