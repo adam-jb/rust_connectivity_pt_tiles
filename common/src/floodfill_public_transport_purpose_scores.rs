@@ -2,7 +2,9 @@ use crate::structs::{
     Cost, OriginDestinationPair, FloodfillOutputOriginDestinationPair, Multiplier, NodeID, NodeRoute,
     NodeWalk, Score, SecondsPastMidnight, SubpurposeScore,
 };
-use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, add_to_subpurpose_scores_for_node_reached};
+use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, 
+    add_to_subpurpose_scores_for_node_reached};
+
 use std::collections::{BinaryHeap};
 use std::time::Instant;
 use typed_index_collections::TiVec;
@@ -36,8 +38,7 @@ impl<K: Ord, V: Ord> Ord for PriorityQueueItem<K, V> {
 }
 // ***** BinaryHeap specc'ed
 
-// doesn't record scores as it goes
-pub fn floodfill_public_transport_no_scores(
+pub fn floodfill_public_transport_purpose_scores(
     graph_walk: &TiVec<NodeID, NodeWalk>,
     graph_routes: &TiVec<NodeID, NodeRoute>,
     start_node_id: NodeID,
@@ -59,14 +60,17 @@ pub fn floodfill_public_transport_no_scores(
         node: start_node_id,
     });
     
-    // TODO: make destination_nodes a boolean TiVec
-    // 
+    let mut target_destinations = vec![false; graph_walk.len()];
+    let mut target_destinations: TiVec<NodeID, bool> = TiVec::from(target_destinations);
+    for node_id in destination_nodes.into_iter() {
+        target_destinations[*node_id] = true;
+    }
     
     let mut subpurpose_scores = [Score(0.0); 32];
     let subpurpose_purpose_lookup = initialise_subpurpose_purpose_lookup();
     let score_multipliers = initialise_score_multiplers();
     let mut nodes_visited: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();
-    let mut destinations_reached: Vec<OriginDestinationPair> = vec![];
+    let mut od_pairs_found: Vec<OriginDestinationPair> = vec![];
 
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= Cost(3600) {
@@ -75,7 +79,7 @@ pub fn floodfill_public_transport_no_scores(
             start_node_id,
             seconds_walk_to_start_node,
             purpose_scores,
-            destinations_reached,
+            od_pairs_found,
         };
     }
 
@@ -86,10 +90,8 @@ pub fn floodfill_public_transport_no_scores(
         }
         nodes_visited[current.node] = true;
 
-        // TODO: change this to record only if in one if the destination_nodes
-        //
-        if record_origin_destination_pairs {
-            destinations_reached.push(OriginDestinationPair {
+        if target_destinations[current.node] {
+            od_pairs_found.push(OriginDestinationPair {
                 cost: current.cost,
                 node: current.node,
             });
@@ -144,7 +146,7 @@ pub fn floodfill_public_transport_no_scores(
         start_node_id,
         seconds_walk_to_start_node,
         purpose_scores,
-        destinations_reached,
+        od_pairs_found,
     }
 }
 

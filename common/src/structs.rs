@@ -221,21 +221,21 @@ pub struct OriginDestinationPair {
     pub node: NodeID,
     pub cost: Cost,
 }
-
+#[derive(Serialize, Deserialize, Clone)]
 pub struct FloodfillOutput {
     pub start_node_id: NodeID,
     pub seconds_walk_to_start_node: Cost,
     pub purpose_scores: [Score; 5],
     pub destinations_reached: Vec<DestinationReached>,
 }
-
+#[derive(Serialize, Deserialize, Clone)]
 pub struct FloodfillOutputOriginDestinationPair {
     pub start_node_id: NodeID,
     pub seconds_walk_to_start_node: Cost,
     pub purpose_scores: [Score; 5],
-    pub destinations_reached: Vec<OriginDestinationPair>,
+    pub od_pairs_found: Vec<OriginDestinationPair>,
 }
-
+#[derive(Serialize, Deserialize, Clone)]
 pub struct FloodfillWalkCyclingCarOutput {
     pub start_node_id: NodeID,
     pub seconds_walk_to_start_node: Cost,

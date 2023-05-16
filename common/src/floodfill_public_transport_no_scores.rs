@@ -1,3 +1,6 @@
+
+// Stores 5 bits of info for each destination reached as per DestinationReached
+
 use crate::structs::{
     Cost, DestinationReached, FloodfillOutput, Multiplier, NodeID, NodeRoute,
     NodeWalk, Score, SecondsPastMidnight, SubpurposeScore,
