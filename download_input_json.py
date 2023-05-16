@@ -45,7 +45,7 @@ for mode in ['cycling', 'walk']:
     for file in [
         f'p1_main_nodes_list_{mode}.json',
         f'sparse_node_values_{mode}.json',
-        f'{mode}_subpurpose_purpose_lookup.json',
+        f'{mode}_travel_time_relationships_7.json',
     ]:
         blob = bucket.blob(file)
         blob.download_to_filename(f"data/{file}")

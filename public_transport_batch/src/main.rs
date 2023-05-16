@@ -8,7 +8,7 @@ use common::read_file_funcs::{
     read_small_files_serial,
     read_sparse_node_values_2d_serial,
 };
-use common::structs::{Cost, NodeID, Multiplier, NodeWalk, NodeRoute, SubpurposeScore, FloodfillOutputOriginDestinationPair, PublicTransportIncDestinationsUserInputJSON};
+use common::structs::{Cost, NodeID, Multiplier, NodeWalk, NodeRoute, SubpurposeScore, FloodfillOutputOriginDestinationPair, OriginDestinationUserInputJSON};
 use common::floodfill_public_transport_purpose_scores::floodfill_public_transport_purpose_scores;
 use common::floodfill_funcs::get_time_of_day_index;
 
@@ -25,7 +25,7 @@ async fn index() -> String {
 }
 
 #[post("/floodfill_pt/")]
-async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<PublicTransportIncDestinationsUserInputJSON>) -> String {
+async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<OriginDestinationUserInputJSON>) -> String {
     
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 

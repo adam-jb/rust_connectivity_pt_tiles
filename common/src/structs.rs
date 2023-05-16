@@ -264,9 +264,18 @@ pub struct UserInputJSON {
 }
 
 #[derive(Deserialize)]
-pub struct PublicTransportIncDestinationsUserInputJSON {
+pub struct OriginDestinationUserInputJSON {
     pub start_nodes_user_input: Vec<NodeID>,
     pub destination_nodes: Vec<NodeID>,
     pub init_travel_times_user_input: Vec<Cost>,
     pub trip_start_seconds: SecondsPastMidnight,
+}
+
+#[derive(Deserialize)]
+pub struct WalkCyclingCarUserInputJSON {
+    pub start_nodes_user_input: Vec<NodeID>,
+    pub destination_nodes: Vec<NodeID>,
+    pub init_travel_times_user_input: Vec<Cost>,
+    pub trip_start_seconds: SecondsPastMidnight,
+    pub mode: str,
 }

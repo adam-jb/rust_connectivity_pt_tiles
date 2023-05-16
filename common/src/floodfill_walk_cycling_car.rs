@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use std::cmp::Ordering;
 use typed_index_collections::TiVec;
 
-
 use crate::structs::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCyclingCar, OriginDestinationPair, FloodfillWalkCyclingCarOutput, SubpurposeScore};
 use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, add_to_subpurpose_scores_for_node_reached, get_cost_of_turn};
 
@@ -35,7 +34,7 @@ impl<K: Ord, V: Ord, A: Ord, L: Ord> Ord for PriorityQueueItem<K, V, A, L> {
     }
 }
 
-pub fn get_scores_and_od_pairs(
+pub fn floodfill_walk_cycling_car(
                 travel_time_relationships: &[Multiplier],  // travel_time_relationships: &[i32],
                 node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,    // sparse_node_values: &Vec<Vec<[i32;2]>>,
                 graph_walk: &TiVec<NodeID, NodeWalkCyclingCar>,  // graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
