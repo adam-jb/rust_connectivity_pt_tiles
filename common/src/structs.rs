@@ -185,7 +185,7 @@ pub struct NodeWalk {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct NodeWalkCyclingCar {
-    pub connections: SmallVec<[EdgeWalkCyclingCar; 4]>,
+    pub edges: SmallVec<[EdgeWalkCyclingCar; 4]>,
 }
 
 
@@ -277,5 +277,5 @@ pub struct WalkCyclingCarUserInputJSON {
     pub destination_nodes: Vec<NodeID>,
     pub init_travel_times_user_input: Vec<Cost>,
     pub trip_start_seconds: SecondsPastMidnight,
-    pub mode: str,
+    pub mode: String,
 }

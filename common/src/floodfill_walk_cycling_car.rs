@@ -96,7 +96,7 @@ pub fn floodfill_walk_cycling_car(
         links_visited.insert(current.link_arrived_from);
         
         // so long as this is the first time a link is taken, we add the link; a node can be reached multiple times: once for each link
-        for edge in graph_walk[current.node].connections.iter() {
+        for edge in graph_walk[current.node].edges.iter() {
             
             let time_turn_previous_node = get_cost_of_turn(
                 edge.angle_leaving_node_from,

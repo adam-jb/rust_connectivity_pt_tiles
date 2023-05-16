@@ -58,8 +58,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         *&input.init_travel_times_user_input[0],
         false,
         Cost(3600),
-        &data.node_values_2d,
-        &data.travel_time_relationships_all[time_of_day_ix],
     );
     println!("Floodfill in {:?}", now.elapsed());
     

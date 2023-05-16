@@ -3,7 +3,22 @@ use serde::de::DeserializeOwned;
 use std::io::BufReader;
 use std::time::Instant;
 
-use crate::structs::{Multiplier, NodeRoute, NodeWalk, SubpurposeScore};
+use crate::structs::{Multiplier, NodeRoute, NodeWalk, SubpurposeScore, NodeWalkCyclingCar};
+
+pub fn read_files_serial_walk_cycling_car(mode: &String) -> (Vec<Multiplier>, Vec<Vec<SubpurposeScore>>, Vec<NodeWalkCyclingCar>) {
+
+    let travel_time_relationships: Vec<Multiplier> =
+        deserialize_bincoded_file(&format!("{}_travel_time_relationships_7", mode));
+
+    let sparse_node_values: Vec<Vec<SubpurposeScore>> = deserialize_bincoded_file(&format!("sparse_node_values_{}", &mode));    
+    
+    let graph_walk: Vec<NodeWalkCyclingCar> = deserialize_bincoded_file(&format!("graph_{}", &mode));
+    (
+        travel_time_relationships,
+        sparse_node_values,
+        graph_walk,
+    )
+}
 
 pub fn read_sparse_node_values_2d_serial(year: i32) -> Vec<Vec<SubpurposeScore>> {
     let now = Instant::now();

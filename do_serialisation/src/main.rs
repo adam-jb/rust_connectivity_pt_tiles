@@ -6,14 +6,14 @@ use std::path::Path;
 use std::time::Instant;
 
 use common::structs::{
-    Cost, EdgeRoute, EdgeWalk, Multiplier, NodeID, NodeRoute, NodeWalk, Score, SecondsPastMidnight,
-    SubpurposeScore,
+    Cost, EdgeRoute, EdgeWalk, Multiplier, NodeID, LinkID, Angle, NodeRoute, NodeWalk,NodeWalkCyclingCar, Score, SecondsPastMidnight,
+    SubpurposeScore, EdgeWalkCyclingCar,
 };
 
 // All serialisation you want to do should go here
 fn main() {
-    serialise_graph_walk_vector("walk");
-    serialise_graph_walk_vector("cycling");
+    serialise_graph_walk_cycling_car_vector("walk");
+    serialise_graph_walk_cycling_car_vector("cycling");
     
     serialise_sparse_node_values_2d("sparse_node_values_walk");
     serialise_sparse_node_values_2d("sparse_node_values_cycling");
@@ -32,20 +32,22 @@ fn serialise_graph_walk_cycling_car_vector(mode: &str) -> usize {
 
     let mut graph_walk_vec = Vec::new();
     for input_edges in input.iter() {
-        let mut edges: SmallVec<[EdgeWalk; 4]> = SmallVec::new();
+        let mut edges: SmallVec<[EdgeWalkCyclingCar; 4]> = SmallVec::new();
         for array in input_edges {
-            edges.push(EdgeWalk {
-                cost: Cost(array[0] as u16),
-                to: NodeID(array[1] as u32),
+            edges.push(EdgeWalkCyclingCar {
+                cost: Cost(array[0] as usize),
+                to: NodeID(array[1] as usize),
                 angle_leaving_node_from: Angle(array[2] as u16),
                 angle_arrived_from: Angle(array[3] as u16),
                 link_arrived_from: LinkID(array[4] as u32),
             });
         }
-        graph_walk_vec.push(edges);
+        graph_walk_vec.push(NodeWalkCyclingCar {
+            edges
+        });
     }
 
-    let filename = format!("serialised_data/p1_main_nodes_vector_{}.bin", mode);
+    let filename = format!("serialised_data/graph_{}.bin", mode);
     let file = BufWriter::new(File::create(filename).unwrap());
     bincode::serialize_into(file, &graph_walk_vec).unwrap();
     return graph_walk_vec.len();
@@ -127,7 +129,7 @@ pub fn serialise_sparse_node_values_2d(input_str: &str) {
     }
     println!("Read and processed from from {}", inpath);
 
-    let outpath = format!("serialised_data/sparse_node_values_6am_{}_2d.bin", year);
+    let outpath = format!("serialised_data/{}.bin", input_str);
     let file = BufWriter::new(File::create(&outpath).unwrap());
     bincode::serialize_into(file, &output).unwrap();
     println!("Serialised sparse_node_values to {}", outpath);

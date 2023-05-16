@@ -3,8 +3,8 @@ use typed_index_collections::TiVec;
 
 
 use crate::structs::{
-    Cost, DestinationReached, FloodfillOutput, Multiplier, NodeID, NodeRoute,Angle,LinkID,EdgeWalk,OriginDestinationPair,
-    NodeWalk, Score, SecondsPastMidnight, SubpurposeScore,
+    Cost, DestinationReached, Multiplier, NodeID,Angle,
+    Score, SecondsPastMidnight, SubpurposeScore,
 };
 
 pub fn initialise_subpurpose_purpose_lookup() -> [usize; 32] {
