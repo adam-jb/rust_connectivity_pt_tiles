@@ -20,7 +20,7 @@ pub fn get_all_scores_links_and_key_destinations(
 ) -> PlanningToolOutput {
     
     let subpurpose_purpose_lookup = initialise_subpurpose_purpose_lookup();
-    let score_multipler = initialise_score_multiplers();
+    let score_multiplers = initialise_score_multiplers();
     
     let start = floodfill_output.start_node_id;
     let seconds_walk_to_start_node = floodfill_output.seconds_walk_to_start_node;
@@ -48,7 +48,12 @@ pub fn get_all_scores_links_and_key_destinations(
             let multiplier = travel_time_relationships[vec_start_pos_this_purpose + (cost.0)];
             let score_to_add = subpurpose_score.multiply(multiplier);
             let purpose_ix = subpurpose_purpose_lookup[*subpurpose_ix];
-            purpose_scores_this_node[purpose_ix] += score_to_add;
+            
+            // Factor in relative importance of each subpurpose
+            let purpose_multiplier = score_multiplers[*subpurpose_ix];
+            let purpose_score_to_add = score_to_add.multiply(purpose_multiplier);
+            
+            purpose_scores_this_node[purpose_ix] += purpose_score_to_add;
         }
 
         sparse_node_values_contributed[*node] = purpose_scores_this_node;
