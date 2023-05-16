@@ -12,10 +12,45 @@ use common::structs::{
 
 // All serialisation you want to do should go here
 fn main() {
-    let year: i32 = 2022;
-    serialise_graph_routes_vector(year);
+    serialise_graph_walk_vector("walk");
+    serialise_graph_walk_vector("cycling");
+    
+    serialise_sparse_node_values_2d("sparse_node_values_walk");
+    serialise_sparse_node_values_2d("sparse_node_values_cycling");
+    
+    serialise_list_multiplier("walk_travel_time_relationships_7");
+    serialise_list_multiplier("cycling_travel_time_relationships_7");
+    
     println!("File serialisation done");
 }
+
+fn serialise_graph_walk_cycling_car_vector(mode: &str) -> usize {
+    let contents_filename = format!("data/p1_main_nodes_list_{}.json", mode);
+    let contents = fs_err::read_to_string(contents_filename).unwrap();
+
+    let input: Vec<Vec<[usize; 5]>> = serde_json::from_str(&contents).unwrap();
+
+    let mut graph_walk_vec = Vec::new();
+    for input_edges in input.iter() {
+        let mut edges: SmallVec<[EdgeWalk; 4]> = SmallVec::new();
+        for array in input_edges {
+            edges.push(EdgeWalk {
+                cost: Cost(array[0] as u16),
+                to: NodeID(array[1] as u32),
+                angle_leaving_node_from: Angle(array[2] as u16),
+                angle_arrived_from: Angle(array[3] as u16),
+                link_arrived_from: LinkID(array[4] as u32),
+            });
+        }
+        graph_walk_vec.push(edges);
+    }
+
+    let filename = format!("serialised_data/p1_main_nodes_vector_{}.bin", mode);
+    let file = BufWriter::new(File::create(filename).unwrap());
+    bincode::serialize_into(file, &graph_walk_vec).unwrap();
+    return graph_walk_vec.len();
+}
+
 
 fn serialise_graph_routes_vector(year: i32) {
     let contents_filename = format!("data/p2_main_nodes_updated_6am_{}.json", year);
@@ -65,13 +100,13 @@ pub fn serialise_files(year: i32) {
     serialise_list_multiplier("travel_time_relationships_16");
     serialise_list_multiplier("travel_time_relationships_19");
 
-    serialise_sparse_node_values_2d(year);
+    serialise_sparse_node_values_2d("sparse_node_values_6am_{}_2d");
     serialise_rust_node_longlat_lookup(year);
     println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
 
-pub fn serialise_sparse_node_values_2d(year: i32) {
-    let inpath = format!("data/sparse_node_values_6am_{}_2d.json", year);
+pub fn serialise_sparse_node_values_2d(input_str: &str) {
+    let inpath = format!("data/{}.json", input_str);
     let file = File::open(Path::new(&inpath)).unwrap();
     let reader = BufReader::new(file);
     let input: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
