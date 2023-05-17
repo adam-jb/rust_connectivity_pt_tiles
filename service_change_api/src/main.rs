@@ -4,7 +4,7 @@ use smallvec::SmallVec;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-use common::structs::{Cost, EdgePT, EdgeWalk, LeavingTime, Multiplier, NodeID, UserInputJSON};
+use common::structs::{Cost, EdgePT, EdgeWalk, LeavingTime, Multiplier, NodeID, ServiceChangePayload, FloodfillOutputOriginDestinationPair};
 use common::floodfill_public_transport_purpose_scores::floodfill_public_transport_purpose_scores;
 use common::floodfill_funcs::::get_time_of_day_index;
 use common::read_file_funcs::{
@@ -30,17 +30,22 @@ async fn get_node_id_count() -> String {
 }
 
 #[post("/floodfill_pt/")]
-async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
+async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangePayload>) -> String {
 
-    let year = 2022;
-    println!("Floodfill request received");
+    println!(
+        "Floodfill request received with year {input.year}\ninput.new_build_additions.len(): {}",
+        input.new_build_additions.len()
+    );
 
-    // Read in files
-    // TODO convert to TiVec
     let (mut node_values_2d, mut graph_walk, mut graph_routes) =
         read_files_parallel_inc_node_values(input.year);
+    
+    let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
+    let graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);
+    let node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
 
     let len_graph_walk = graph_walk.len();
+    let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
     
     // TODO: check meaning of graph_walk_additions
     for input_edges in input.graph_walk_additions.iter() {
@@ -57,6 +62,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         });
     }
 
+    // TODO check this
     for input_edges in input.graph_routes_additions.iter() {
         let mut edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
         for array in input_edges {
@@ -68,9 +74,9 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         graph_routes.push(edges);
     }
     
-    // TODO: check updates to graph walk reflect the new routes
     assert!(graph_walk.len() == len_graph_walk + input.new_nodes_count);
 
+    // TODO: check updates to graph walk reflect the new routes
     for i in 0..input.graph_walk_updates_keys.len() {
         let node = input.graph_walk_updates_keys[i];
 
@@ -84,13 +90,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         }
         graph_walk[node] = edges;
     }
-
-    println!(
-        "input.new_build_additions.len(): {}",
-        input.new_build_additions.len()
-    );
-
-    let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 
     // Altering node_values to reflect changes in graph
     // TODO alter to include new walk links and routes
@@ -126,7 +125,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let now = Instant::now();
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
     
-    let results: Vec<(i32, u32, [i64; 32], Vec<u32>, Vec<u16>)> = indices
+    // TODO update inputs to this
+    let results: Vec<FloodfillOutputOriginDestinationPair> = indices
         .par_iter()
         .map(|i| {
             get_all_scores_and_time_to_target_destinations(
@@ -168,15 +168,13 @@ fn get_travel_times_multicore(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    
-    let year: i32 = 2022;
-    
+        
     let (
         travel_time_relationships_7,
         travel_time_relationships_10,
         travel_time_relationships_16,
         travel_time_relationships_19,
-        subpurpose_purpose_lookup,
+        _subpurpose_purpose_lookup,
     ) = read_small_files_serial();
 
     let travel_time_relationships_all = vec![
@@ -187,7 +185,6 @@ async fn main() -> std::io::Result<()> {
     ];
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
-        subpurpose_purpose_lookup,
     });
     HttpServer::new(move || {
         App::new()

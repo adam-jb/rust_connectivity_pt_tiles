@@ -281,7 +281,7 @@ pub struct WalkCyclingCarUserInputJSON {
 }
 
 #[derive(Deserialize)]
-pub struct UserInputJSON {
+pub struct ServiceChangePayload {
     pub start_nodes_user_input: Vec<NodeID>,
     pub init_travel_times_user_input: Vec<Cost>,
     pub trip_start_seconds: SecondsPastMidnight,
