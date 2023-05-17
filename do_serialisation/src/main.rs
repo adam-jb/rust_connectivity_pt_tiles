@@ -12,6 +12,26 @@ use common::structs::{
 
 // All serialisation you want to do should go here
 fn main() {
+    serialise_files(2022);
+}
+
+pub fn serialise_files(year: i32) {
+    let now = Instant::now();
+
+    serialise_graph_walk_and_len(year);
+    serialise_graph_routes(year);
+    serialise_node_values_padding_count(year);
+    serialise_route_info(year);
+
+    serialise_list_immutable_array_usize("subpurpose_purpose_lookup");
+    serialise_list_multiplier("travel_time_relationships_7");
+    serialise_list_multiplier("travel_time_relationships_10");
+    serialise_list_multiplier("travel_time_relationships_16");
+    serialise_list_multiplier("travel_time_relationships_19");
+
+    serialise_sparse_node_values_2d(&*format!("sparse_node_values_6am_{year}_2d")); // &* converts String to &str
+    serialise_rust_node_longlat_lookup(year);
+    
     serialise_graph_walk_cycling_car_vector("walk");
     serialise_graph_walk_cycling_car_vector("cycling");
     
@@ -21,7 +41,7 @@ fn main() {
     serialise_list_multiplier("walk_travel_time_relationships_7");
     serialise_list_multiplier("cycling_travel_time_relationships_7");
     
-    println!("File serialisation done");
+    println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
 
 fn serialise_graph_walk_cycling_car_vector(mode: &str) -> usize {
@@ -54,7 +74,7 @@ fn serialise_graph_walk_cycling_car_vector(mode: &str) -> usize {
 }
 
 
-fn serialise_graph_routes_vector(year: i32) {
+fn serialise_graph_routes(year: i32) {
     let contents_filename = format!("data/p2_main_nodes_updated_6am_{}.json", year);
     let file = File::open(Path::new(&contents_filename)).unwrap();
     let reader = BufReader::new(file);
@@ -85,26 +105,6 @@ fn serialise_graph_routes_vector(year: i32) {
     let filename = format!("serialised_data/p2_main_nodes_vector_6am_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());
     bincode::serialize_into(file, &graph_pt_vec).unwrap();
-}
-
-
-pub fn serialise_files(year: i32) {
-    let now = Instant::now();
-
-    let _len_graph_walk = serialise_graph_walk_vector(year);
-    serialise_graph_routes_vector(year);
-    serialise_node_values_padding_count(year);
-    serialise_route_info(year);
-
-    serialise_list_immutable_array_usize("subpurpose_purpose_lookup");
-    serialise_list_multiplier("travel_time_relationships_7");
-    serialise_list_multiplier("travel_time_relationships_10");
-    serialise_list_multiplier("travel_time_relationships_16");
-    serialise_list_multiplier("travel_time_relationships_19");
-
-    serialise_sparse_node_values_2d("sparse_node_values_6am_{}_2d");
-    serialise_rust_node_longlat_lookup(year);
-    println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
 
 pub fn serialise_sparse_node_values_2d(input_str: &str) {
@@ -161,7 +161,7 @@ fn serialise_node_values_padding_count(year: i32) {
     bincode::serialize_into(file, &input_value).unwrap();
 }
 
-fn serialise_graph_walk_vector(year: i32) -> usize {
+fn serialise_graph_walk_and_len(year: i32) {
     let contents_filename = format!("data/p1_main_nodes_updated_6am_{}.json", year);
     let file = File::open(Path::new(&contents_filename)).unwrap();
     let reader = BufReader::new(file);
@@ -193,7 +193,10 @@ fn serialise_graph_walk_vector(year: i32) -> usize {
     let filename = format!("serialised_data/p1_main_nodes_vector_6am_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());
     bincode::serialize_into(file, &graph_walk_vec).unwrap();
-    return graph_walk_vec.len();
+    
+    let filename = format!("serialised_data/graph_walk_len_{}.bin", year);
+    let file = BufWriter::new(File::create(filename).unwrap());
+    bincode::serialize_into(file, &graph_walk_vec.len()).unwrap();
 }
 
 pub fn serialise_route_info(year: i32) {

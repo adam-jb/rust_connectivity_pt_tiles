@@ -34,10 +34,34 @@ pub fn read_rust_node_longlat_lookup_serial() -> Vec<[f64; 2]> {
     rust_node_longlat_lookup
 }
 
+pub fn read_files_parallel_inc_node_values(year: i32) -> (Vec<Vec<SubpurposeScore>>, Vec<NodeWalk>, Vec<NodeRoute>) {
+    let now = Instant::now();
+    
+    let (node_values_2d, (graph_walk, graph_routes)) = rayon::join(
+        || deserialize_bincoded_file::<Vec<Vec<SubpurposeScore>>>(&format!("sparse_node_values_6am_{year}_2d")),
+        || {
+            rayon::join(
+                || {
+                    deserialize_bincoded_file::<Vec<NodeWalk>>(&format!("p1_main_nodes_vector_6am_{year}"))
+                },
+                || {
+                    deserialize_bincoded_file::<Vec<NodeRoute>>(&format!("p2_main_nodes_vector_6am_{year}"))
+                },
+            )
+        },
+    );
+    
+    println!(
+        "Parallel loading for files took {:?}",
+        now.elapsed()
+    );
+    (node_values_2d, graph_walk, graph_routes)
+}
+
 pub fn read_files_parallel_excluding_node_values(year: i32) -> (Vec<NodeWalk>, Vec<NodeRoute>) {
     let now = Instant::now();
 
-    let (graph_walk, graph_pt) = rayon::join(
+    let (graph_walk, graph_routes) = rayon::join(
         || deserialize_bincoded_file::<Vec<NodeWalk>>(&format!("p1_main_nodes_vector_6am_{year}")),
         || deserialize_bincoded_file::<Vec<NodeRoute>>(&format!("p2_main_nodes_vector_6am_{year}")),
     );
@@ -46,7 +70,7 @@ pub fn read_files_parallel_excluding_node_values(year: i32) -> (Vec<NodeWalk>, V
         "Parallel loading for files excluding travel time relationships took {:?}",
         now.elapsed()
     );
-    (graph_walk, graph_pt)
+    (graph_walk, graph_routes)
 }
 
 pub fn read_small_files_serial() -> (
