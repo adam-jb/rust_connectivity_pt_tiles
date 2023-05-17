@@ -4,9 +4,9 @@ use smallvec::SmallVec;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-use common::structs::{Cost, EdgeRoute, EdgeWalk, LeavingTime, Multiplier, NodeID, ServiceChangePayload, FloodfillOutputOriginDestinationPair};
+use common::structs::{Cost, EdgeRoute, EdgeWalk, Multiplier, NodeID, NodeWalk, NodeRoute, Score, SubpurposeScore, SecondsPastMidnight, ServiceChangePayload, FloodfillOutputOriginDestinationPair};
 use common::floodfill_public_transport_purpose_scores::floodfill_public_transport_purpose_scores;
-use common::floodfill_funcs::::get_time_of_day_index;
+use common::floodfill_funcs::get_time_of_day_index;
 use common::read_file_funcs::{
     read_files_parallel_inc_node_values,
     read_small_files_serial,
@@ -33,8 +33,8 @@ async fn get_node_id_count() -> String {
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangePayload>) -> String {
 
     println!(
-        "Floodfill request received with year {input.year}\ninput.new_build_additions.len(): {}",
-        input.new_build_additions.len()
+        "Floodfill request received with year {}\ninput.new_build_additions.len(): {}",
+        input.year, input.new_build_additions.len()
     );
 
     let (mut node_values_2d, mut graph_walk, mut graph_routes) =
@@ -52,13 +52,13 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         let mut edges: SmallVec<[EdgeWalk; 4]> = SmallVec::new();
         for array in input_edges {
             edges.push(EdgeWalk {
-                to: NodeID(array[1] as u32),
-                cost: Cost(array[0] as u16),
+                to: NodeID(array[1]),
+                cost: Cost(array[0]),
             });
         }
         graph_walk.push(NodeWalk{
             edges: edges,
-            has_pt: 1
+            has_pt: true,
         });
     }
 
@@ -67,11 +67,16 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         let mut edges: SmallVec<[EdgeRoute; 4]> = SmallVec::new();
         for array in input_edges {
             edges.push(EdgeRoute {
-                leavetime: LeavingTime(array[0] as u32),
-                cost: Cost(array[1] as u16),
+                leavetime: SecondsPastMidnight(array[0]),
+                cost: Cost(array[1]),
             });
         }
-        graph_routes.push(edges);
+        
+        // TODO: add next_stop_node as payload from python code
+        graph_routes.push(NodeRoute{
+            next_stop_node: next_stop_node,
+            timetable: edges,
+        });
     }
     
     // Adding walking connections from existing nodes to new route nodes
@@ -82,8 +87,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         let mut edges: SmallVec<[EdgeWalk; 4]> = graph_walk[node].edges.clone();
         for array in &input.graph_walk_updates_additions[i] {
             edges.push(EdgeWalk {
-                to: NodeID(array[1] as u32),
-                cost: Cost(array[0] as u16),
+                to: NodeID(array[1]),
+                cost: Cost(array[0]),
             });
         }
         graph_walk[node].edges = edges;
@@ -97,7 +102,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
 
     // Add subpurpose values for new builds
     for new_build in &input.new_build_additions {
-        let value_to_add = new_build[0];
+        let value_to_add = new_build[0] as f64;
         let index_of_nearest_node = new_build[1];
         let subpurpose_ix = new_build[2];
         
@@ -107,7 +112,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         let values_vec_this_node = node_values_2d[NodeID(index_of_nearest_node)].to_vec();
         for subpurpose_score_pair in values_vec_this_node.iter() {
    
-            let subpurpose_ix_existing = subpurpose_score_pair[0];
             if subpurpose_ix == subpurpose_score_pair.subpurpose_ix {
                 node_values_2d[NodeID(index_of_nearest_node)][loop_ix].subpurpose_score += Score(value_to_add);
                 found_existing_subpurpose = true;
@@ -117,32 +121,32 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         
         // append to node_values_2d if no current value for that node's subpurpose
         if !found_existing_subpurpose {
-            let subpurpose_value_to_add = SubpurposeScore{
+            let subpurpose_value_to_add = SubpurposeScore {
                 subpurpose_ix: subpurpose_ix,
-                subpurpose_score: value_to_add,
-            }
+                subpurpose_score: Score(value_to_add),
+            };
             node_values_2d[NodeID(index_of_nearest_node)].push(subpurpose_value_to_add);
         }
     }
     
     let now = Instant::now();
-    let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
+    let indices = (0..input.start_nodes.len()).collect::<Vec<_>>();
     
     // Make empty destination nodes as no OD pairs are being saught
-    empty_destination_nodes: Vec<NodeID> = Vec::new();
+    let empty_destination_nodes: Vec<NodeID> = Vec::new();
     let results: Vec<FloodfillOutputOriginDestinationPair> = indices
         .par_iter()
         .map(|i| {
             floodfill_public_transport_purpose_scores(
                 &graph_walk,
                 &graph_routes,
-                &input.start_nodes[*i],
-                trip_start_seconds,
-                &input.init_travel_times[*i],
+                input.start_nodes[*i],
+                input.trip_start_seconds,
+                input.init_travel_times[*i],
                 false,
                 Cost(3600),
                 &node_values_2d,
-                travel_time_relationships_all[time_of_day_ix],
+                &data.travel_time_relationships_all[time_of_day_ix],
                 &empty_destination_nodes,
             )
         })

@@ -204,7 +204,7 @@ pub struct NodeRoute {
 impl NodeRoute {
     pub fn make_empty_instance() -> Self {
         NodeRoute {
-            next_stop_node: Default::default(),
+            next_stop_node: NodeID(0),
             timetable: SmallVec::new(),
         }
     }
@@ -230,6 +230,7 @@ pub struct OriginDestinationPair {
     pub node: NodeID,
     pub cost: Cost,
 }
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct FloodfillOutput {
     pub start_node_id: NodeID,
@@ -237,6 +238,7 @@ pub struct FloodfillOutput {
     pub purpose_scores: [Score; 5],
     pub destinations_reached: Vec<DestinationReached>,
 }
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct FloodfillOutputOriginDestinationPair {
     pub start_node_id: NodeID,
@@ -295,11 +297,11 @@ pub struct ServiceChangePayload {
     pub init_travel_times: Vec<Cost>,
     pub trip_start_seconds: SecondsPastMidnight,
     pub graph_walk_additions: Vec<Vec<[usize; 2]>>,  // 0 is Cost, 1 is NodeID. These are new additions for new nodes: so paths from new nodes
-    pub graph_routes_additions: Vec<Vec<[usize; 2]>>,  // previously graph_pt_additions
+    pub graph_routes_additions: Vec<Vec<[usize; 2]>>,  // previously graph_pt_additions; new routes for us; as of 17th May first pair in inner vec will show next node: need to change this
     pub new_nodes_count: usize,
     pub graph_walk_updates_keys: Vec<NodeID>,                // NodeIDs to be changed by graph_walk_updates_additions
     pub graph_walk_updates_additions: Vec<Vec<[usize; 2]>>,  // walking connnections to connect new route nodes to main network
     pub year: i32,
     pub new_build_additions: Vec<Vec<usize>>,    // 0 is value_to_add, 1 is index_of_nearest_node, 2 is subpurpose_ix
-    pub target_destinations: Vec<NodeID>,
+    pub target_destinations: Vec<NodeID>,        // Not used; leaving for now as the py api is set up for this
 }

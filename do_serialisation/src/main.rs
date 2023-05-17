@@ -46,7 +46,7 @@ pub fn serialise_files(year: i32) {
     println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
 
-fn serialise_graph_walk_cycling_car_vector(mode: &str) -> usize {
+fn serialise_graph_walk_cycling_car_vector(mode: &str) {
     let contents_filename = format!("data/p1_main_nodes_list_{}.json", mode);
     let contents = fs_err::read_to_string(contents_filename).unwrap();
 
@@ -196,7 +196,7 @@ fn serialise_graph_walk_and_len(year: i32) {
         }
         graph_walk_vec.push(NodeWalk {
             has_pt: pt_status_boolean,
-            node_connections: edges,
+            edges: edges,
         });
     }
 

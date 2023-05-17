@@ -70,7 +70,7 @@ pub fn floodfill_public_transport_no_scores(
     let mut destinations_reached: Vec<DestinationReached> = vec![];
 
     // catch where start node is over an hour from centroid
-    if seconds_walk_to_start_node >= Cost(3600) {
+    if seconds_walk_to_start_node >= time_limit {
         let purpose_scores = [Score(0.0); 5];
         return FloodfillOutput {
             start_node_id,
@@ -97,7 +97,7 @@ pub fn floodfill_public_transport_no_scores(
         });
 
         // Finding adjacent walk nodes
-        for edge in &graph_walk[current.node].node_connections {
+        for edge in &graph_walk[current.node].edges {
             let new_cost = current.cost + edge.cost;
             if new_cost < time_limit {
                 
