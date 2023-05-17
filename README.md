@@ -206,8 +206,24 @@ wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_t
   'http://0.0.0.0:7328/floodfill_endpoint/'
 ```
 
+### Docker and Cloud Run
 
+To build the docker image and push to container registry
 
+```
+docker build --file Dockerfile_walk_cycling_car_batch --progress=plain -t walk_cycling_car_batch:latest . && \
+docker tag walk_cycling_car_batch:latest gcr.io/dft-dst-prt-connectivitymetric/connectivity/walk_cycling_car_batch:latest && \
+docker push gcr.io/dft-dst-prt-connectivitymetric/connectivity/walk_cycling_car_batch:latest
+```
+
+Cloud Run settings are the same as Public Transport batch
+
+Example query to Cloud Run:
+```
+wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_times_user_input": [16, 10, 10, 23, 99], "mode": "walk", "destination_nodes": [1,2,3,4,55,6,7,8,9,10], "trip_start_seconds": 28800}' \
+  --header='Content-Type:application/json' \
+  'https://walk-cycling-car-batch-y3gbqriuaq-nw.a.run.app/floodfill_endpoint/'
+```
 
 
 
