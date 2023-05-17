@@ -47,7 +47,7 @@ pub fn serialise_files(year: i32) {
 }
 
 fn serialise_graph_walk_cycling_car_vector(mode: &str) {
-    let contents_filename = format!("data/p1_main_nodes_list_{}.json", mode);
+    let contents_filename = format!("data/graph_{}.json", mode);
     let contents = fs_err::read_to_string(contents_filename).unwrap();
 
     let input: Vec<Vec<[usize; 5]>> = serde_json::from_str(&contents).unwrap();
@@ -76,13 +76,13 @@ fn serialise_graph_walk_cycling_car_vector(mode: &str) {
 
 
 fn serialise_graph_routes(year: i32) {
-    let contents_filename = format!("data/p2_main_nodes_updated_6am_{}.json", year);
+    let contents_filename = format!("data/graph_pt_routes_6am_{}.json", year);
     let file = File::open(Path::new(&contents_filename)).unwrap();
     let reader = BufReader::new(file);
 
     let routes: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
     
-    let mut graph_pt: Vec<NodeRoute> = Vec::new();
+    let mut graph_routes: Vec<NodeRoute> = Vec::new();
 
     for item in routes.iter() {
         let next_stop_node: NodeID =
@@ -98,23 +98,23 @@ fn serialise_graph_routes(year: i32) {
             });
         }
         
-        graph_pt.push(NodeRoute {
+        graph_routes.push(NodeRoute {
             next_stop_node: next_stop_node,
             timetable: edges,
         });
     }
     
     // Pad with empty values so length matches that of graph_walk
-    let graph_walk: Vec<NodeWalk> = deserialize_bincoded_file(&format!("p1_main_nodes_vector_6am_{year}"));
+    let graph_walk: Vec<NodeWalk> = deserialize_bincoded_file(&format!("graph_pt_walk_6am_{year}"));
     for _i in routes.len()..graph_walk.len() {
-        graph_pt.push(NodeRoute::make_empty_instance());
+        graph_routes.push(NodeRoute::make_empty_instance());
     }
-    assert!(graph_walk.len() == graph_pt.len());
+    assert!(graph_walk.len() == graph_routes.len());
 
     // Serialize the graph data into a binary file
-    let filename = format!("serialised_data/p2_main_nodes_vector_6am_{}.bin", year);
+    let filename = format!("serialised_data/graph_pt_routes_6am_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());
-    bincode::serialize_into(file, &graph_pt).unwrap();
+    bincode::serialize_into(file, &graph_routes).unwrap();
 }
 
 pub fn serialise_sparse_node_values_2d(input_str: &str) {
@@ -172,7 +172,7 @@ fn serialise_node_values_padding_count(year: i32) {
 }
 
 fn serialise_graph_walk_and_len(year: i32) {
-    let contents_filename = format!("data/p1_main_nodes_updated_6am_{}.json", year);
+    let contents_filename = format!("data/graph_pt_walk_6am_{}.json", year);
     let file = File::open(Path::new(&contents_filename)).unwrap();
     let reader = BufReader::new(file);
 
@@ -200,11 +200,11 @@ fn serialise_graph_walk_and_len(year: i32) {
         });
     }
 
-    let filename = format!("serialised_data/p1_main_nodes_vector_6am_{}.bin", year);
+    let filename = format!("serialised_data/graph_pt_walk_6am_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());
     bincode::serialize_into(file, &graph_walk_vec).unwrap();
     
-    let filename = format!("serialised_data/graph_walk_len_{}.bin", year);
+    let filename = format!("serialised_data/graph_pt_walk_len_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());
     bincode::serialize_into(file, &graph_walk_vec.len()).unwrap();
 }

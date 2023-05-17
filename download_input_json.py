@@ -31,8 +31,8 @@ for file in data_files:
     blob.download_to_filename(f"data/{file}")
 
 for file in [
-    f"p1_main_nodes_updated_6am_{YEAR}.json",
-    f"p2_main_nodes_updated_6am_{YEAR}.json",
+    f"graph_pt_walk_{YEAR}.json",
+    f"graph_pt_routes_6am_{YEAR}.json",
     f"sparse_node_values_6am_{YEAR}_2d.json",
     f"node_values_padding_row_count_6am_{YEAR}.json",
     f"routes_info_{YEAR}.json",
@@ -43,7 +43,7 @@ for file in [
 
 for mode in ['cycling', 'walk']:
     for file in [
-        f'p1_main_nodes_list_{mode}.json',
+        f'graph_{mode}.json',
         f'sparse_node_values_{mode}.json',
         f'{mode}_travel_time_relationships_7.json',
     ]:
