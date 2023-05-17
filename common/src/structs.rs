@@ -5,6 +5,7 @@ use std::cmp::{Ord, PartialEq, PartialOrd};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::ops::{Add, AddAssign, Sub};
+use std::fmt::Debug;
 
 pub const TOP_CLUSTERS_COUNT: usize = 10;
 
@@ -293,14 +294,13 @@ pub struct WalkCyclingCarUserInputJSON {
     pub mode: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ServiceChangePayload {
     pub start_nodes: Vec<NodeID>,
     pub init_travel_times: Vec<Cost>,
     pub trip_start_seconds: SecondsPastMidnight,
     pub graph_walk_additions: Vec<Vec<[usize; 2]>>,  // 0 is Cost, 1 is NodeID. These are new additions for new nodes: so paths from new nodes
     pub graph_routes_additions: Vec<Vec<[usize; 2]>>,  // previously graph_pt_additions; new routes for us; as of 17th May first pair in inner vec will show next node: need to change this
-    pub new_nodes_count: usize,
     pub graph_walk_updates_keys: Vec<NodeID>,                // NodeIDs to be changed by graph_walk_updates_additions
     pub graph_walk_updates_additions: Vec<Vec<[usize; 2]>>,  // walking connnections to connect new route nodes to main network
     pub year: i32,

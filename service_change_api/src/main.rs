@@ -3,6 +3,7 @@ use rayon::prelude::*;
 use smallvec::SmallVec;
 use std::time::Instant;
 use typed_index_collections::TiVec;
+use log::{info, LevelFilter};
 
 use common::structs::{Cost, EdgeRoute, EdgeWalk, Multiplier, NodeID, NodeWalk, NodeRoute, Score, SubpurposeScore, SecondsPastMidnight, ServiceChangePayload, FloodfillOutputOriginDestinationPair};
 use common::floodfill_public_transport_purpose_scores::floodfill_public_transport_purpose_scores;
@@ -12,6 +13,7 @@ use common::read_file_funcs::{
     read_small_files_serial,
     deserialize_bincoded_file,
 };
+
 
 struct AppState {
     travel_time_relationships_all: Vec<Vec<Multiplier>>,
@@ -25,13 +27,15 @@ async fn index() -> String {
 #[get("/get_node_id_count/")]
 async fn get_node_id_count() -> String {
     let year: i32 = 2022;   //// TODO change this dynamically depending on when user hits this api... OR drop this from Rust api and store in py
-    let graph_walk_len: i32 = deserialize_bincoded_file(&format!("graph_walk_len_{year}"));
+    let graph_walk_len: i32 = deserialize_bincoded_file(&format!("graph_pt_walk_len_{year}"));
     return serde_json::to_string(&graph_walk_len).unwrap();
 }
 
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangePayload>) -> String {
 
+    info!("Received payload:\n{:?}", input);
+    
     println!(
         "Floodfill request received with year {}\ninput.new_build_additions.len(): {}",
         input.year, input.new_build_additions.len()
@@ -74,7 +78,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
             });
         }
         
-        // TODO: change next_stop_node as separate payload from python code
+        // TODO: change next_stop_node as separate payload from python code 
         graph_routes.push(NodeRoute{
             next_stop_node: NodeID(timetable[0][0]),
             timetable: edges,
@@ -137,8 +141,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
     let now = Instant::now();
     let indices = (0..input.start_nodes.len()).collect::<Vec<_>>();
     
-    // Make empty destination nodes as no OD pairs are being saught
-    let empty_destination_nodes: Vec<NodeID> = Vec::new();
     let results: Vec<FloodfillOutputOriginDestinationPair> = indices
         .par_iter()
         .map(|i| {
@@ -152,7 +154,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
                 Cost(3600),
                 &node_values_2d,
                 &data.travel_time_relationships_all[time_of_day_ix],
-                &empty_destination_nodes,
+                &input.target_destinations,
             )
         })
         .collect();
@@ -163,6 +165,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    
+    env_logger::builder().filter_level(LevelFilter::Debug).init();
         
     let (
         travel_time_relationships_7,

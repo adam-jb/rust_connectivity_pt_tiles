@@ -6,14 +6,15 @@ FROM rust:1.67 as build
 # Set the working directory to /app
 WORKDIR /app
 
-# Copy the Rust project files to the container
+# Copy the Rust project files to the container. This copies lots of files which aren't used:
+# Docker image could be much smaller by improving on this
 COPY . .
 
 # Build the project with Cargo
 RUN cargo build --release
 
-RUN ls -la /app/target/release/
-
+# RUN ls -la /app/target/release/
+# RUN ls -la /app/target/release/service_change_api
 
 # Create a new image with only the built executable
 FROM ubuntu:20.04
@@ -25,18 +26,19 @@ RUN apt-get update && apt-get install -y libssl-dev && rm -rf /var/lib/apt/lists
 WORKDIR /app
 
 # Copy the built executable from the previous image
-COPY --from=build /app/target/release/rust_connectivity .
+COPY --from=build /app/target/release/service_change_api .
 
 # Copy src files from previous image
-COPY --from=build /app/src/* src/
+COPY --from=build /app/service_change_api/src/* src/
 
 # Copy serialised data to be used by app
 COPY --from=build /app/serialised_data/* serialised_data/
 
 # Set calls to API running in background: an attempt to force caching of loaded files
-COPY --from=build /app/call_api_each_year.sh call_api_each_year.sh
-RUN chmod +x call_api_each_year.sh
-RUN ./call_api_each_year.sh &
+# Excluding as doesnt impact file load speed
+# COPY --from=build /app/call_api_each_year.sh call_api_each_year.sh
+# RUN chmod +x call_api_each_year.sh
+# RUN ./call_api_each_year.sh &
 
 # Set the command to run the Actix Web server
-CMD ["./rust_connectivity"]
+CMD ["./service_change_api"]

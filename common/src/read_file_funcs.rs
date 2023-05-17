@@ -42,10 +42,10 @@ pub fn read_files_parallel_inc_node_values(year: i32) -> (Vec<Vec<SubpurposeScor
         || {
             rayon::join(
                 || {
-                    deserialize_bincoded_file::<Vec<NodeWalk>>(&format!("graph_walk_6am_{year}"))
+                    deserialize_bincoded_file::<Vec<NodeWalk>>(&format!("graph_pt_walk_6am_{year}"))
                 },
                 || {
-                    deserialize_bincoded_file::<Vec<NodeRoute>>(&format!("graph_routes_6am_{year}"))
+                    deserialize_bincoded_file::<Vec<NodeRoute>>(&format!("graph_pt_routes_6am_{year}"))
                 },
             )
         },
@@ -62,8 +62,8 @@ pub fn read_files_parallel_excluding_node_values(year: i32) -> (Vec<NodeWalk>, V
     let now = Instant::now();
 
     let (graph_walk, graph_routes) = rayon::join(
-        || deserialize_bincoded_file::<Vec<NodeWalk>>(&format!("graph_walk_6am_{year}")),
-        || deserialize_bincoded_file::<Vec<NodeRoute>>(&format!("graph_routes_6am_{year}")),
+        || deserialize_bincoded_file::<Vec<NodeWalk>>(&format!("graph_pt_walk_6am_{year}")),
+        || deserialize_bincoded_file::<Vec<NodeRoute>>(&format!("graph_pt_routes_6am_{year}")),
     );
 
     println!(

@@ -991,6 +991,7 @@ dependencies = [
  "derive_more",
  "env_logger",
  "fs-err",
+ "log",
  "rayon",
  "serde",
  "serde_json",
