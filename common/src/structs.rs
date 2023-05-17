@@ -180,7 +180,7 @@ pub struct SubpurposeScore {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct NodeWalk {
     pub has_pt: bool,
-    pub node_connections: SmallVec<[EdgeWalk; 4]>,
+    pub edges: SmallVec<[EdgeWalk; 4]>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -278,4 +278,19 @@ pub struct WalkCyclingCarUserInputJSON {
     pub init_travel_times_user_input: Vec<Cost>,
     pub trip_start_seconds: SecondsPastMidnight,
     pub mode: String,
+}
+
+#[derive(Deserialize)]
+pub struct UserInputJSON {
+    pub start_nodes_user_input: Vec<NodeID>,
+    pub init_travel_times_user_input: Vec<Cost>,
+    pub trip_start_seconds: SecondsPastMidnight,
+    pub graph_walk_additions: Vec<Vec<[usize; 2]>>,  // 0 is Cost, 1 is NodeID
+    pub graph_pt_additions: Vec<Vec<[usize; 2]>>,
+    pub new_nodes_count: usize,
+    pub graph_walk_updates_keys: Vec<NodeID>,
+    pub graph_walk_updates_additions: Vec<Vec<[usize; 2]>>,
+    pub year: i32,
+    pub new_build_additions: Vec<Vec<i32>>,
+    pub target_destinations: Vec<NodeID>,
 }

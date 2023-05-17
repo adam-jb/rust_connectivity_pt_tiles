@@ -2,11 +2,12 @@ use actix_web::{get, post, web, App, HttpServer};
 use rayon::prelude::*;
 use smallvec::SmallVec;
 use std::time::Instant;
+use typed_index_collections::TiVec;
 
 use common::structs::{Cost, EdgePT, EdgeWalk, LeavingTime, Multiplier, NodeID, UserInputJSON};
 use common::floodfill_public_transport_purpose_scores::floodfill_public_transport_purpose_scores;
-use get_time_of_day_index::get_time_of_day_index;
-use read_files::{
+use common::floodfill_funcs::::get_time_of_day_index;
+use common::read_file_funcs::{
     read_files_parallel_inc_node_values,
     read_small_files_serial,
     deserialize_bincoded_file,
@@ -23,7 +24,6 @@ async fn index() -> String {
 
 #[get("/get_node_id_count/")]
 async fn get_node_id_count() -> String {
-    //let count_original_nodes = data.graph_walk_len;
     let year: i32 = 2022;   //// TODO change this dynamically depending on when user hits this api... OR drop this from Rust api and store in py
     let graph_walk_len: i32 = deserialize_bincoded_file(&format!("graph_walk_len_{year}"));
     return serde_json::to_string(&graph_walk_len).unwrap();
@@ -32,16 +32,17 @@ async fn get_node_id_count() -> String {
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
 
+    let year = 2022;
     println!("Floodfill request received");
 
     // Read in files
-    let (mut graph_walk, mut graph_pt, node_values_padding_row_count) =
-        read_files_parallel_excluding_node_values(input.year);
+    // TODO convert to TiVec
+    let (mut node_values_2d, mut graph_walk, mut graph_routes) =
+        read_files_parallel_inc_node_values(input.year);
 
     let len_graph_walk = graph_walk.len();
-    let len_graph_pt = graph_pt.len();
-    assert!(len_graph_pt == len_graph_walk);
-
+    
+    // TODO: check meaning of graph_walk_additions
     for input_edges in input.graph_walk_additions.iter() {
         let mut edges: SmallVec<[EdgeWalk; 4]> = SmallVec::new();
         for array in input_edges {
@@ -50,10 +51,13 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
                 cost: Cost(array[0] as u16),
             });
         }
-        graph_walk.push(edges);
+        graph_walk.push(NodeWalk{
+            edges: edges,
+            has_pt: 0
+        });
     }
 
-    for input_edges in input.graph_pt_additions.iter() {
+    for input_edges in input.graph_routes_additions.iter() {
         let mut edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
         for array in input_edges {
             edges.push(EdgePT {
@@ -61,10 +65,11 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
                 cost: Cost(array[1] as u16),
             });
         }
-        graph_pt.push(edges);
+        graph_routes.push(edges);
     }
+    
+    // TODO: check updates to graph walk reflect the new routes
     assert!(graph_walk.len() == len_graph_walk + input.new_nodes_count);
-    assert!(graph_pt.len() == len_graph_pt + input.new_nodes_count);
 
     for i in 0..input.graph_walk_updates_keys.len() {
         let node = input.graph_walk_updates_keys[i];
@@ -87,34 +92,13 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
 
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 
-    let count_original_nodes = graph_walk.len() as u32;
-
-    println!(
-        "Started running floodfill\ttime_of_day_ix: {}\tNodes count: {}",
-        time_of_day_ix,
-        input.start_nodes_user_input.len()
-    );
-    
-    let now = Instant::now();
-    
-    let (mut node_values_2d, travel_times) = parallel_node_values_read_and_floodfill(
-        &graph_walk,
-        &graph_pt,
-        &input,
-    );
-        
-    println!("Node values read in and floodfill in parallel {:?}", now.elapsed());
-    
     // Altering node_values to reflect changes in graph
+    // TODO alter to include new walk links and routes
     for _i in 0..input.graph_walk_additions.len() {
         let empty_vec: Vec<[i32; 2]> = Vec::new();
         node_values_2d.push(empty_vec);
     }
 
-    // TODO Redundant conditional? (Adam in response - the below is edited to fix this; keeping comment in case error shows)
-    //if input.new_build_additions.len() >= 1 {
-    
-    
     for new_build in &input.new_build_additions {
         let value_to_add = new_build[0];
         let index_of_nearest_node = new_build[1];
@@ -150,21 +134,19 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
                 &node_values_2d,
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &data.subpurpose_purpose_lookup,
-                count_original_nodes,
-                node_values_padding_row_count,
                 &input.target_destinations,
             )
         })
         .collect();
     println!("Getting destinations and scores took {:?}", now.elapsed());
-    
+        
     serde_json::to_string(&results).unwrap()
 }
 
 
 fn get_travel_times_multicore(
     graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
-    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
+    graph_routes: &Vec<SmallVec<[EdgePT; 4]>>,
     input: &web::Json<UserInputJSON>
 ) -> Vec<(u32, Vec<u32>, Vec<u16>)> {
         
@@ -175,7 +157,7 @@ fn get_travel_times_multicore(
         .map(|i| {
             get_travel_times(
                 &graph_walk,
-                &graph_pt,
+                &graph_routes,
                 NodeID(*&input.start_nodes_user_input[*i] as u32),
                 *&input.trip_start_seconds,
                 Cost(*&input.init_travel_times_user_input[*i] as u16),
