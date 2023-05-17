@@ -1,5 +1,5 @@
 use common::structs::{
-    Cost, DestinationReached, PlanningToolOutput, FloodfillOutput, Multiplier, NodeID, NodeScore,
+    DestinationReached, PlanningToolOutput, FloodfillOutput, Multiplier, NodeID, NodeScore,
     Score, SubpurposeScore, TOP_CLUSTERS_COUNT,
 };
 use std::collections::{HashMap, HashSet};

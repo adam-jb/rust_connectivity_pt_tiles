@@ -2,8 +2,8 @@
 // Stores 5 bits of info for each destination reached as per DestinationReached
 
 use crate::structs::{
-    Cost, DestinationReached, FloodfillOutput, Multiplier, NodeID, NodeRoute,
-    NodeWalk, Score, SecondsPastMidnight, SubpurposeScore,
+    Cost, DestinationReached, FloodfillOutput, NodeID, NodeRoute,
+    NodeWalk, Score, SecondsPastMidnight,
 };
 use std::collections::{BinaryHeap};
 use typed_index_collections::TiVec;
@@ -128,8 +128,7 @@ pub fn floodfill_public_transport_no_scores(
         iters_count += 1;
     }
     
-    let mut purpose_scores = [Score(0.0); 5];
-
+    let purpose_scores = [Score(0.0); 5];
     FloodfillOutput {
         start_node_id,
         seconds_walk_to_start_node,

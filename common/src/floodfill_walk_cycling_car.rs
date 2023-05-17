@@ -84,8 +84,8 @@ pub fn floodfill_walk_cycling_car(
         };
     }
                 
-    // declared here to widen scoep (ie, the availability)
-    let mut time_turn_previous_node: Cost;
+    // declared here to widen scoep (ie, the availability). May be able to delete this (Adam 17th May)
+    //let mut time_turn_previous_node: Cost;
                 
     while let Some(current) = queue.pop() {
         

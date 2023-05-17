@@ -245,7 +245,9 @@ pub struct FloodfillOutputOriginDestinationPair {
     pub seconds_walk_to_start_node: Cost,
     pub purpose_scores: [Score; 5],
     pub od_pairs_found: Vec<OriginDestinationPair>,
+    pub iters: usize,
 }
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct FloodfillWalkCyclingCarOutput {
     pub start_node_id: NodeID,

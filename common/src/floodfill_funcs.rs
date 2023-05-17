@@ -123,7 +123,7 @@ pub fn get_cost_of_turn(
     ) -> Cost {
 
     let time_turn_previous_node: Cost;
-    let mut angle_turn_previous_node: Angle;
+    let angle_turn_previous_node: Angle;
 
     if angle_leaving_node_from < angle_arrived_from {
         angle_turn_previous_node = angle_leaving_node_from + Angle(360) - angle_arrived_from;

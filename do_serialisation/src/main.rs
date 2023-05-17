@@ -106,7 +106,7 @@ fn serialise_graph_routes(year: i32) {
     
     // Pad with empty values so length matches that of graph_walk
     let graph_walk: Vec<NodeWalk> = deserialize_bincoded_file(&format!("p1_main_nodes_vector_6am_{year}"));
-    for i in routes.len()..graph_walk.len() {
+    for _i in routes.len()..graph_walk.len() {
         graph_pt.push(NodeRoute::make_empty_instance());
     }
     assert!(graph_walk.len() == graph_pt.len());

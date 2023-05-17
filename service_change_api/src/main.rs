@@ -37,14 +37,13 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         input.year, input.new_build_additions.len()
     );
 
-    let (mut node_values_2d, mut graph_walk, mut graph_routes) =
+    let (node_values_2d, graph_walk, graph_routes) =
         read_files_parallel_inc_node_values(input.year);
     
-    let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
-    let graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);
-    let node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
+    let mut graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
+    let mut graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);
+    let mut node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
 
-    let len_graph_walk = graph_walk.len();
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
     
     // Make new routes nodes, and walking links from those nodes to new nodes
@@ -63,18 +62,21 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
     }
 
     // add timetables for new route nodes
-    for input_edges in input.graph_routes_additions.iter() {
+    for timetable in input.graph_routes_additions.iter() {
+        
         let mut edges: SmallVec<[EdgeRoute; 4]> = SmallVec::new();
-        for array in input_edges {
+        
+        // TODO: change next_stop_node as separate payload from python code. When this is done won't want to skip first edge as we do here
+        for single_time in timetable.iter().skip(1) {
             edges.push(EdgeRoute {
-                leavetime: SecondsPastMidnight(array[0]),
-                cost: Cost(array[1]),
+                leavetime: SecondsPastMidnight(single_time[0]),
+                cost: Cost(single_time[1]),
             });
         }
         
-        // TODO: add next_stop_node as payload from python code
+        // TODO: change next_stop_node as separate payload from python code
         graph_routes.push(NodeRoute{
-            next_stop_node: next_stop_node,
+            next_stop_node: NodeID(timetable[0][0]),
             timetable: edges,
         });
     }
@@ -83,7 +85,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
     for i in 0..input.graph_walk_updates_keys.len() {
         let node = input.graph_walk_updates_keys[i];
 
-        // Optional improvement: Just modify in-place
+        // Optional improvement to make: Just modify in-place
         let mut edges: SmallVec<[EdgeWalk; 4]> = graph_walk[node].edges.clone();
         for array in &input.graph_walk_updates_additions[i] {
             edges.push(EdgeWalk {
@@ -99,6 +101,9 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         let empty_vec: Vec<SubpurposeScore> = Vec::new();
         node_values_2d.push(empty_vec);
     }
+    
+    assert!(graph_routes.len() == graph_walk.len());
+    assert!(node_values_2d.len() == graph_walk.len());
 
     // Add subpurpose values for new builds
     for new_build in &input.new_build_additions {
@@ -176,6 +181,9 @@ async fn main() -> std::io::Result<()> {
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
     });
+    
+    // The 500MB warning is wrong, the decorator on line below silences it
+    #[allow(deprecated)]
     HttpServer::new(move || {
         App::new()
             // This clone is of an Arc from actix. AppState is immutable, and only one copy exists

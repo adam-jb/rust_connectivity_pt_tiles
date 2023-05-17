@@ -6,7 +6,7 @@ use typed_index_collections::TiVec;
 use common::structs::{Cost, NodeID, SubpurposeScore, NodeWalkCyclingCar, WalkCyclingCarUserInputJSON, FloodfillWalkCyclingCarOutput};
 use common::floodfill_walk_cycling_car::{floodfill_walk_cycling_car};
 use common::read_file_funcs::read_files_serial_walk_cycling_car;
-use common::floodfill_funcs::get_time_of_day_index;
+//use common::floodfill_funcs::get_time_of_day_index;
 
 #[get("/")]
 async fn index() -> String {
@@ -60,6 +60,8 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     
+    // The 500MB warning is wrong, the decorator on line below silences it
+    #[allow(deprecated)]
     HttpServer::new(move || {
         App::new()
             .data(web::JsonConfig::default().limit(1024 * 1024 * 500)) // allow POST'd JSON payloads up to 500mb

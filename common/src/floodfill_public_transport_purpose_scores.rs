@@ -6,7 +6,6 @@ use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_
     add_to_subpurpose_scores_for_node_reached};
 
 use std::collections::{BinaryHeap};
-use std::time::Instant;
 use typed_index_collections::TiVec;
 use std::cmp::Ordering;
 
@@ -51,8 +50,7 @@ pub fn floodfill_public_transport_purpose_scores(
     destination_nodes: &Vec<NodeID>,
 ) -> FloodfillOutputOriginDestinationPair {
     
-    let previous_node = start_node_id;
-    let mut iters_count: usize = 0;
+    let mut iters: usize = 0;
     
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
     queue.push( PriorityQueueItem{
@@ -60,7 +58,7 @@ pub fn floodfill_public_transport_purpose_scores(
         node: start_node_id,
     });
     
-    let mut target_destinations = vec![false; graph_walk.len()];
+    let target_destinations = vec![false; graph_walk.len()];
     let mut target_destinations: TiVec<NodeID, bool> = TiVec::from(target_destinations);
     for node_id in destination_nodes.into_iter() {
         target_destinations[*node_id] = true;
@@ -80,6 +78,7 @@ pub fn floodfill_public_transport_purpose_scores(
             seconds_walk_to_start_node,
             purpose_scores,
             od_pairs_found,
+            iters,
         };
     }
 
@@ -128,11 +127,10 @@ pub fn floodfill_public_transport_purpose_scores(
                     time_limit,
                     trip_start_seconds,
                     current.node,
-                    iters_count,
                 );
             }
         }
-        iters_count += 1;
+        iters += 1;
     }
     
     // get purpose level scores
@@ -147,6 +145,7 @@ pub fn floodfill_public_transport_purpose_scores(
         seconds_walk_to_start_node,
         purpose_scores,
         od_pairs_found,
+        iters,
     }
 }
 
@@ -157,7 +156,6 @@ fn take_next_pt_route(
     time_limit: Cost,
     trip_start_seconds: SecondsPastMidnight,
     current_node: NodeID,
-    iters_count: usize,
 ) {
     let time_of_arrival_current_node = trip_start_seconds.add(&time_so_far);
 
