@@ -9,6 +9,8 @@ use common::structs::{
     Cost, EdgeRoute, EdgeWalk, Multiplier, NodeID, LinkID, Angle, NodeRoute, NodeWalk,NodeWalkCyclingCar, Score, SecondsPastMidnight,
     SubpurposeScore, EdgeWalkCyclingCar,
 };
+use common::read_file_funcs::deserialize_bincoded_file;
+
 
 // All serialisation you want to do should go here
 fn main() {
@@ -50,7 +52,7 @@ fn serialise_graph_walk_cycling_car_vector(mode: &str) -> usize {
 
     let input: Vec<Vec<[usize; 5]>> = serde_json::from_str(&contents).unwrap();
 
-    let mut graph_walk_vec = Vec::new();
+    let mut graph_walk = Vec::new();
     for input_edges in input.iter() {
         let mut edges: SmallVec<[EdgeWalkCyclingCar; 4]> = SmallVec::new();
         for array in input_edges {
@@ -62,15 +64,14 @@ fn serialise_graph_walk_cycling_car_vector(mode: &str) -> usize {
                 link_arrived_from: LinkID(array[4] as u32),
             });
         }
-        graph_walk_vec.push(NodeWalkCyclingCar {
+        graph_walk.push(NodeWalkCyclingCar {
             edges
         });
     }
 
     let filename = format!("serialised_data/graph_{}.bin", mode);
     let file = BufWriter::new(File::create(filename).unwrap());
-    bincode::serialize_into(file, &graph_walk_vec).unwrap();
-    return graph_walk_vec.len();
+    bincode::serialize_into(file, &graph_walk).unwrap();
 }
 
 
@@ -79,10 +80,11 @@ fn serialise_graph_routes(year: i32) {
     let file = File::open(Path::new(&contents_filename)).unwrap();
     let reader = BufReader::new(file);
 
-    let input: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
-    let mut graph_pt_vec: Vec<NodeRoute> = Vec::new();
+    let routes: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
+    
+    let mut graph_pt: Vec<NodeRoute> = Vec::new();
 
-    for item in input.iter() {
+    for item in routes.iter() {
         let next_stop_node: NodeID =
             serde_json::from_value(item["next_stop_node"].clone()).unwrap();
 
@@ -95,16 +97,24 @@ fn serialise_graph_routes(year: i32) {
                 cost: Cost(array[1]),
             });
         }
-        graph_pt_vec.push(NodeRoute {
+        
+        graph_pt.push(NodeRoute {
             next_stop_node: next_stop_node,
             timetable: edges,
         });
     }
+    
+    // Pad with empty values so length matches that of graph_walk
+    let graph_walk: Vec<NodeWalk> = deserialize_bincoded_file(&format!("p1_main_nodes_vector_6am_{year}"));
+    for i in routes.len()..graph_walk.len() {
+        graph_pt.push(NodeRoute::make_empty_instance());
+    }
+    assert!(graph_walk.len() == graph_pt.len());
 
     // Serialize the graph data into a binary file
     let filename = format!("serialised_data/p2_main_nodes_vector_6am_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());
-    bincode::serialize_into(file, &graph_pt_vec).unwrap();
+    bincode::serialize_into(file, &graph_pt).unwrap();
 }
 
 pub fn serialise_sparse_node_values_2d(input_str: &str) {

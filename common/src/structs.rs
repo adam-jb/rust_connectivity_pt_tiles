@@ -201,6 +201,15 @@ pub struct NodeRoute {
     pub timetable: SmallVec<[EdgeRoute; 4]>,
 }
 
+impl NodeRoute {
+    pub fn make_empty_instance() -> Self {
+        NodeRoute {
+            next_stop_node: Default::default(),
+            timetable: SmallVec::new(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct NodeScore {
     pub node: NodeID,
@@ -282,15 +291,15 @@ pub struct WalkCyclingCarUserInputJSON {
 
 #[derive(Deserialize)]
 pub struct ServiceChangePayload {
-    pub start_nodes_user_input: Vec<NodeID>,
-    pub init_travel_times_user_input: Vec<Cost>,
+    pub start_nodes: Vec<NodeID>,
+    pub init_travel_times: Vec<Cost>,
     pub trip_start_seconds: SecondsPastMidnight,
-    pub graph_walk_additions: Vec<Vec<[usize; 2]>>,  // 0 is Cost, 1 is NodeID
-    pub graph_pt_additions: Vec<Vec<[usize; 2]>>,
+    pub graph_walk_additions: Vec<Vec<[usize; 2]>>,  // 0 is Cost, 1 is NodeID. These are new additions for new nodes: so paths from new nodes
+    pub graph_routes_additions: Vec<Vec<[usize; 2]>>,  // previously graph_pt_additions
     pub new_nodes_count: usize,
-    pub graph_walk_updates_keys: Vec<NodeID>,
-    pub graph_walk_updates_additions: Vec<Vec<[usize; 2]>>,
+    pub graph_walk_updates_keys: Vec<NodeID>,                // NodeIDs to be changed by graph_walk_updates_additions
+    pub graph_walk_updates_additions: Vec<Vec<[usize; 2]>>,  // walking connnections to connect new route nodes to main network
     pub year: i32,
-    pub new_build_additions: Vec<Vec<i32>>,
+    pub new_build_additions: Vec<Vec<usize>>,    // 0 is value_to_add, 1 is index_of_nearest_node, 2 is subpurpose_ix
     pub target_destinations: Vec<NodeID>,
 }
