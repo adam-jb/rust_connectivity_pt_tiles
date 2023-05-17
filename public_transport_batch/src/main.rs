@@ -32,11 +32,11 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<OriginDestinat
     println!(
         "Started running floodfill and node values files read\ttime_of_day_ix: {}\tNodes count: {}",
         time_of_day_ix,
-        input.start_nodes_user_input.len()
+        input.start_nodes.len()
     );
 
     let now = Instant::now();
-    let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
+    let indices = (0..input.start_nodes.len()).collect::<Vec<_>>();
     
     let results: Vec<FloodfillOutputOriginDestinationPair> = indices
         .par_iter()
@@ -44,9 +44,9 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<OriginDestinat
             floodfill_public_transport_purpose_scores(
                 &data.graph_walk,
                 &data.graph_routes,
-                *&input.start_nodes_user_input[*i], //NodeID(*&input.start_nodes_user_input[*i] as u32),
+                *&input.start_nodes[*i],
                 *&input.trip_start_seconds,
-                *&input.init_travel_times_user_input[*i], // Cost(*&input.init_travel_times_user_input[*i] as u16),
+                *&input.init_travel_times[*i],
                 false,
                 Cost(3600),
                 &data.node_values_2d,
@@ -97,7 +97,7 @@ async fn main() -> std::io::Result<()> {
         node_values_2d,
     });
     println!("Starting server");
-    // The 500MB warning is wrong
+    // The 500MB warning is wrong, so we 'allow deprecated' to hide it
     #[allow(deprecated)]
     HttpServer::new(move || {
         App::new()
@@ -108,7 +108,7 @@ async fn main() -> std::io::Result<()> {
             .service(index)
             .service(floodfill_pt)
     })
-    .bind(("0.0.0.0", 6000))?
+    .bind(("0.0.0.0", 7328))?
     .run()
     .await
 }

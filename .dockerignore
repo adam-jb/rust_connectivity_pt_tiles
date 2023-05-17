@@ -3,3 +3,4 @@ target/*
 index.*
 serialised_data/.ipynb_checkpoints/*
 serialised_data/padded_node_values_*
+serialised_data/nodes_to_neighbouring_nodes*

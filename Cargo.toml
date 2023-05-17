@@ -29,6 +29,10 @@ name = "do_serialisation"
 path = "do_serialisation/src/main.rs"
 
 [[bin]]
+name = "find_nodes_near_each_other"
+path = "find_nodes_near_each_other/src/main.rs"
+
+[[bin]]
 name = "walk_cycling_car_batch"
 path = "walk_cycling_car_batch/src/main.rs"
 

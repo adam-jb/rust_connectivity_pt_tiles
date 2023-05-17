@@ -279,9 +279,9 @@ pub struct UserInputJSON {
 
 #[derive(Deserialize)]
 pub struct OriginDestinationUserInputJSON {
-    pub start_nodes_user_input: Vec<NodeID>,
+    pub start_nodes: Vec<NodeID>,
     pub destination_nodes: Vec<NodeID>,
-    pub init_travel_times_user_input: Vec<Cost>,
+    pub init_travel_times: Vec<Cost>,
     pub trip_start_seconds: SecondsPastMidnight,
 }
 

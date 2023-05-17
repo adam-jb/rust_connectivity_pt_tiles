@@ -28,6 +28,8 @@ source "$HOME/.cargo/env"
 
 3. Run `./target/release/do_serialisation`. Then all data will be ready for each service
 
+4. Run `./target/release/find_nodes_near_each_other`. To create dataset of which nodes are near each other. Used by planning_app_public_transport_api; can skip this if using other apps. Takes 128gb RAM and ~1 day with 16cores
+
 Then build the docker container, or run with `cargo run --release`
 
 
@@ -35,6 +37,59 @@ Then build the docker container, or run with `cargo run --release`
 # Service Change API
 
 ### On querying Service Change API
+
+Example payload
+```
+wget -O- --post-data='{"start_nodes": [4380647, 4183046, 5420336], "init_travel_times": [16, 10, 10], "trip_start_seconds": 28800, "graph_walk_additions": [], "graph_routes_additions": [], "graph_walk_updates_keys": [], "graph_walk_updates_additions": [], "year": 2022, "new_build_additions": [], "target_destinations": []}' \
+  --header='Content-Type:application/json' \
+  'https://service-change-api-y3gbqriuaq-nw.a.run.app/floodfill_pt/'
+```
+
+
+### Deploying Service Change API with Docker
+
+To make and run docker image.
+```
+docker build --file Dockerfile_service_change_api --progress=plain -t service_change_api:latest .
+docker run -p 0.0.0.0:7328:7328 service_change_api:latest
+```
+
+To deploy with Cloud Run do the below, then use Cloud Run UI in GCP to deploy
+
+```
+docker build --file Dockerfile_service_change_api --progress=plain -t service_change_api:latest .
+docker tag service_change_api:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/service_change_api:latest && \
+docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/service_change_api:latest
+```
+
+Cloud Run settings to choose:
+```
+europe-west-2
+CPU is only allocated during request processing
+Minimum number of instances = 0
+Maximum number of instances = 300
+Internal only
+Allow unauthenticated invocations
+
+# Container
+Container port: 7328
+Container command and arguments: leave blank
+Memory: 8GiB
+vCPUs: 8
+Request timeout: 600 seconds
+Maximum requests per instance: 1
+
+# Networking
+VPC: connectivity1
+Only route requests to private IPs through the VPC connector: tick this
+```
+
+
+
+
+# Planning app public transport
+
+### On querying API
 
 Check it's listening:
 ```
@@ -61,36 +116,6 @@ wget -O- --post-data='{"start_nodes_user_input": [5850631], "init_travel_times_u
   --header='Content-Type:application/json' \
   'http://0.0.0.0:7328/floodfill_pt/' > example_returned_payload_May1st_API.txt
 ```
-
-
-
-
-### Deploying Service Change API with Docker
-
-To make and run docker image.
-```
-docker build --file Dockerfile_service_change_api --progress=plain -t service_change_api:latest .
-docker run -p 0.0.0.0:7328:7328 service_change_api:latest
-```
-
-To deploy with Cloud Run do the below, then use Cloud Run UI in GCP to deploy
-
-```
-docker build --file Dockerfile_service_change_api --progress=plain -t service_change_api:latest .
-docker tag service_change_api:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/service_change_api:latest && \
-docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/service_change_api:latest
-```
-
-Cloud Run settings to choose:
-```
-
-
-```
-
-
-
-
-# Planning app public transport
 
 ### Querying api
 
@@ -119,6 +144,53 @@ wget -O- --post-data='{"start_nodes_user_input": [5850631], "init_travel_times_u
   --header='Content-Type:application/json' \
   'http://0.0.0.0:7328/floodfill_pt/' > example_returned_payload_May1st_API.txt
 ```
+
+
+
+
+
+# Public Transport batch
+
+### Docker and Cloud Run
+
+To deploy with Cloud Run do the below, then use Cloud Run UI in GCP to deploy
+
+```
+docker build --file Dockerfile_public_transport_batch --progress=plain -t public_transport_batch:latest . && \
+docker tag public_transport_batch:latest gcr.io/dft-dst-prt-connectivitymetric/connectivity/public_transport_batch:latest && \
+docker push gcr.io/dft-dst-prt-connectivitymetric/connectivity/public_transport_batch:latest
+```
+
+Cloud Run settings to choose are slightly different to Service Change API: more RAM as storing OD pairs, and fewer max instances as assume these will mostly run one at a time
+```
+europe-west-2
+CPU is only allocated during request processing
+Minimum number of instances = 0
+Maximum number of instances = 10
+Internal only
+Allow unauthenticated invocations
+
+# Container
+Container port: 7328
+Container command and arguments: leave blank
+Memory: 16GiB
+vCPUs: 8
+Request timeout: 600 seconds
+Maximum requests per instance: 1
+
+# Networking
+VPC: connectivity1
+Only route requests to private IPs through the VPC connector: tick this
+```
+
+Example request:
+```
+wget -O- --post-data='{"start_nodes": [9380647, 9183046, 2420336], "init_travel_times": [16, 10, 10], "trip_start_seconds": 28800, "destination_nodes": [1,2,3,4]}' \
+  --header='Content-Type:application/json' \
+  'https://public-transport-batch-y3gbqriuaq-nw.a.run.app/floodfill_pt/'
+```
+
+
 
 
 
