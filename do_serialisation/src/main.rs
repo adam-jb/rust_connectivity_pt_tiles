@@ -9,7 +9,7 @@ use common::structs::{
     Cost, EdgeRoute, EdgeWalk, Multiplier, NodeID, LinkID, Angle, NodeRoute, NodeWalk,NodeWalkCyclingCar, Score, SecondsPastMidnight,
     SubpurposeScore, EdgeWalkCyclingCar,
 };
-use common::read_file_funcs::deserialize_bincoded_file;
+use common::read_file_funcs::{deserialize_bincoded_file, read_files_parallel_inc_node_values};
 
 
 // All serialisation you want to do should go here
@@ -43,8 +43,43 @@ pub fn serialise_files(year: i32) {
     serialise_list_multiplier("walk_travel_time_relationships_7");
     serialise_list_multiplier("cycling_travel_time_relationships_7");
     
+    chunk_pt_graphs(year);
+    
     println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
+
+pub fn chunk_pt_graphs(year: i32) {
+
+    let (_node_values_2d, graph_walk, graph_routes) = read_files_parallel_inc_node_values(year);
+ 
+    let chunk_count = 3;
+    let graph_walk_chunk_size = 1 + graph_walk.len() / chunk_count; 
+    let graph_walk_in_chunks: Vec<_> = graph_walk.chunks(graph_walk_chunk_size)
+                                       .map(|chunk| chunk.to_vec())
+                                       .collect();
+
+    for (i, chunk) in graph_walk_in_chunks.iter().enumerate() {
+        println!("Chunk {} len: {}", i+1, chunk.len());
+        let filename = format!("serialised_data/graph_pt_walk_chunk_{}.bin", i+1);
+        let file = BufWriter::new(File::create(filename).unwrap());
+        bincode::serialize_into(file, &chunk).unwrap();
+        println!("Walk Chunk {} serialised", i + 1);
+    }
+    
+    let graph_route_chunk_size = 1 + graph_routes.len() / chunk_count;  // add 1 to ensure no rounding errors cause last node on graph to be cropped out
+    let graph_route_in_chunks: Vec<_> = graph_routes.chunks(graph_route_chunk_size)
+                                       .map(|chunk| chunk.to_vec())
+                                       .collect();
+
+    for (i, chunk) in graph_route_in_chunks.iter().enumerate() {
+        println!("Chunk {} len: {}", i+1, chunk.len());
+        let filename = format!("serialised_data/graph_pt_routes_chunk_{}.bin", i+1);
+        let file = BufWriter::new(File::create(filename).unwrap());
+        bincode::serialize_into(file, &chunk).unwrap();
+        println!("Routes Chunk {} serialised", i + 1);
+    }
+}
+
 
 fn serialise_graph_walk_cycling_car_vector(mode: &str) {
     let contents_filename = format!("data/graph_{}.json", mode);

@@ -9,7 +9,7 @@ use common::structs::{Cost, EdgeRoute, EdgeWalk, Multiplier, NodeID, NodeWalk, N
 use common::floodfill_public_transport_purpose_scores::floodfill_public_transport_purpose_scores;
 use common::floodfill_funcs::get_time_of_day_index;
 use common::read_file_funcs::{
-    read_files_parallel_inc_node_values,
+    read_files_extra_parallel_inc_node_values,
     read_small_files_serial,
     deserialize_bincoded_file,
 };
@@ -42,7 +42,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
     );
 
     let (node_values_2d, graph_walk, graph_routes) =
-        read_files_parallel_inc_node_values(input.year);
+        read_files_extra_parallel_inc_node_values(input.year); // previousl read_files_parallel_inc_node_values to do fewer parallel read gymnastics
     
     let mut graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
     let mut graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);

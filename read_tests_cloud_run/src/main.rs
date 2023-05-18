@@ -40,7 +40,6 @@ async fn run_tests() -> String {
         now.elapsed()
     );
     
-    
     // **** Creating for 3 chunks of each file
     let chunk_count = 3;
     let graph_walk_chunk_size = 1 + graph_walk.len() / chunk_count; 
@@ -49,11 +48,11 @@ async fn run_tests() -> String {
                                        .collect();
 
     for (i, chunk) in graph_walk_in_chunks.iter().enumerate() {
-        println!("Chunk {} len: {}", i, chunk.len());
+        println!("Chunk {} len: {}", i+1, chunk.len());
         let filename = format!("serialised_data/graph_pt_walk_chunk_{}.bin", i+1);
         let file = BufWriter::new(File::create(filename).unwrap());
         bincode::serialize_into(file, &chunk).unwrap();
-        println!("Chunk {} serialised", i + 1);
+        println!("Walk Chunk {} serialised", i + 1);
     }
     
     let graph_route_chunk_size = graph_routes.len() / chunk_count; 
@@ -62,13 +61,14 @@ async fn run_tests() -> String {
                                        .collect();
 
     for (i, chunk) in graph_route_in_chunks.iter().enumerate() {
-        println!("Chunk {} len: {}", i, chunk.len());
+        println!("Chunk {} len: {}", i+1, chunk.len());
         let filename = format!("serialised_data/graph_pt_routes_chunk_{}.bin", i+1);
         let file = BufWriter::new(File::create(filename).unwrap());
         bincode::serialize_into(file, &chunk).unwrap();
-        println!("Chunk {} serialised", i + 1);
+        println!("Routes Chunk {} serialised", i + 1);
     }
     
+    // Func to read starts here
     let now = Instant::now();
     
     // if editing: make sure you get the types being deserialised into right: the compiler may panic without telling you why if you do
@@ -121,6 +121,8 @@ async fn run_tests() -> String {
         3, 
         now.elapsed()
     );
+    
+    // return (graph_walk1, graph_routes1, _node_values_2d)
     
     
     

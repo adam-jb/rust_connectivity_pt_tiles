@@ -229,18 +229,18 @@ wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_t
 
 # Read tests cloud run
 
-Makes script which runs on Cloud Run. Trigger the endpoint to test file read speeds in Cloud Run
-
-
+To test different file reading strategies in Cloud Run. Inc splitting vectors into smaller files and (1) reading them in parallel, (2) appending them. Sees if this is faster than 'normal' parallel reading of files. 
 ```
 docker build --file Dockerfile_read_tests_cloud_run --progress=plain -t read_tests_cloud_run:latest . && \
 docker tag read_tests_cloud_run:latest gcr.io/dft-dst-prt-connectivitymetric/connectivity/read_tests_cloud_run:latest && \
 docker push gcr.io/dft-dst-prt-connectivitymetric/connectivity/read_tests_cloud_run:latest
 ```
 
-Then hit the below with a GET request to run tests. View the results in the Cloud Run logs
+Your Cloud Run instance will need 16GiB of RAM to run: the parallel method of reading files uses more than the 'usual' amount of RAM
+
+Then hit the below with a GET request to run tests. View the results in the Cloud Run logs. Make sure you wait a few minutes between tests: you want to compare the load speeds of cold boots.
 ```
-{cloud run url}/run_tests/
+curl https://read-tests-cloud-run-y3gbqriuaq-nw.a.run.app/run_tests/
 ```
 
 

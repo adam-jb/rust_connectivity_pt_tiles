@@ -60,6 +60,63 @@ pub fn read_files_parallel_inc_node_values(year: i32) -> (Vec<Vec<SubpurposeScor
     (node_values_2d, graph_walk, graph_routes)
 }
 
+pub fn read_files_extra_parallel_inc_node_values(year: i32) -> (Vec<Vec<SubpurposeScore>>, Vec<NodeWalk>, Vec<NodeRoute>) {
+    let now = Instant::now();
+    
+    // if editing: make sure you get the types being deserialised into right: the compiler may panic without telling you why if you do
+    let (((mut graph_walk1, mut graph_walk2), mut graph_walk3), ((mut graph_routes1, mut graph_routes2), (mut graph_routes3, node_values_2d))) =
+    rayon::join(
+        || {
+            rayon::join(
+                || {
+                    rayon::join(
+                        || deserialize_bincoded_file::<Vec<NodeWalk>>(&format!("graph_pt_walk_chunk_1")),
+                        || deserialize_bincoded_file::<Vec<NodeWalk>>(&format!("graph_pt_walk_chunk_2")),
+                    )
+                },
+                || deserialize_bincoded_file::<Vec<NodeWalk>>(&format!("graph_pt_walk_chunk_3")),
+            )
+        },
+        || {
+            rayon::join(
+                || {
+                    rayon::join(
+                        || deserialize_bincoded_file::<Vec<NodeRoute>>(&format!("graph_pt_routes_chunk_1")),
+                        || deserialize_bincoded_file::<Vec<NodeRoute>>(&format!("graph_pt_routes_chunk_2")),
+                    )
+                },
+                || {
+                    rayon::join(
+                        || deserialize_bincoded_file::<Vec<NodeRoute>>(&format!("graph_pt_routes_chunk_3")),
+                        || deserialize_bincoded_file::<Vec<Vec<SubpurposeScore>>>(&format!("sparse_node_values_6am_{year}_2d")),
+                    )
+                },
+            )
+        }
+    );
+    
+    println!(
+        "Parallel loading for files without extend took {:?}",
+        now.elapsed()
+    );
+    
+    graph_walk1.reserve(graph_walk1.len() * 3 + 10);  // add 10 to reserve to ensure definitely space
+    graph_walk1.append(&mut graph_walk2);
+    graph_walk1.append(&mut graph_walk3);
+    
+    graph_routes1.reserve(graph_routes1.len() * 3 + 10);
+    graph_routes1.append(&mut graph_routes2);
+    graph_routes1.append(&mut graph_routes3);
+    
+    println!(
+        "Parallel loading for files with {} chunks and extend took {:?}",
+        3, 
+        now.elapsed()
+    );
+
+    (node_values_2d, graph_walk1, graph_routes1)
+}
+
 pub fn read_files_parallel_excluding_node_values(year: i32) -> (Vec<NodeWalk>, Vec<NodeRoute>) {
     let now = Instant::now();
 
