@@ -60,6 +60,7 @@ pub fn read_files_parallel_inc_node_values(year: i32) -> (Vec<Vec<SubpurposeScor
     (node_values_2d, graph_walk, graph_routes)
 }
 
+// TODO: do appending with rayon too, so both graphs are appended to in parallel
 pub fn read_files_extra_parallel_inc_node_values(year: i32) -> (Vec<Vec<SubpurposeScore>>, Vec<NodeWalk>, Vec<NodeRoute>) {
     let now = Instant::now();
     
