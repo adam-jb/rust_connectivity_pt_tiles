@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::cmp::Ordering;
 use typed_index_collections::TiVec;
 
-use crate::structs::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCyclingCar, OriginDestinationPair, FloodfillWalkCyclingCarOutput, SubpurposeScore};
+use crate::structs::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCyclingCar, OriginDestinationPair, FloodfillOutputOriginDestinationPair, SubpurposeScore};
 use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, add_to_subpurpose_scores_for_node_reached, get_cost_of_turn};
 
 
@@ -43,7 +43,7 @@ pub fn floodfill_walk_cycling_car(
                 seconds_walk_to_start_node: Cost,
                 target_destinations_vector: &[NodeID], //&[u32],
                 time_limit_seconds: Cost,    
-            ) -> FloodfillWalkCyclingCarOutput {
+            ) -> FloodfillOutputOriginDestinationPair {
 
     // initialise values
     let mut subpurpose_scores = [Score(0.0); 32];
@@ -59,9 +59,9 @@ pub fn floodfill_walk_cycling_car(
     });
          
     // storing for outputs
-    let mut od_pairs: Vec<OriginDestinationPair> = Vec::new();
+    let mut od_pairs_found: Vec<OriginDestinationPair> = Vec::new();
 
-    let mut iters: u32 = 0;
+    let mut iters: usize = 0;
     let mut links_visited = HashSet::new();
     let mut nodes_visited: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();
 
@@ -75,12 +75,12 @@ pub fn floodfill_walk_cycling_car(
     if seconds_walk_to_start_node >= Cost(3600) {
         let purpose_scores = [Score(0.0); 5];
         return
-            FloodfillWalkCyclingCarOutput{
+            FloodfillOutputOriginDestinationPair{
                 start_node_id,
                 seconds_walk_to_start_node,
-                iters,
                 purpose_scores,
-                od_pairs,
+                od_pairs_found,
+                iters,
         };
     }
                 
@@ -125,7 +125,7 @@ pub fn floodfill_walk_cycling_car(
         nodes_visited[current.node] = true;
         
         if target_destinations_binary_vec[current.node] {
-            od_pairs.push(OriginDestinationPair{
+            od_pairs_found.push(OriginDestinationPair{
                 node: current.node,
                 cost: current.cost,
             })
@@ -148,12 +148,12 @@ pub fn floodfill_walk_cycling_car(
         &score_multipliers,
     );
     
-    FloodfillWalkCyclingCarOutput{
+    FloodfillOutputOriginDestinationPair{
         start_node_id,
         seconds_walk_to_start_node,
-        iters,
         purpose_scores,
-        od_pairs,
+        od_pairs_found,
+        iters,
     }
 
 }

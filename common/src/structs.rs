@@ -249,15 +249,6 @@ pub struct FloodfillOutputOriginDestinationPair {
     pub iters: usize,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct FloodfillWalkCyclingCarOutput {
-    pub start_node_id: NodeID,
-    pub seconds_walk_to_start_node: Cost,
-    pub iters: u32,
-    pub purpose_scores: [Score; 5],
-    pub od_pairs: Vec<OriginDestinationPair>,
-}
-
 #[derive(Serialize)]
 pub struct PlanningToolOutput {
     pub start_node: NodeID,

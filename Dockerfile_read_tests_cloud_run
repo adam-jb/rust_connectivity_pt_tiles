@@ -1,0 +1,34 @@
+
+# Use Rust official image as the base image
+FROM rust:1.67 as build
+
+# Set the working directory to /app
+WORKDIR /app
+
+# Copy the Rust project files to the container. This copies lots of files which aren't used:
+# Docker image could be much smaller by improving on this
+COPY . .
+
+# Build the project with Cargo
+RUN cargo build --release
+
+# Create a new image with only the built executable
+FROM ubuntu:20.04
+
+# Install OpenSSL libraries
+RUN apt-get update && apt-get install -y libssl-dev && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory to /app
+WORKDIR /app
+
+# Copy the built executable from the previous image
+COPY --from=build /app/target/release/read_tests_cloud_run .
+
+# Copy src files from previous image
+COPY --from=build /app/read_tests_cloud_run/src/* src/
+
+# Copy serialised data to be used by app
+COPY --from=build /app/serialised_data/* serialised_data/
+
+# Set the command to run the Actix Web server
+CMD ["./read_tests_cloud_run"]

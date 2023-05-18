@@ -1,9 +1,11 @@
 use fs_err::File;
 use serde::de::DeserializeOwned;
-use std::io::BufReader;
+//use std::io::BufReader;
 use std::time::Instant;
+use std::io::BufReader;
 
 use crate::structs::{Multiplier, NodeRoute, NodeWalk, SubpurposeScore, NodeWalkCyclingCar};
+
 
 pub fn read_files_serial_walk_cycling_car(mode: &String) -> (Vec<Multiplier>, Vec<Vec<SubpurposeScore>>, Vec<NodeWalkCyclingCar>) {
 

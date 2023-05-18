@@ -227,6 +227,24 @@ wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_t
 
 
 
+# Read tests cloud run
+
+Makes script which runs on Cloud Run. Trigger the endpoint to test file read speeds in Cloud Run
+
+
+```
+docker build --file Dockerfile_read_tests_cloud_run --progress=plain -t read_tests_cloud_run:latest . && \
+docker tag read_tests_cloud_run:latest gcr.io/dft-dst-prt-connectivitymetric/connectivity/read_tests_cloud_run:latest && \
+docker push gcr.io/dft-dst-prt-connectivitymetric/connectivity/read_tests_cloud_run:latest
+```
+
+Then hit the below with a GET request to run tests. View the results in the Cloud Run logs
+```
+{cloud run url}/run_tests/
+```
+
+
+
 # Significant points in history
 
 Latest commit before trying to amalgamate the APIs: 26262b764a9b06025c411cf41c8050d3f91fa1a2

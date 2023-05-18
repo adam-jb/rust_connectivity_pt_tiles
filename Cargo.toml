@@ -48,3 +48,6 @@ path = "public_transport_batch/src/main.rs"
 name = "service_change_api"
 path = "service_change_api/src/main.rs"
 
+[[bin]]
+name = 'read_tests_cloud_run'
+path = "read_tests_cloud_run/src/main.rs"
