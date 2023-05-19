@@ -43,6 +43,9 @@ pub fn serialise_files(year: i32) {
     serialise_list_multiplier("walk_travel_time_relationships_7");
     serialise_list_multiplier("cycling_travel_time_relationships_7");
     
+    // Add funcs for graphs, node values and multipliers
+    
+    
     chunk_pt_graphs(year);
     
     println!("File serialisation year {}/tTook {:?}", year, now.elapsed());

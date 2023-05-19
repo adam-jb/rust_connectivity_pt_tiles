@@ -49,5 +49,15 @@ for mode in ['cycling', 'walk']:
     ]:
         blob = bucket.blob(file)
         blob.download_to_filename(f"data/{file}")
-    
-    
+
+for trip_start_hour in [7, 10, 16, 19]:
+    for file in [
+        f'graph_car_{trip_start_hour}.json',
+        f'sparse_node_values_car_{trip_start_hour}.json',
+        f'car_travel_time_relationships_{trip_start_hour}.json',
+    ]:
+        blob = bucket.blob(file)
+        blob.download_to_filename(f"data/{file}")
+        
+
+        
