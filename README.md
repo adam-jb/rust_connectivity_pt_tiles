@@ -38,11 +38,15 @@ Then build the docker container, or run with `cargo run --release`
 
 ### On querying Service Change API
 
-Example payload
+Example payloads to cloud run and local host
 ```
 wget -O- --post-data='{"start_nodes": [4380647, 4183046, 5420336], "init_travel_times": [16, 10, 10], "trip_start_seconds": 28800, "graph_walk_additions": [], "graph_routes_additions": [], "graph_walk_updates_keys": [], "graph_walk_updates_additions": [], "year": 2022, "new_build_additions": [], "target_destinations": []}' \
   --header='Content-Type:application/json' \
   'https://service-change-api-y3gbqriuaq-nw.a.run.app/floodfill_pt/'
+  
+wget -O- --post-data='{"start_nodes": [4380647, 4183046, 5420336], "init_travel_times": [16, 10, 10], "trip_start_seconds": 28800, "graph_walk_additions": [], "graph_routes_additions": [], "graph_walk_updates_keys": [], "graph_walk_updates_additions": [], "year": 2022, "new_build_additions": [], "target_destinations": []}' \
+  --header='Content-Type:application/json' \
+  'http://0.0.0.0:7328/floodfill_pt/'
 ```
 
 
@@ -57,7 +61,7 @@ docker run -p 0.0.0.0:7328:7328 service_change_api:latest
 To deploy with Cloud Run do the below, then use Cloud Run UI in GCP to deploy
 
 ```
-docker build --file Dockerfile_service_change_api --progress=plain -t service_change_api:latest .
+docker build --file Dockerfile_service_change_api --progress=plain -t service_change_api:latest . && \
 docker tag service_change_api:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/service_change_api:latest && \
 docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/service_change_api:latest
 ```
