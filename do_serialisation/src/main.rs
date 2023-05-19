@@ -43,7 +43,20 @@ pub fn serialise_files(year: i32) {
     serialise_list_multiplier("walk_travel_time_relationships_7");
     serialise_list_multiplier("cycling_travel_time_relationships_7");
     
-    // Add funcs for graphs, node values and multipliers
+    serialise_graph_walk_cycling_car_vector("car_7");
+    serialise_graph_walk_cycling_car_vector("car_10");
+    serialise_graph_walk_cycling_car_vector("car_16");
+    serialise_graph_walk_cycling_car_vector("car_19");
+    
+    serialise_sparse_node_values_2d("sparse_node_values_car_7");
+    serialise_sparse_node_values_2d("sparse_node_values_car_10");
+    serialise_sparse_node_values_2d("sparse_node_values_car_16");
+    serialise_sparse_node_values_2d("sparse_node_values_car_19");
+    
+    serialise_list_multiplier("car_travel_time_relationships_7");
+    serialise_list_multiplier("car_travel_time_relationships_10");
+    serialise_list_multiplier("car_travel_time_relationships_16");
+    serialise_list_multiplier("car_travel_time_relationships_19");
     
     
     chunk_pt_graphs(year);
