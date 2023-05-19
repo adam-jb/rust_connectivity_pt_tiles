@@ -41,8 +41,11 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         input.year, input.new_build_additions.len()
     );
 
+    // could use read_files_parallel_inc_node_values to do fewer parallel read gymnastics
+    // Tests originally showed read_files_extra_parallel_inc_node_values as faster in cloud run but slower on server; (adam 18th may)
+    // Further tests show read_files_parallel_inc_node_values may be marginally faster in all cases (adam 19th May)
     let (node_values_2d, graph_walk, graph_routes) =
-        read_files_extra_parallel_inc_node_values(input.year); // previousl read_files_parallel_inc_node_values to do fewer parallel read gymnastics
+        read_files_extra_parallel_inc_node_values(input.year); 
     
     let mut graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
     let mut graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);
