@@ -1,21 +1,28 @@
 use fs_err::File;
 use serde::de::DeserializeOwned;
-//use std::io::BufReader;
 use std::time::Instant;
 use std::io::BufReader;
 
 use crate::structs::{Multiplier, NodeRoute, NodeWalk, SubpurposeScore, NodeWalkCyclingCar};
 
+pub fn read_files_serial_walk_cycling_car(mode: &String, time_of_day: usize) -> (Vec<Multiplier>, Vec<Vec<SubpurposeScore>>, Vec<NodeWalkCyclingCar>) {
 
-// TODO: add time_of_day as param
-pub fn read_files_serial_walk_cycling_car(mode: &String) -> (Vec<Multiplier>, Vec<Vec<SubpurposeScore>>, Vec<NodeWalkCyclingCar>) {
-
-    let travel_time_relationships: Vec<Multiplier> =
-        deserialize_bincoded_file(&format!("{}_travel_time_relationships_7", mode));
-
-    let sparse_node_values: Vec<Vec<SubpurposeScore>> = deserialize_bincoded_file(&format!("sparse_node_values_{}", &mode));    
+    let mut travel_time_relationships: Vec<Multiplier> = Vec::new();
+    let mut graph: Vec<NodeWalkCyclingCar> = Vec::new();
+    let mut sparse_node_values: Vec<Vec<SubpurposeScore>> = Vec::new();
     
-    let graph: Vec<NodeWalkCyclingCar> = deserialize_bincoded_file(&format!("graph_{}", &mode));
+    if mode == "car" {
+        graph = deserialize_bincoded_file(&format!("graph_{}_{}", &mode, time_of_day));
+        sparse_node_values = deserialize_bincoded_file(&format!("sparse_node_values_{}_{}", &mode, time_of_day));    
+    }
+    
+    else {
+        graph = deserialize_bincoded_file(&format!("graph_{}", &mode));
+        sparse_node_values = deserialize_bincoded_file(&format!("sparse_node_values_{}", &mode));    
+    }
+    
+    travel_time_relationships = deserialize_bincoded_file(&format!("{}_travel_time_relationships_{}", mode, time_of_day));
+    
     (
         travel_time_relationships,
         sparse_node_values,
@@ -61,7 +68,7 @@ pub fn read_files_parallel_inc_node_values(year: i32) -> (Vec<Vec<SubpurposeScor
     (node_values_2d, graph_walk, graph_routes)
 }
 
-// TODO: do appending with rayon too, so both graphs are appended to in parallel
+// TO TRY: possible speed improvement: do appending with rayon too, so both graphs are appended to in parallel
 pub fn read_files_extra_parallel_inc_node_values(year: i32) -> (Vec<Vec<SubpurposeScore>>, Vec<NodeWalk>, Vec<NodeRoute>) {
     let now = Instant::now();
     

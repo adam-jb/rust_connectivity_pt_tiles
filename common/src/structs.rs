@@ -5,7 +5,7 @@ use std::cmp::{Ord, PartialEq, PartialOrd};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::ops::{Add, AddAssign, Sub};
-use std::fmt::Debug;
+use std::fmt::{Debug};
 
 pub const TOP_CLUSTERS_COUNT: usize = 10;
 
