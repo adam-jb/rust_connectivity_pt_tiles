@@ -31,7 +31,7 @@ for file in data_files:
     blob.download_to_filename(f"data/{file}")
 
 for file in [
-    f"graph_pt_walk_{YEAR}.json",
+    f"graph_pt_walk_6am_{YEAR}.json",
     f"graph_pt_routes_6am_{YEAR}.json",
     f"sparse_node_values_6am_{YEAR}_2d.json",
     f"node_values_padding_row_count_6am_{YEAR}.json",
@@ -54,7 +54,7 @@ for trip_start_hour in [7, 10, 16, 19]:
     for file in [
         f'graph_car_{trip_start_hour}.json',
         f'sparse_node_values_car_{trip_start_hour}.json',
-        f'car_travel_time_relationships_{trip_start_hour}.json',
+        f'car_travel_time_relationships_{trip_start_hour}_2d.json',
     ]:
         blob = bucket.blob(file)
         blob.download_to_filename(f"data/{file}")
