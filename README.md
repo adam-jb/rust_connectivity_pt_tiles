@@ -159,6 +159,9 @@ To deploy with Cloud Run do the below, then use Cloud Run UI in GCP to deploy
 docker build --file Dockerfile_public_transport_batch --progress=plain -t public_transport_batch:latest . && \
 docker tag public_transport_batch:latest gcr.io/dft-dst-prt-connectivitymetric/connectivity/public_transport_batch:latest && \
 docker push gcr.io/dft-dst-prt-connectivitymetric/connectivity/public_transport_batch:latest
+
+docker run -p 0.0.0.0:7328:7328 public_transport_batch:latest
+
 ```
 
 Cloud Run settings to choose are slightly different to Service Change API: more RAM as storing OD pairs, and fewer max instances as assume these will mostly run one at a time

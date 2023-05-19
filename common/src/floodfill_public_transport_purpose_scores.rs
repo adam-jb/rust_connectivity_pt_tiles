@@ -1,5 +1,5 @@
 use crate::structs::{
-    Cost, OriginDestinationPair, FloodfillOutputOriginDestinationPair, Multiplier, NodeID, NodeRoute,
+    Cost, FloodfillOutputOriginDestinationPair, Multiplier, NodeID, NodeRoute,
     NodeWalk, Score, SecondsPastMidnight, SubpurposeScore,
 };
 use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, 
@@ -68,7 +68,7 @@ pub fn floodfill_public_transport_purpose_scores(
     let subpurpose_purpose_lookup = initialise_subpurpose_purpose_lookup();
     let score_multipliers = initialise_score_multiplers();
     let mut nodes_visited: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();
-    let mut od_pairs_found: Vec<OriginDestinationPair> = vec![];
+    let mut od_pairs_found: Vec<[usize;2]> = vec![];
 
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= time_limit {
@@ -90,10 +90,7 @@ pub fn floodfill_public_transport_purpose_scores(
         nodes_visited[current.node] = true;
 
         if target_destinations[current.node] {
-            od_pairs_found.push(OriginDestinationPair {
-                cost: current.cost,
-                node: current.node,
-            });
+            od_pairs_found.push([current.cost.0,current.node.0]);
         }
         
         // get scores

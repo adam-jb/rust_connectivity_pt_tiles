@@ -226,11 +226,13 @@ pub struct DestinationReached {
     pub arrived_at_node_by_pt: u8, // 0 for walk; 1 for PT
 }
 
+/*
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct OriginDestinationPair {
     pub node: NodeID,
     pub cost: Cost,
 }
+*/
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct FloodfillOutput {
@@ -245,7 +247,7 @@ pub struct FloodfillOutputOriginDestinationPair {
     pub start_node_id: NodeID,
     pub seconds_walk_to_start_node: Cost,
     pub purpose_scores: [Score; 5],
-    pub od_pairs_found: Vec<OriginDestinationPair>,
+    pub od_pairs_found: Vec<[usize; 2]>, // pub od_pairs_found: Vec<OriginDestinationPair>,
     pub iters: usize,
 }
 

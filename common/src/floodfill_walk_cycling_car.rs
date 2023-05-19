@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::cmp::Ordering;
 use typed_index_collections::TiVec;
 
-use crate::structs::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCyclingCar, OriginDestinationPair, FloodfillOutputOriginDestinationPair, SubpurposeScore};
+use crate::structs::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCyclingCar, FloodfillOutputOriginDestinationPair, SubpurposeScore};
 use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, add_to_subpurpose_scores_for_node_reached, get_cost_of_turn};
 
 
@@ -59,7 +59,7 @@ pub fn floodfill_walk_cycling_car(
     });
          
     // storing for outputs
-    let mut od_pairs_found: Vec<OriginDestinationPair> = Vec::new();
+    let mut od_pairs_found: Vec<[usize;2]> = Vec::new();
 
     let mut iters: usize = 0;
     let mut links_visited = HashSet::new();
@@ -125,10 +125,7 @@ pub fn floodfill_walk_cycling_car(
         nodes_visited[current.node] = true;
         
         if target_destinations_binary_vec[current.node] {
-            od_pairs_found.push(OriginDestinationPair{
-                node: current.node,
-                cost: current.cost,
-            })
+            od_pairs_found.push([current.cost.0,current.node.0]);
         }
 
         add_to_subpurpose_scores_for_node_reached(
