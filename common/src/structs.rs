@@ -285,6 +285,7 @@ pub struct WalkCyclingCarUserInputJSON {
     pub init_travel_times_user_input: Vec<Cost>,
     pub trip_start_seconds: SecondsPastMidnight,
     pub mode: String,
+    pub builds_to_remove: Vec<Vec<usize>>,    // 0 is index_of_nearest_node, 1 is subpurpose_ix
 }
 
 #[derive(Deserialize, Debug)]

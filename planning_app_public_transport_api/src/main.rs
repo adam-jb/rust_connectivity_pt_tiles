@@ -113,6 +113,10 @@ async fn main() -> std::io::Result<()> {
     let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
     let node_values_2d = read_sparse_node_values_2d_serial(year);
     let rust_node_longlat_lookup = read_rust_node_longlat_lookup_serial();
+    
+    let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> = deserialize_bincoded_file("nodes_to_neighbouring_nodes");
+    
+    /*
     let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> = deserialize_bincoded_file(
         format!(
             "nodes_to_neighbouring_nodes_{}",
@@ -120,6 +124,7 @@ async fn main() -> std::io::Result<()> {
         )
         .as_str(),
     );
+    */
 
     let now = Instant::now();
     let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);

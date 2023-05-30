@@ -31,12 +31,32 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
     }   
     println!("start_time_group {} for trip_start_seconds {}", start_time_group, input.trip_start_seconds.0);
     
-    // Read in files at endpoint as we don't know which mode the user will request
+    // Read in files at endpoint rather than in advance as we don't know which mode the user will request
     let (travel_time_relationships, node_values_2d, graph) =
         read_files_serial_walk_cycling_car(&input.mode, start_time_group);
     
     let graph: TiVec<NodeID, NodeWalkCyclingCar> = TiVec::from(graph);
-    let node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
+    let mut node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
+    
+    // If any destinations are to be removed prior to running floodfill
+    for build_to_remove in input.builds_to_remove.iter() {
+        let build_to_remove_subpurpose = build_to_remove[1];
+        let node_id = NodeID(build_to_remove[0]);
+        
+        let mut index_to_remove = 9999;
+
+        for (i, subpurpose_value) in node_values_2d[node_id].iter().enumerate() {
+            if subpurpose_value.subpurpose_ix == build_to_remove_subpurpose {
+                index_to_remove = i;
+                println!("Destination to be dropped for i {} and subpurpose ix {} and subpurpose_score {}", i, subpurpose_value.subpurpose_ix, subpurpose_value.subpurpose_score.0);
+            }
+        }
+
+        if index_to_remove != 9999 {
+            node_values_2d[node_id].remove(index_to_remove);
+        }
+
+    }
     
     // Extract costs of turning, in order of: straight, right turn, u-turn, left turn
     let time_costs_turn: [Cost; 4];

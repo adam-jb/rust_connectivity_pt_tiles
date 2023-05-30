@@ -15,7 +15,7 @@ fn main() {
     let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
     let graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);
     
-    for seconds_travel_time in vec![120, 180, 240, 300] {
+    for seconds_travel_time in [10] { //vec![120, 180, 240, 300] {
         make_and_serialise_nodes_within_n_seconds(Cost(seconds_travel_time), &graph_walk, &graph_routes);
         println!("Found nearby nodes within {} seconds walk", seconds_travel_time);
     }

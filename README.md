@@ -227,10 +227,12 @@ Cloud Run settings are the same as Public Transport batch
 
 Example query to Cloud Run:
 ```
-wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_times_user_input": [16, 10, 10, 23, 99], "mode": "walk", "destination_nodes": [1,2,3,4,55,6,7,8,9,10], "trip_start_seconds": 28800}' \
+wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_times_user_input": [16, 10, 10, 23, 99], "mode": "walk", "destination_nodes": [1,2,3,4,55,6,7,8,9,10], "trip_start_seconds": 28800, "builds_to_remove": []}' \
   --header='Content-Type:application/json' \
   'https://walk-cycling-car-batch-y3gbqriuaq-nw.a.run.app/floodfill_endpoint/'
 ```
+The 'builds_to_remove' parameter is a vector of smaller vectors (each of length 2). Each smaller vector specifies: 0 is index_of_nearest_node, 1 is subpurpose_ix. This is to see the effect on Connectivity of removing destinations, such as a large employers, from the graph.
+
 
 
 
