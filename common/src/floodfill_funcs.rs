@@ -1,21 +1,40 @@
 use typed_index_collections::TiVec;
 
-
+use crate::read_file_funcs::deserialize_bincoded_file;
 
 use crate::structs::{
     Cost, DestinationReached, Multiplier, NodeID,Angle,
     Score, SecondsPastMidnight, SubpurposeScore,
 };
 
-pub fn initialise_subpurpose_purpose_lookup() -> [usize; 32] {
-        return [
-            2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1,
-            2, 1,
-        ];
+pub fn initialise_subpurpose_purpose_lookup() -> [usize; 33] {
+    
+    let subpurpose_purpose_lookup: [usize;33] =
+        deserialize_bincoded_file("subpurpose_to_purpose_integer");
+    return subpurpose_purpose_lookup;
+    
+    // Below is the old code keeping for ref: Adam 19th June. To delete properly once sure it's all working fine
+    /*
+    return [
+        2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1,
+        2, 1,
+    ];
+    */
 }
 
 
-pub fn initialise_score_multiplers() -> [Multiplier; 32] {
+// update to accept mode name
+pub fn initialise_score_multiplers(mode: &str) -> [Multiplier; 33] {
+    
+    let contents_filename = format!("data/score_multipliers_{}.json", mode);
+        
+    let multipliers_this_mode: [Multiplier; 33] =
+        deserialize_bincoded_file(contents_filename);
+    
+    return multipliers_this_mode;
+    
+    // Below is the old code keeping for ref: Adam 19th June. To delete properly once sure it's all working fine
+    /*
     return [
         Multiplier(0.000000000000000), // set to 0
         Multiplier(0.009586382150013575),
@@ -50,6 +69,7 @@ pub fn initialise_score_multiplers() -> [Multiplier; 32] {
         Multiplier(0.008467735739894604),
         Multiplier(0.012110456385386992),
     ];
+    */
 }
 
 
