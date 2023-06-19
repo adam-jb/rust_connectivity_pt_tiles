@@ -58,6 +58,14 @@ pub fn serialise_files(year: i32) {
     serialise_list_multiplier("car_travel_time_relationships_16");
     serialise_list_multiplier("car_travel_time_relationships_19");
     
+    // Weights for each subpurpose. Useed by all APIs. File is loaded by floodfill_funcs/initialise_score_multiplers()
+    serialise_list_multiplier("score_multipliers_walk.json");
+    serialise_list_multiplier("score_multipliers_bus.json");
+    serialise_list_multiplier("score_multipliers_cycling.json");
+    serialise_list_multiplier("score_multipliers_car.json");
+    
+    // used by all APIs. File is loaded by floodfill_funcs/initialise_subpurpose_purpose_lookup()
+    serialise_list_immutable_array_usize("subpurpose_to_purpose_integer");
     
     chunk_pt_graphs(year);
     
@@ -294,10 +302,22 @@ fn serialise_list_multiplier(filename: &str) {
     println!("Serialised to {}", outpath);
 }
 
+fn serialise_list_multiplier(filename: &str) {
+    let inpath = format!("data/{}.json", filename);
+    let contents = fs_err::read_to_string(&inpath).unwrap();
+    let output: Vec<Multiplier> = serde_json::from_str(&contents).unwrap();
+    println!("Read from {}", inpath);
+
+    let outpath = format!("serialised_data/{}.bin", filename);
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised to {}", outpath);
+}
+
 fn serialise_list_immutable_array_usize(filename: &str) {
     let inpath = format!("data/{}.json", filename);
     let contents = std::fs::read_to_string(&inpath).unwrap();
-    let output: [usize; 32] = serde_json::from_str(&contents).unwrap();
+    let output: [usize; 33] = serde_json::from_str(&contents).unwrap();
     println!("Read from {}", inpath);
 
     let outpath = format!("serialised_data/{}.bin", filename);
