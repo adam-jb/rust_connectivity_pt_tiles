@@ -24,6 +24,7 @@ data_files = [
     'travel_time_relationships_7.json',
     'subpurpose_purpose_lookup.json',
     'number_of_destination_categories.json',
+    'subpurpose_to_purpose_integer.json',
 ]
 
 for file in data_files:
@@ -59,5 +60,9 @@ for trip_start_hour in [7, 10, 16, 19]:
         blob = bucket.blob(file)
         blob.download_to_filename(f"data/{file}")
         
-
+for mode_simpler in ['bus', 'walk', 'cycling', 'car']:
+    file = f'score_multipliers_{mode_simpler}.json'
+    blob = bucket.blob(file)
+    blob.download_to_filename(f"data/{file}")
+    
         
