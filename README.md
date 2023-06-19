@@ -208,7 +208,7 @@ cargo run --release --bin walk_cycling_car_batch
 
 Example query:
 ```
-wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_times_user_input": [16, 10, 10, 23, 99], "mode": "walk", "destination_nodes": [1,2,3,4,55,6,7,8,9,10], "trip_start_seconds": 28800}' \
+wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_times_user_input": [16, 10, 10, 23, 99], "mode": "walk", "destination_nodes": [1,2,3,4,55,6,7,8,9,10], "trip_start_seconds": 28800, "builds_to_remove": []}' \
   --header='Content-Type:application/json' \
   'http://0.0.0.0:7328/floodfill_endpoint/'
 ```
@@ -256,10 +256,5 @@ Then hit the below with a GET request to run tests. View the results in the Clou
 curl https://read-tests-cloud-run-y3gbqriuaq-nw.a.run.app/run_tests/
 ```
 
-
-
-# Significant points in history
-
-Latest commit before trying to amalgamate the APIs: 26262b764a9b06025c411cf41c8050d3f91fa1a2
 
 

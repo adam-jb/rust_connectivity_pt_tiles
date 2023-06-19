@@ -27,7 +27,7 @@ pub fn initialise_subpurpose_purpose_lookup() -> [usize; SUBPURPOSES_COUNT] {
 // update to accept mode name
 pub fn initialise_score_multiplers(mode: &str) -> [Multiplier; SUBPURPOSES_COUNT] {
     
-    let contents_filename = format!("data/score_multipliers_{}.json", mode);
+    let contents_filename = format!("score_multipliers_{}", mode);
         
     let multipliers_this_mode: [Multiplier; SUBPURPOSES_COUNT] = read_vec_as_array_multiplier(&contents_filename);
         //deserialize_bincoded_file(&contents_filename);

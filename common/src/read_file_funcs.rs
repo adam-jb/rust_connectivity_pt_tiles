@@ -2,7 +2,6 @@ use fs_err::File;
 use serde::de::DeserializeOwned;
 use std::time::Instant;
 use std::io::BufReader;
-use std::convert::TryInto;
 
 use crate::structs::{Multiplier, NodeRoute, NodeWalk, SubpurposeScore, NodeWalkCyclingCar, SUBPURPOSES_COUNT};
 
