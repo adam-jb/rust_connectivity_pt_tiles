@@ -11,7 +11,7 @@ use common::read_file_funcs::{
     read_sparse_node_values_2d_serial,
 };
 use common::structs::{
-    Cost, Multiplier, NodeID, NodeRoute, NodeWalk, Score, SubpurposeScore, UserInputJSON,
+    Cost, Multiplier, NodeID, NodeRoute, NodeWalk, Score, SubpurposeScore, UserInputJSON, PURPOSES_COUNT,
 };
 use common::floodfill_public_transport_no_scores::floodfill_public_transport_no_scores;
 use common::floodfill_funcs::get_time_of_day_index;
@@ -29,7 +29,7 @@ struct AppState {
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
     rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]>,
     route_info: TiVec<NodeID, HashMap<String, String>>,
-    mutex_sparse_node_values_contributed: Mutex<TiVec<NodeID, [Score; 5]>>,
+    mutex_sparse_node_values_contributed: Mutex<TiVec<NodeID, [Score;PURPOSES_COUNT]>>,
 }
 
 #[get("/")]
@@ -138,11 +138,11 @@ async fn main() -> std::io::Result<()> {
 
     // create mutex of empty values that nodes contribute. Do this now to save 0.4seconds initialising whenever the API is called. It is reset after each API call
     let now = Instant::now();
-    let sparse_node_values_contributed: Vec<[Score; 5]> = (0..graph_walk.len())
+    let sparse_node_values_contributed: Vec<[Score; PURPOSES_COUNT]> = (0..graph_walk.len())
         .into_par_iter()
-        .map(|_| [Score::default(); 5])
+        .map(|_| [Score::default(); PURPOSES_COUNT])
         .collect();
-    let non_mutex_sparse_node_values_contributed: TiVec<NodeID, [Score; 5]> =
+    let non_mutex_sparse_node_values_contributed: TiVec<NodeID, [Score; PURPOSES_COUNT]> =
         TiVec::from(sparse_node_values_contributed);
     let mutex_sparse_node_values_contributed = Mutex::new(non_mutex_sparse_node_values_contributed);
     println!("Making sparse node values took {:?}", now.elapsed());

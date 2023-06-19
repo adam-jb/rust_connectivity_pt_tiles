@@ -84,6 +84,7 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
                 *&input.init_travel_times_user_input[*i],
                 &input.destination_nodes,
                 Cost(3600),
+                &input.mode,
             )
         })
         .collect(); 

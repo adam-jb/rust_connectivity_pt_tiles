@@ -2,8 +2,9 @@ use fs_err::File;
 use serde::de::DeserializeOwned;
 use std::time::Instant;
 use std::io::BufReader;
+use std::convert::TryInto;
 
-use crate::structs::{Multiplier, NodeRoute, NodeWalk, SubpurposeScore, NodeWalkCyclingCar};
+use crate::structs::{Multiplier, NodeRoute, NodeWalk, SubpurposeScore, NodeWalkCyclingCar, SUBPURPOSES_COUNT};
 
 pub fn read_files_serial_walk_cycling_car(mode: &String, time_of_day: usize) -> (Vec<Multiplier>, Vec<Vec<SubpurposeScore>>, Vec<NodeWalkCyclingCar>) {
 
@@ -146,7 +147,7 @@ pub fn read_small_files_serial() -> (
     Vec<Multiplier>,
     Vec<Multiplier>,
     Vec<Multiplier>,
-    [usize; 32],
+    [usize; SUBPURPOSES_COUNT],
 ) {
     let now = Instant::now();
 
@@ -158,8 +159,9 @@ pub fn read_small_files_serial() -> (
         deserialize_bincoded_file("travel_time_relationships_16");
     let travel_time_relationships_19: Vec<Multiplier> =
         deserialize_bincoded_file("travel_time_relationships_19");
-    let subpurpose_purpose_lookup: [usize; 32] =
-        deserialize_bincoded_file("subpurpose_purpose_lookup");
+    
+    let subpurpose_purpose_lookup: [usize; SUBPURPOSES_COUNT] = 
+        read_vec_as_array_usize("subpurpose_purpose_lookup");
 
     println!("Serial loading took {:?}", now.elapsed());
     (
@@ -178,14 +180,29 @@ pub fn deserialize_bincoded_file<T: DeserializeOwned>(filename: &str) -> T {
 }
 
 
+pub fn read_vec_as_array_usize(filename: &str) -> [usize; SUBPURPOSES_COUNT] {
+    let inpath = format!("data/{}.json", filename);
+    let contents = fs_err::read_to_string(&inpath).unwrap();
+    let output_vector: Vec<usize> = serde_json::from_str(&contents).unwrap();
+    
+    let mut output: [usize; SUBPURPOSES_COUNT] = [0; 33];
+    for (index, value) in output_vector.iter().enumerate() {
+        output[index] = *value;
+    }
+    return output
+}
 
-
-
-
-
-
-
-
+pub fn read_vec_as_array_multiplier(filename: &str) -> [Multiplier; SUBPURPOSES_COUNT] {
+    let inpath = format!("data/{}.json", filename);
+    let contents = fs_err::read_to_string(&inpath).unwrap();
+    let output_vector: Vec<Multiplier> = serde_json::from_str(&contents).unwrap();
+    
+    let mut output: [Multiplier; SUBPURPOSES_COUNT] = [Multiplier(0.0); 33];
+    for (index, value) in output_vector.iter().enumerate() {
+        output[index] = *value;
+    }
+    return output
+}
 
 
 

@@ -18,6 +18,7 @@ storage_client = storage.Client()
 bucket = storage_client.bucket(BUCKET_NAME)
 
 # Loop through each file in the directory and upload it to the bucket
+
 for file_name in os.listdir(LOCAL_PATH):
     # Create a blob object for the file
     blob = bucket.blob(file_name)

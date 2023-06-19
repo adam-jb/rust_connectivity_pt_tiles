@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::cmp::Ordering;
 use typed_index_collections::TiVec;
 
-use crate::structs::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCyclingCar, FloodfillOutputOriginDestinationPair, SubpurposeScore};
+use crate::structs::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCyclingCar, FloodfillOutputOriginDestinationPair, SubpurposeScore, PURPOSES_COUNT, SUBPURPOSES_COUNT};
 use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, add_to_subpurpose_scores_for_node_reached, get_cost_of_turn};
 
 
@@ -42,13 +42,14 @@ pub fn floodfill_walk_cycling_car(
                 start_node_id: NodeID,
                 seconds_walk_to_start_node: Cost,
                 target_destinations_vector: &[NodeID], //&[u32],
-                time_limit_seconds: Cost,    
+                time_limit_seconds: Cost,   
+                mode: &str,
             ) -> FloodfillOutputOriginDestinationPair {
 
     // initialise values
-    let mut subpurpose_scores = [Score(0.0); 32];
+    let mut subpurpose_scores = [Score(0.0); SUBPURPOSES_COUNT];
     let subpurpose_purpose_lookup = initialise_subpurpose_purpose_lookup();
-    let score_multipliers = initialise_score_multiplers();
+    let score_multipliers = initialise_score_multiplers(&mode);
         
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Angle, LinkID>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
@@ -73,7 +74,7 @@ pub fn floodfill_walk_cycling_car(
 
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= Cost(3600) {
-        let purpose_scores = [Score(0.0); 5];
+        let purpose_scores = [Score(0.0); PURPOSES_COUNT];
         return
             FloodfillOutputOriginDestinationPair{
                 start_node_id,

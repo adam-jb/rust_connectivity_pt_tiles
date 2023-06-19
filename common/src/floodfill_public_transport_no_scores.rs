@@ -3,7 +3,7 @@
 
 use crate::structs::{
     Cost, DestinationReached, FloodfillOutput, NodeID, NodeRoute,
-    NodeWalk, Score, SecondsPastMidnight,
+    NodeWalk, Score, SecondsPastMidnight, PURPOSES_COUNT,
 };
 use std::collections::{BinaryHeap};
 use typed_index_collections::TiVec;
@@ -71,7 +71,7 @@ pub fn floodfill_public_transport_no_scores(
 
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= time_limit {
-        let purpose_scores = [Score(0.0); 5];
+        let purpose_scores = [Score(0.0); PURPOSES_COUNT];
         return FloodfillOutput {
             start_node_id,
             seconds_walk_to_start_node,
@@ -128,7 +128,7 @@ pub fn floodfill_public_transport_no_scores(
         iters_count += 1;
     }
     
-    let purpose_scores = [Score(0.0); 5];
+    let purpose_scores = [Score(0.0); PURPOSES_COUNT];
     FloodfillOutput {
         start_node_id,
         seconds_walk_to_start_node,

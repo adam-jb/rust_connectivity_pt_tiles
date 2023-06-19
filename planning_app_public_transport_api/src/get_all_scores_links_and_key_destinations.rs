@@ -1,6 +1,6 @@
 use common::structs::{
     DestinationReached, PlanningToolOutput, FloodfillOutput, Multiplier, NodeID, NodeScore,
-    Score, SubpurposeScore, TOP_CLUSTERS_COUNT,
+    Score, SubpurposeScore, TOP_CLUSTERS_COUNT, PURPOSES_COUNT,
 };
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
@@ -16,11 +16,11 @@ pub fn get_all_scores_links_and_key_destinations(
     nodes_to_neighbouring_nodes: &TiVec<NodeID, Vec<NodeID>>,
     rust_node_longlat_lookup: &TiVec<NodeID, [f64; 2]>,
     route_info: &TiVec<NodeID, HashMap<String, String>>,
-    mutex_sparse_node_values_contributed: &Mutex<TiVec<NodeID, [Score; 5]>>,
+    mutex_sparse_node_values_contributed: &Mutex<TiVec<NodeID, [Score; PURPOSES_COUNT]>>,
 ) -> PlanningToolOutput {
     
     let subpurpose_purpose_lookup = initialise_subpurpose_purpose_lookup();
-    let score_multiplers = initialise_score_multiplers();
+    let score_multiplers = initialise_score_multiplers("bus");
     
     let start = floodfill_output.start_node_id;
     let seconds_walk_to_start_node = floodfill_output.seconds_walk_to_start_node;
@@ -30,13 +30,13 @@ pub fn get_all_scores_links_and_key_destinations(
     // get lock so can edit: we reset all changes at end of this func
     let mut sparse_node_values_contributed = mutex_sparse_node_values_contributed.lock().unwrap();
 
-    let mut node_values_contributed_each_purpose_vec: Vec<[Score; 5]> = vec![];
+    let mut node_values_contributed_each_purpose_vec: Vec<[Score; PURPOSES_COUNT]> = vec![];
 
     // ********* Get subpurpose level scores overall, and purpose level contribution of each individual node reached
     let now = Instant::now();
 
     for DestinationReached { node, cost, .. } in destinations_reached.iter() {
-        let mut purpose_scores_this_node = [Score(0.0); 5];
+        let mut purpose_scores_this_node = [Score(0.0); PURPOSES_COUNT];
 
         for SubpurposeScore {
             subpurpose_ix,
@@ -73,8 +73,8 @@ pub fn get_all_scores_links_and_key_destinations(
     let now = Instant::now();
 
     // initialise link data to populate
-    let mut link_score_contributions: Vec<[Score; 5]> =
-        vec![[Score(0.0); 5]; destinations_reached.len()];
+    let mut link_score_contributions: Vec<[Score; PURPOSES_COUNT]> =
+        vec![[Score(0.0); PURPOSES_COUNT]; destinations_reached.len()];
     let mut link_start_end_nodes_string: Vec<Vec<String>> = vec![];
     let mut link_is_pt: Vec<u8> = vec![];
     let mut link_route_details: Vec<HashMap<String, String>> = Vec::new();
@@ -95,7 +95,7 @@ pub fn get_all_scores_links_and_key_destinations(
 
         // loop until all links taken to node reached have the score for this node added to their score contributions
         loop {
-            for k in 0..5 {
+            for k in 0..PURPOSES_COUNT {
                 link_score_contributions[link_ix][k] +=
                     node_values_contributed_each_purpose_vec[node_reached_iteration][k];
             }
@@ -155,7 +155,8 @@ pub fn get_all_scores_links_and_key_destinations(
     let now = Instant::now();
 
     // Vec of list of NodeIDs, for where new node is close to 1+ top nodes
-    let mut near_nodes_to_top_node: [HashMap<NodeID, Vec<NodeID>>; 5] = [
+    let mut near_nodes_to_top_node: [HashMap<NodeID, Vec<NodeID>>;PURPOSES_COUNT] = [
+        HashMap::new(),
         HashMap::new(),
         HashMap::new(),
         HashMap::new(),
@@ -164,7 +165,8 @@ pub fn get_all_scores_links_and_key_destinations(
     ];
 
     // sets of all nodes which are within N seconds of those in the top n (eg: if there are 24 nodes within 120s of the n top nodes for business, those 24 node ids will be in the set corresponding to business)
-    let mut all_near_nodes: [HashSet<NodeID>; 5] = [
+    let mut all_near_nodes: [HashSet<NodeID>; PURPOSES_COUNT] = [
+        HashSet::new(),
         HashSet::new(),
         HashSet::new(),
         HashSet::new(),
@@ -176,15 +178,16 @@ pub fn get_all_scores_links_and_key_destinations(
     let mut thresholds_for_update = [NodeScore {
         node: NodeID(0),
         score: Score(0.0),
-    }; 5];
+    }; PURPOSES_COUNT];
 
     let mut top_nodes = [[NodeScore {
         node: NodeID(0),
         score: Score(0.0),
-    }; TOP_CLUSTERS_COUNT]; 5];
+    }; TOP_CLUSTERS_COUNT]; PURPOSES_COUNT];
 
     // Dicts of nodeID to near nodes (each Dict will have n keys of node IDs, corresponding to vec of Node IDs in each cluster)
-    let mut top_nodes_to_near_nodes: [HashMap<NodeID, Vec<NodeID>>; 5] = [
+    let mut top_nodes_to_near_nodes: [HashMap<NodeID, Vec<NodeID>>; PURPOSES_COUNT] = [
+        HashMap::new(),
         HashMap::new(),
         HashMap::new(),
         HashMap::new(),
@@ -194,18 +197,18 @@ pub fn get_all_scores_links_and_key_destinations(
 
     for DestinationReached { node, .. } in destinations_reached.iter() {
         let near_nodes = &nodes_to_neighbouring_nodes[*node];
-        let mut purpose_scores_current_node = [Score(0.0); 5];
+        let mut purpose_scores_current_node = [Score(0.0); PURPOSES_COUNT];
 
         // get total scores by purpose, of nodes within N seconds of this node
         for neighbouring_node in near_nodes {
             let scores_one_node = sparse_node_values_contributed[*neighbouring_node];
-            for nth_purpose in 0..5 {
+            for nth_purpose in 0..PURPOSES_COUNT {
                 purpose_scores_current_node[nth_purpose] += scores_one_node[nth_purpose];
             }
         }
 
         // Look through each of the purposes: does this node become a top node?
-        for nth_purpose in 0..5 {
+        for nth_purpose in 0..PURPOSES_COUNT {
             if purpose_scores_current_node[nth_purpose] >= thresholds_for_update[nth_purpose].score
             {
                 let mut top_node_may_replace: NodeID = NodeID(0);
@@ -355,15 +358,15 @@ pub fn get_all_scores_links_and_key_destinations(
 
     // Nodes of 0s may have remained: this is fine if there are legitimately under TOP_CLUSTERS_COUNT clusters (plausible for rural start nodes);
     // if len if over TOP_CLUSTERS_COUNT it's because the NodeID of 0 is never removed in the above. This fixes that
-    for nth_purpose in 0..5 {
+    for nth_purpose in 0..PURPOSES_COUNT {
         if top_nodes_to_near_nodes[nth_purpose].keys().len() > TOP_CLUSTERS_COUNT {
             top_nodes_to_near_nodes[nth_purpose].remove(&NodeID(0));
         }
     }
 
-    let mut most_important_nodes_longlat: [[[f64; 2]; TOP_CLUSTERS_COUNT]; 5] =
-        [[[0.0; 2]; TOP_CLUSTERS_COUNT]; 5];
-    for i in 0..5 {
+    let mut most_important_nodes_longlat: [[[f64; 2]; TOP_CLUSTERS_COUNT]; PURPOSES_COUNT] =
+        [[[0.0; 2]; TOP_CLUSTERS_COUNT]; PURPOSES_COUNT];
+    for i in 0..PURPOSES_COUNT {
         for (inner_iter, rust_node_id) in top_nodes_to_near_nodes[i].keys().enumerate() {
             let node_longlat = rust_node_longlat_lookup[*rust_node_id];
             most_important_nodes_longlat[i][inner_iter] = node_longlat;
@@ -372,7 +375,7 @@ pub fn get_all_scores_links_and_key_destinations(
 
     // ****** Reset sparse_node_values_contributed for next query
     for DestinationReached { node, .. } in destinations_reached.iter() {
-        sparse_node_values_contributed[*node] = [Score(0.0); 5];
+        sparse_node_values_contributed[*node] = [Score(0.0); PURPOSES_COUNT];
     }
 
     PlanningToolOutput {

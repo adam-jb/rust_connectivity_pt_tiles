@@ -1,16 +1,17 @@
 use typed_index_collections::TiVec;
 
-use crate::read_file_funcs::deserialize_bincoded_file;
+use crate::read_file_funcs::{read_vec_as_array_multiplier, read_vec_as_array_usize};
 
 use crate::structs::{
     Cost, DestinationReached, Multiplier, NodeID,Angle,
-    Score, SecondsPastMidnight, SubpurposeScore,
+    Score, SecondsPastMidnight, SubpurposeScore, PURPOSES_COUNT, SUBPURPOSES_COUNT,
 };
 
-pub fn initialise_subpurpose_purpose_lookup() -> [usize; 33] {
+pub fn initialise_subpurpose_purpose_lookup() -> [usize; SUBPURPOSES_COUNT] {
     
-    let subpurpose_purpose_lookup: [usize;33] =
-        deserialize_bincoded_file("subpurpose_to_purpose_integer");
+    let subpurpose_purpose_lookup: [usize; SUBPURPOSES_COUNT] =
+        read_vec_as_array_usize("subpurpose_to_purpose_integer");
+    
     return subpurpose_purpose_lookup;
     
     // Below is the old code keeping for ref: Adam 19th June. To delete properly once sure it's all working fine
@@ -24,12 +25,12 @@ pub fn initialise_subpurpose_purpose_lookup() -> [usize; 33] {
 
 
 // update to accept mode name
-pub fn initialise_score_multiplers(mode: &str) -> [Multiplier; 33] {
+pub fn initialise_score_multiplers(mode: &str) -> [Multiplier; SUBPURPOSES_COUNT] {
     
     let contents_filename = format!("data/score_multipliers_{}.json", mode);
         
-    let multipliers_this_mode: [Multiplier; 33] =
-        deserialize_bincoded_file(contents_filename);
+    let multipliers_this_mode: [Multiplier; SUBPURPOSES_COUNT] = read_vec_as_array_multiplier(&contents_filename);
+        //deserialize_bincoded_file(&contents_filename);
     
     return multipliers_this_mode;
     
@@ -88,9 +89,9 @@ pub fn get_time_of_day_index(trip_start_seconds: SecondsPastMidnight) -> usize {
     time_of_day_ix as usize
 }
 
-pub fn add_to_subpurpose_scores_for_node_reached(subpurpose_scores: &mut [Score; 32],
+pub fn add_to_subpurpose_scores_for_node_reached(subpurpose_scores: &mut [Score; SUBPURPOSES_COUNT],
                           node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
-                          subpurpose_purpose_lookup: &[usize; 32],
+                          subpurpose_purpose_lookup: &[usize; SUBPURPOSES_COUNT],
                           travel_time_relationships: &[Multiplier],
                           seconds_so_far: usize,
                           node_id: NodeID,
@@ -109,12 +110,12 @@ pub fn add_to_subpurpose_scores_for_node_reached(subpurpose_scores: &mut [Score;
 
 
 pub fn calculate_purpose_scores_from_subpurpose_scores(
-        subpurpose_scores: &[Score; 32],
-        subpurpose_purpose_lookup: &[usize; 32],
-        score_multipler: &[Multiplier; 32],
-    ) -> [Score; 5] {
+        subpurpose_scores: &[Score; SUBPURPOSES_COUNT],
+        subpurpose_purpose_lookup: &[usize; SUBPURPOSES_COUNT],
+        score_multipler: &[Multiplier; SUBPURPOSES_COUNT],
+    ) -> [Score; PURPOSES_COUNT] {
 
-    let mut overall_purpose_scores: [Score; 5] = [Score(0.0); 5];
+    let mut overall_purpose_scores: [Score; PURPOSES_COUNT] = [Score(0.0); PURPOSES_COUNT];
     for subpurpose_ix in 0..subpurpose_scores.len() {
 
         // Apply score_multipler and apply logarithm to get subpurpose level scores

@@ -8,6 +8,8 @@ use std::ops::{Add, AddAssign, Sub};
 use std::fmt::{Debug};
 
 pub const TOP_CLUSTERS_COUNT: usize = 10;
+pub const PURPOSES_COUNT: usize = 6;
+pub const SUBPURPOSES_COUNT: usize = 33;
 
 // Serializes a `usize` as a `u32` to save space. Useful when you need `usize` for indexing, and
 // the values don't exceed 2^32.
@@ -238,7 +240,7 @@ pub struct OriginDestinationPair {
 pub struct FloodfillOutput {
     pub start_node_id: NodeID,
     pub seconds_walk_to_start_node: Cost,
-    pub purpose_scores: [Score; 5],
+    pub purpose_scores: [Score;PURPOSES_COUNT],
     pub destinations_reached: Vec<DestinationReached>,
 }
 
@@ -246,7 +248,7 @@ pub struct FloodfillOutput {
 pub struct FloodfillOutputOriginDestinationPair {
     pub start_node_id: NodeID,
     pub seconds_walk_to_start_node: Cost,
-    pub purpose_scores: [Score; 5],
+    pub purpose_scores: [Score; PURPOSES_COUNT],
     pub od_pairs_found: Vec<[usize; 2]>, // pub od_pairs_found: Vec<OriginDestinationPair>,
     pub iters: usize,
 }
@@ -256,8 +258,8 @@ pub struct PlanningToolOutput {
     pub start_node: NodeID,
     pub init_travel_time: Cost,
     pub num_iterations: u32,
-    pub key_destinations_per_purpose: [[[f64; 2]; TOP_CLUSTERS_COUNT]; 5],
-    pub per_link_score_per_purpose: Vec<[Score; 5]>,
+    pub key_destinations_per_purpose: [[[f64; 2]; TOP_CLUSTERS_COUNT];PURPOSES_COUNT],
+    pub per_link_score_per_purpose: Vec<[Score; PURPOSES_COUNT]>,
     pub link_coordinates: Vec<Vec<String>>,
     pub link_is_pt: Vec<u8>,
     pub link_route_details: Vec<HashMap<String, String>>,

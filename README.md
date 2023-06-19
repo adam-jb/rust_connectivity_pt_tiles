@@ -22,7 +22,7 @@ curl https://sh.rustup.rs -sSf | sh && \
 source "$HOME/.cargo/env"
 ```
 
-1. Run `./download_input_json.py` once to download input data
+1. Run `python3 download_input_json.py` once to download input data
 
 2. Build all services `cargo run --build`
 

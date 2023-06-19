@@ -24,7 +24,6 @@ data_files = [
     'travel_time_relationships_7.json',
     'subpurpose_purpose_lookup.json',
     'number_of_destination_categories.json',
-    'subpurpose_to_purpose_integer.json',
 ]
 
 for file in data_files:
@@ -60,9 +59,15 @@ for trip_start_hour in [7, 10, 16, 19]:
         blob = bucket.blob(file)
         blob.download_to_filename(f"data/{file}")
         
+        
+## These files we save directly to serialised_data, as Rust reads then directly without serialising them. 
+## It does this because they are small files, and .dockerignore prevents files in 'data' folder
+## from being used
 for mode_simpler in ['bus', 'walk', 'cycling', 'car']:
     file = f'score_multipliers_{mode_simpler}.json'
     blob = bucket.blob(file)
-    blob.download_to_filename(f"data/{file}")
+    blob.download_to_filename(f"serialised_data/{file}")
     
-        
+blob = bucket.blob('subpurpose_to_purpose_integer.json')
+blob.download_to_filename(f"serialised_data/{file}")
+
