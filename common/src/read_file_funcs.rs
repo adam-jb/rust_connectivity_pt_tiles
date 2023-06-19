@@ -160,7 +160,7 @@ pub fn read_small_files_serial() -> (
         deserialize_bincoded_file("travel_time_relationships_19");
     
     let subpurpose_purpose_lookup: [usize; SUBPURPOSES_COUNT] = 
-        read_vec_as_array_usize("subpurpose_purpose_lookup");
+        read_vec_as_array_usize("subpurpose_to_purpose_integer");
 
     println!("Serial loading took {:?}", now.elapsed());
     (
