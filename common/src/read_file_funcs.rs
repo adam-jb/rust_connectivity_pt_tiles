@@ -30,6 +30,13 @@ pub fn read_files_serial_walk_cycling_car(mode: &String, time_of_day: usize) -> 
     )
 }
 
+// read stop_rail_statuses_2022 as binary: standard deserialisation may be fine
+pub fn read_stop_rail_statuses(year: i32) -> Vec<bool> {
+    let stop_rail_statuses: Vec<bool> =
+        deserialize_bincoded_file(&format!("stop_rail_statuses_{year}"));
+    stop_rail_statuses
+}
+
 pub fn read_sparse_node_values_2d_serial(year: i32) -> Vec<Vec<SubpurposeScore>> {
     let now = Instant::now();
     let sparse_node_values_2d: Vec<Vec<SubpurposeScore>> =

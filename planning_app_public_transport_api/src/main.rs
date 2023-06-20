@@ -8,7 +8,7 @@ use typed_index_collections::TiVec;
 use common::read_file_funcs::{
     deserialize_bincoded_file, read_files_parallel_excluding_node_values,
     read_rust_node_longlat_lookup_serial, read_small_files_serial,
-    read_sparse_node_values_2d_serial,
+    read_sparse_node_values_2d_serial, read_stop_rail_statuses, 
 };
 use common::structs::{
     Cost, Multiplier, NodeID, NodeRoute, NodeWalk, Score, SubpurposeScore, UserInputJSON, PURPOSES_COUNT,
@@ -30,6 +30,7 @@ struct AppState {
     rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]>,
     route_info: TiVec<NodeID, HashMap<String, String>>,
     mutex_sparse_node_values_contributed: Mutex<TiVec<NodeID, [Score;PURPOSES_COUNT]>>,
+    stop_rail_statuses: TiVec<NodeID, bool>,
 }
 
 #[get("/")]
@@ -58,6 +59,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         *&input.init_travel_times_user_input[0],
         false,
         Cost(3600),
+        &data.stop_rail_statuses,
     );
     println!("Floodfill in {:?}", now.elapsed());
     
@@ -147,6 +149,9 @@ async fn main() -> std::io::Result<()> {
     let mutex_sparse_node_values_contributed = Mutex::new(non_mutex_sparse_node_values_contributed);
     println!("Making sparse node values took {:?}", now.elapsed());
 
+    let stop_rail_statuses_input = read_stop_rail_statuses(year);
+    let stop_rail_statuses: TiVec<NodeID, bool> = TiVec::from(stop_rail_statuses_input);
+    
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
         nodes_to_neighbouring_nodes,
@@ -156,6 +161,7 @@ async fn main() -> std::io::Result<()> {
         rust_node_longlat_lookup,
         route_info,
         mutex_sparse_node_values_contributed,
+        stop_rail_statuses,
     });
     println!("Starting server");
     // The 500MB warning is wrong, the decorator on line below silences it

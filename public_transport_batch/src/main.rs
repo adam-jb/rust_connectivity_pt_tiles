@@ -7,6 +7,7 @@ use common::read_file_funcs::{
     read_files_parallel_excluding_node_values,
     read_small_files_serial,
     read_sparse_node_values_2d_serial,
+    read_stop_rail_statuses,
 };
 use common::structs::{Cost, NodeID, Multiplier, NodeWalk, NodeRoute, SubpurposeScore, FloodfillOutputOriginDestinationPair, OriginDestinationUserInputJSON};
 use common::floodfill_public_transport_purpose_scores::floodfill_public_transport_purpose_scores;
@@ -17,6 +18,7 @@ struct AppState {
     graph_walk: TiVec<NodeID, NodeWalk>,
     graph_routes: TiVec<NodeID, NodeRoute>,
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
+    stop_rail_statuses: TiVec<NodeID, bool>,
 }
 
 #[get("/")]
@@ -52,6 +54,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<OriginDestinat
                 &data.node_values_2d,
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &input.destination_nodes,
+                &data.stop_rail_statuses,
             )
         })
         .collect();
@@ -89,12 +92,16 @@ async fn main() -> std::io::Result<()> {
     let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
     let graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);
     let node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
+    
+    let stop_rail_statuses_input = read_stop_rail_statuses(year);
+    let stop_rail_statuses: TiVec<NodeID, bool> = TiVec::from(stop_rail_statuses_input);
 
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
         graph_walk,
         graph_routes,
         node_values_2d,
+        stop_rail_statuses,
     });
     println!("Starting server");
     // The 500MB warning is wrong, so we 'allow deprecated' to hide it

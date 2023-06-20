@@ -1,6 +1,7 @@
 use crate::structs::{
     Cost, FloodfillOutputOriginDestinationPair, Multiplier, NodeID, NodeRoute,
-    NodeWalk, Score, SecondsPastMidnight, SubpurposeScore, PURPOSES_COUNT, SUBPURPOSES_COUNT
+    NodeWalk, Score, SecondsPastMidnight, SubpurposeScore, PURPOSES_COUNT, SUBPURPOSES_COUNT,
+    RAIL_MULTIPLIER,
 };
 use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, 
     add_to_subpurpose_scores_for_node_reached};
@@ -13,18 +14,19 @@ use std::cmp::Ordering;
 /// Use with `BinaryHeap`. Since it's a max-heap, reverse the comparison to get the smallest cost
 /// first.
 #[derive(PartialEq, Eq, Clone)]
-pub struct PriorityQueueItem<K, V> {
+pub struct PriorityQueueItem<K, V, R> {
     pub cost: K,
     pub node: V,
+    pub rail_adjusted_cost: R,
 }
 
-impl<K: Ord, V: Ord> PartialOrd for PriorityQueueItem<K, V> {
+impl<K: Ord, V: Ord, R: Ord> PartialOrd for PriorityQueueItem<K, V, R> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<K: Ord, V: Ord> Ord for PriorityQueueItem<K, V> {
+impl<K: Ord, V: Ord, R: Ord> Ord for PriorityQueueItem<K, V, R> {
     fn cmp(&self, other: &Self) -> Ordering {
         let ord = other.cost.cmp(&self.cost);
         if ord != Ordering::Equal {
@@ -48,14 +50,16 @@ pub fn floodfill_public_transport_purpose_scores(
     node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
     travel_time_relationships: &[Multiplier],
     destination_nodes: &Vec<NodeID>,
+    stop_rail_statuses: &TiVec<NodeID, bool>,
 ) -> FloodfillOutputOriginDestinationPair {
     
     let mut iters: usize = 0;
     
-    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
+    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Cost>> = BinaryHeap::new();
     queue.push( PriorityQueueItem{
         cost: seconds_walk_to_start_node,
         node: start_node_id,
+        rail_adjusted_cost: seconds_walk_to_start_node,
     });
     
     let target_destinations = vec![false; graph_walk.len()];
@@ -106,10 +110,13 @@ pub fn floodfill_public_transport_purpose_scores(
         // Finding adjacent walk nodes
         for edge in &graph_walk[current.node].edges {
             let new_cost = current.cost + edge.cost;
-            if new_cost < time_limit {
+            let new_rail_adjusted_cost = current.rail_adjusted_cost + edge.cost;
+            
+            if new_rail_adjusted_cost < time_limit {
                 queue.push(PriorityQueueItem {
                     cost: new_cost,
                     node: edge.to,
+                    rail_adjusted_cost: new_rail_adjusted_cost,
                 });
             }
         }
@@ -124,6 +131,8 @@ pub fn floodfill_public_transport_purpose_scores(
                     time_limit,
                     trip_start_seconds,
                     current.node,
+                    current.rail_adjusted_cost,
+                    stop_rail_statuses[current.node],
                 );
             }
         }
@@ -149,10 +158,12 @@ pub fn floodfill_public_transport_purpose_scores(
 fn take_next_pt_route(
     graph_routes: &TiVec<NodeID, NodeRoute>,
     time_so_far: Cost,
-    queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID>>,
+    queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID, Cost>>,
     time_limit: Cost,
     trip_start_seconds: SecondsPastMidnight,
     current_node: NodeID,
+    rail_adjusted_cost: Cost,
+    is_rail: bool,
 ) {
     let time_of_arrival_current_node = trip_start_seconds.add(&time_so_far);
 
@@ -179,13 +190,24 @@ fn take_next_pt_route(
         let wait_time_this_stop = (next_leaving_time - time_of_arrival_current_node).into();
         let time_since_start_next_stop_arrival =
             time_so_far + journey_time_to_next_node + wait_time_this_stop;
-
-        if time_since_start_next_stop_arrival < time_limit {
+ 
+        let new_rail_adjusted_cost = rail_adjusted_cost + journey_time_to_next_node + wait_time_this_stop;
+        if is_rail {
+            let rail_adjustment_multiplier = RAIL_MULTIPLIER;
+            let rail_adjusted_journey_time_to_next_node = journey_time_to_next_node / rail_adjustment_multiplier;
+            let rail_adjusted_wait_time_this_stop = wait_time_this_stop / rail_adjustment_multiplier;
+            let new_rail_adjusted_cost = rail_adjusted_cost + rail_adjusted_journey_time_to_next_node + rail_adjusted_wait_time_this_stop;
+        }
+        
+        // using rail adjusted costs to determine if arrives within the time limit
+        if new_rail_adjusted_cost < time_limit {
+        //if time_since_start_next_stop_arrival < time_limit {
             let destination_node = graph_routes[current_node].next_stop_node;
 
             queue.push(PriorityQueueItem {
                 cost: time_since_start_next_stop_arrival,
                 node: destination_node,
+                rail_adjusted_cost: new_rail_adjusted_cost,
             });
 
 

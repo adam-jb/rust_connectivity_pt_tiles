@@ -12,6 +12,7 @@ use common::read_file_funcs::{
     read_files_extra_parallel_inc_node_values,
     read_small_files_serial,
     deserialize_bincoded_file,
+    read_stop_rail_statuses,
 };
 
 
@@ -141,6 +142,9 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         }
     }
     
+    let stop_rail_statuses_input = read_stop_rail_statuses(input.year);
+    let stop_rail_statuses: TiVec<NodeID, bool> = TiVec::from(stop_rail_statuses_input);
+    
     let now = Instant::now();
     let indices = (0..input.start_nodes.len()).collect::<Vec<_>>();
     
@@ -158,6 +162,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
                 &node_values_2d,
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &input.target_destinations,
+                &stop_rail_statuses,
             )
         })
         .collect();

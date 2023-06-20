@@ -5,7 +5,7 @@ use typed_index_collections::TiVec;
 
 use common::floodfill_public_transport_no_scores::floodfill_public_transport_no_scores;
 use common::structs::{Cost, NodeID, NodeRoute, NodeWalk, SecondsPastMidnight, FloodfillOutput};
-use common::read_file_funcs::read_files_parallel_excluding_node_values;
+use common::read_file_funcs::{read_stop_rail_statuses, read_files_parallel_excluding_node_values};
 
 fn main() {
     
@@ -16,7 +16,7 @@ fn main() {
     let graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);
     
     for seconds_travel_time in [10] { //vec![120, 180, 240, 300] {
-        make_and_serialise_nodes_within_n_seconds(Cost(seconds_travel_time), &graph_walk, &graph_routes);
+        make_and_serialise_nodes_within_n_seconds(Cost(seconds_travel_time), &graph_walk, &graph_routes, year);
         println!("Found nearby nodes within {} seconds walk", seconds_travel_time);
     }
 }
@@ -26,11 +26,15 @@ pub fn make_and_serialise_nodes_within_n_seconds(
     seconds_travel_time: Cost,
     graph_walk: &TiVec<NodeID, NodeWalk>,
     graph_routes: &TiVec<NodeID, NodeRoute>,
+    year: i32,
 ) {
     println!("Begun make_and_serialise_nodes");
 
     let indices = (0..graph_walk.len()).collect::<Vec<_>>();
     println!("Number of iters to do: {}", graph_walk.len());
+
+    let stop_rail_statuses_input = read_stop_rail_statuses(year);
+    let stop_rail_statuses: TiVec<NodeID, bool> = TiVec::from(stop_rail_statuses_input);
 
     let results: Vec<FloodfillOutput> = indices
         .par_iter()
@@ -43,6 +47,7 @@ pub fn make_and_serialise_nodes_within_n_seconds(
                 Cost(0),
                 true,
                 seconds_travel_time,
+                &stop_rail_statuses,
             )
         })
         .collect();

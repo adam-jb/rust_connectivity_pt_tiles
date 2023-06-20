@@ -4,12 +4,13 @@ use smallvec::SmallVec;
 use std::cmp::{Ord, PartialEq, PartialOrd};
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::ops::{Add, AddAssign, Sub};
+use std::ops::{Add, AddAssign, Sub, Div};
 use std::fmt::{Debug};
 
 pub const TOP_CLUSTERS_COUNT: usize = 10;
 pub const PURPOSES_COUNT: usize = 6;
 pub const SUBPURPOSES_COUNT: usize = 33;
+pub const RAIL_MULTIPLIER: Cost = Cost(2);
 
 // Serializes a `usize` as a `u32` to save space. Useful when you need `usize` for indexing, and
 // the values don't exceed 2^32.
@@ -88,6 +89,13 @@ impl Add for Cost {
     type Output = Self;
     fn add(self, other: Self) -> Self::Output {
         Cost(self.0 + other.0)
+    }
+}
+
+impl Div for Cost {
+    type Output = Self;
+    fn div(self, other: Self) -> Self::Output {
+        Cost(self.0 / other.0)
     }
 }
 

@@ -20,6 +20,8 @@ fn main() {
 pub fn serialise_files(year: i32) {
     let now = Instant::now();
 
+    serialise_list_bool(year);
+    
     serialise_graph_walk_and_len(year);
     serialise_graph_routes(year);
     serialise_node_values_padding_count(year);
@@ -62,6 +64,23 @@ pub fn serialise_files(year: i32) {
     
     println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
+
+
+pub fn serialise_list_bool(year: i32) {
+        
+    let inpath = format!("data/stop_rail_statuses_{}.json", year);
+    let contents = fs_err::read_to_string(&inpath).unwrap();
+    let input: Vec<i32> = serde_json::from_str(&contents).unwrap();
+    println!("Read from {}", inpath);
+
+    let output: Vec<bool> = input.iter().map(|&num| num != 0).collect();
+
+    let outpath = format!("serialised_data/stop_rail_statuses_{}.bin", year);
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised to {}", outpath);
+}
+
 
 pub fn chunk_pt_graphs(year: i32) {
 
