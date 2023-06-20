@@ -122,6 +122,8 @@ pub fn floodfill_public_transport_purpose_scores(
         }
 
         // Find next PT route if there is one
+        // If want to exclude rail (as per Jack Millar), add nesting like:
+        // if !stop_rail_statuses[current.node] {
         if !walk_only {
             if graph_walk[current.node].has_pt {
                 take_next_pt_route(
