@@ -13,14 +13,6 @@ pub fn initialise_subpurpose_purpose_lookup() -> [usize; SUBPURPOSES_COUNT] {
         read_vec_as_array_usize("subpurpose_to_purpose_integer");
     
     return subpurpose_purpose_lookup;
-    
-    // Below is the old code keeping for ref: Adam 19th June. To delete properly once sure it's all working fine
-    /*
-    return [
-        2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 4, 3, 3, 1, 3, 2, 3, 1, 2, 3, 3, 3, 1,
-        2, 1,
-    ];
-    */
 }
 
 
@@ -33,44 +25,6 @@ pub fn initialise_score_multiplers(mode: &str) -> [Multiplier; SUBPURPOSES_COUNT
         //deserialize_bincoded_file(&contents_filename);
     
     return multipliers_this_mode;
-    
-    // Below is the old code keeping for ref: Adam 19th June. To delete properly once sure it's all working fine
-    /*
-    return [
-        Multiplier(0.000000000000000), // set to 0
-        Multiplier(0.009586382150013575),
-        Multiplier(0.00902817799219063),
-        Multiplier(0.008461272650878338),
-        Multiplier(0.008889733875203568),
-        Multiplier(0.008921736222033676),
-        Multiplier(0.022264233988222335),
-        Multiplier(0.008314147237807904),
-        Multiplier(0.010321099162180719),
-        Multiplier(0.00850878998927169),
-        Multiplier(0.00000000000000), // set to 0
-        Multiplier(0.009256043337142108),
-        Multiplier(0.008338366940103991),
-        Multiplier(0.009181584368558857),
-        Multiplier(0.000000000000000), // set to 0
-        Multiplier(0.009124946989519319),
-        Multiplier(0.008332774189837317),
-        Multiplier(0.046128804773287346),
-        Multiplier(0.009503140563990153),
-        Multiplier(0.01198700845708387),
-        Multiplier(0.009781270599036206),
-        Multiplier(0.00832427047935188),
-        Multiplier(0.008843645925786448),
-        Multiplier(0.008531419360132648),
-        Multiplier(0.009034318952510731),
-        Multiplier(0.008829954505680167),
-        Multiplier(0.011168757794031156),
-        Multiplier(0.017255946829128663),
-        Multiplier(0.008374145360142223),
-        Multiplier(0.008578983146921768),
-        Multiplier(0.008467735739894604),
-        Multiplier(0.012110456385386992),
-    ];
-    */
 }
 
 

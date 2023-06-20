@@ -180,7 +180,7 @@ pub fn deserialize_bincoded_file<T: DeserializeOwned>(filename: &str) -> T {
 
 
 pub fn read_vec_as_array_usize(filename: &str) -> [usize; SUBPURPOSES_COUNT] {
-    let inpath = format!("data/{}.json", filename);
+    let inpath = format!("serialised_data/{}.json", filename);
     let contents = fs_err::read_to_string(&inpath).unwrap();
     let output_vector: Vec<usize> = serde_json::from_str(&contents).unwrap();
     
@@ -192,7 +192,7 @@ pub fn read_vec_as_array_usize(filename: &str) -> [usize; SUBPURPOSES_COUNT] {
 }
 
 pub fn read_vec_as_array_multiplier(filename: &str) -> [Multiplier; SUBPURPOSES_COUNT] {
-    let inpath = format!("data/{}.json", filename);
+    let inpath = format!("serialised_data/{}.json", filename);
     let contents = fs_err::read_to_string(&inpath).unwrap();
     let output_vector: Vec<Multiplier> = serde_json::from_str(&contents).unwrap();
     
