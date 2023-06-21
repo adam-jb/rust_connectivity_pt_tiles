@@ -103,7 +103,7 @@ pub fn floodfill_public_transport_purpose_scores(
             &node_values_2d,
             &subpurpose_purpose_lookup,
             &travel_time_relationships,
-            current.cost.0,
+            current.rail_adjusted_cost.0,
             current.node,
         );
 
@@ -122,8 +122,8 @@ pub fn floodfill_public_transport_purpose_scores(
         }
 
         // Find next PT route if there is one
-        // If want to exclude rail (as per Jack Millar), add nesting like:
-        // if !stop_rail_statuses[current.node] {
+        // If want to exclude rail (as per Jack Millar ask), add nesting as per the line below:
+        //if !stop_rail_statuses[current.node] {
         if !walk_only {
             if graph_walk[current.node].has_pt {
                 take_next_pt_route(
@@ -138,6 +138,7 @@ pub fn floodfill_public_transport_purpose_scores(
                 );
             }
         }
+        //}
         iters += 1;
     }
     
