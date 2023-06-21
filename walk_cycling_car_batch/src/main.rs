@@ -30,8 +30,9 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
         start_time_group = 19;
     }
     
-    if input.trip_start_seconds == SecondsPastMidnight(1) && input.mode == "car" {
-        start_time_group = 1;
+    if input.time_or_distance == "distance" && input.mode == "car" {
+        println!("Distance request received");
+        start_time_group = 1;     // start_time_group of 1 refers to the distance driving graph
     }
     
     println!("start_time_group {} for trip_start_seconds {}", start_time_group, input.trip_start_seconds.0);
@@ -69,7 +70,7 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
         time_costs_turn = [Cost(0), Cost(15), Cost(15), Cost(5)];
         
     // If using the distance driving graph (ie, each edge is in terms of distance in metres, divided by 20, rather than time to cross the edge in seconds)
-    } else if input.mode == "car" && input.trip_start_seconds == SecondsPastMidnight(1) {
+    } else if input.time_or_distance == "distance" && input.mode == "car" {
         time_costs_turn = [Cost(0), Cost(0), Cost(0), Cost(0)];
     
     } else if input.mode == "car" {

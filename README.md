@@ -208,14 +208,14 @@ cargo run --release --bin walk_cycling_car_batch
 
 Example query:
 ```
-wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_times_user_input": [16, 10, 10, 23, 99], "mode": "walk", "destination_nodes": [1,2,3,4,55,6,7,8,9,10], "trip_start_seconds": 28800, "builds_to_remove": []}' \
+wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_times_user_input": [16, 10, 10, 23, 99], "mode": "walk", "destination_nodes": [1,2,3,4,55,6,7,8,9,10], "trip_start_seconds": 28800, "builds_to_remove": [], "time_or_distance": "time"}' \
   --header='Content-Type:application/json' \
   'http://0.0.0.0:7328/floodfill_endpoint/'
 ```
 
 Example query using the distance driving graph: a trip_start_seconds value of 1 and mode of "car" tells the API to use the distance driving graph:
 ```
-wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_times_user_input": [16, 10, 10, 23, 99], "mode": "car", "destination_nodes": [1,2,3,4,55,6,7,8,9,10], "trip_start_seconds": 1, "builds_to_remove": []}' \
+wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_times_user_input": [16, 10, 10, 23, 99], "mode": "car", "destination_nodes": [1,2,3,4,55,6,7,8,9,10], "trip_start_seconds": 1, "builds_to_remove": [], "time_or_distance": "distance"}' \
   --header='Content-Type:application/json' \
   'http://0.0.0.0:7328/floodfill_endpoint/'
 ```

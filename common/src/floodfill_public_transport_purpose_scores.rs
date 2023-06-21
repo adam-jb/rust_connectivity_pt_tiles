@@ -128,17 +128,17 @@ pub fn floodfill_public_transport_purpose_scores(
                 // If want to exclude rail (as per Jack Millar ask), add nesting as per the line below:
                 //if !stop_rail_statuses[current.node] {
 
-                    take_next_pt_route(
-                        &graph_routes,
-                        current.cost,
-                        &mut queue,
-                        time_limit,
-                        trip_start_seconds,
-                        current.node,
-                        current.rail_adjusted_cost,
-                        stop_rail_statuses[current.node],
-                    );
-                    
+                take_next_pt_route(
+                    &graph_routes,
+                    current.cost,
+                    &mut queue,
+                    time_limit,
+                    trip_start_seconds,
+                    current.node,
+                    current.rail_adjusted_cost,
+                    stop_rail_statuses[current.node],
+                );
+
                 //}
             }
         }
@@ -197,12 +197,12 @@ fn take_next_pt_route(
         let time_since_start_next_stop_arrival =
             time_so_far + journey_time_to_next_node + wait_time_this_stop;
  
-        let new_rail_adjusted_cost = rail_adjusted_cost + journey_time_to_next_node + wait_time_this_stop;
+        let mut new_rail_adjusted_cost = rail_adjusted_cost + journey_time_to_next_node + wait_time_this_stop;
         if is_rail {
             let rail_adjustment_multiplier = RAIL_MULTIPLIER;
             let rail_adjusted_journey_time_to_next_node = journey_time_to_next_node / rail_adjustment_multiplier;
             let rail_adjusted_wait_time_this_stop = wait_time_this_stop / rail_adjustment_multiplier;
-            let new_rail_adjusted_cost = rail_adjusted_cost + rail_adjusted_journey_time_to_next_node + rail_adjusted_wait_time_this_stop;
+            new_rail_adjusted_cost = rail_adjusted_cost + rail_adjusted_journey_time_to_next_node + rail_adjusted_wait_time_this_stop;
         }
         
         // using rail adjusted costs to determine if arrives within the time limit
