@@ -3,7 +3,7 @@ use rayon::prelude::*;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-use common::structs::{Cost, NodeID, SubpurposeScore, NodeWalkCyclingCar, WalkCyclingCarUserInputJSON, FloodfillOutputOriginDestinationPair};
+use common::structs::{Cost, NodeID, SubpurposeScore, NodeWalkCyclingCar, WalkCyclingCarUserInputJSON, FloodfillOutputOriginDestinationPair, SecondsPastMidnight};
 use common::floodfill_walk_cycling_car::{floodfill_walk_cycling_car};
 use common::read_file_funcs::read_files_serial_walk_cycling_car;
 use common::floodfill_funcs::get_time_of_day_index;
@@ -28,7 +28,12 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
     }
     if time_of_day_index == 3 {
         start_time_group = 19;
-    }   
+    }
+    
+    if input.trip_start_seconds == SecondsPastMidnight(1) && input.mode == "car" {
+        start_time_group = 1;
+    }
+    
     println!("start_time_group {} for trip_start_seconds {}", start_time_group, input.trip_start_seconds.0);
     
     // Read in files at endpoint rather than in advance as we don't know which mode the user will request
@@ -62,8 +67,15 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
     let time_costs_turn: [Cost; 4];
     if input.mode == "cycling" {
         time_costs_turn = [Cost(0), Cost(15), Cost(15), Cost(5)];
+        
+    // If using the distance driving graph (ie, each edge is in terms of distance in metres, divided by 20, rather than time to cross the edge in seconds)
+    } else if input.mode == "car" && input.trip_start_seconds == SecondsPastMidnight(1) {
+        time_costs_turn = [Cost(0), Cost(0), Cost(0), Cost(0)];
+    
     } else if input.mode == "car" {
         time_costs_turn = [Cost(0), Cost(15), Cost(17), Cost(9)];
+        
+    // walking turn costs
     } else {
         time_costs_turn = [Cost(0), Cost(0), Cost(0), Cost(0)];
     }

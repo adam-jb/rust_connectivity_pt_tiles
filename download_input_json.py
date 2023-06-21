@@ -17,6 +17,16 @@ bucket_name = 'hack-bucket-8204707942'
 bucket = client.bucket(bucket_name)
 
 # Download files from Google Cloud Storage
+for trip_start_hour in [1, 7, 10, 16, 19]:
+    for file in [
+        f'graph_car_{trip_start_hour}.json',
+        f'sparse_node_values_car_{trip_start_hour}.json',
+        f'car_travel_time_relationships_{trip_start_hour}.json',
+    ]:
+        blob = bucket.blob(file)
+        blob.download_to_filename(f"data/{file}")
+    print(f'Downloaded car files for trip_start_hour {trip_start_hour}')
+
 data_files = [
     'travel_time_relationships_10.json',
     'travel_time_relationships_16.json',
@@ -51,15 +61,6 @@ for mode in ['cycling', 'walk']:
         blob = bucket.blob(file)
         blob.download_to_filename(f"data/{file}")
 
-for trip_start_hour in [7, 10, 16, 19]:
-    for file in [
-        f'graph_car_{trip_start_hour}.json',
-        f'sparse_node_values_car_{trip_start_hour}.json',
-        f'car_travel_time_relationships_{trip_start_hour}.json',
-    ]:
-        blob = bucket.blob(file)
-        blob.download_to_filename(f"data/{file}")
-        
         
 ## These files we save directly to serialised_data, as Rust reads then directly without serialising them. 
 ## It does this because they are small files, and .dockerignore prevents files in 'data' folder
