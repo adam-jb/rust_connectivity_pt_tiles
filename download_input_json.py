@@ -4,6 +4,15 @@
 
 import os
 from google.cloud import storage
+import json
+
+def read_json_file(filename, bucket_name='hack-bucket-8204707942'):
+    client = storage.Client()
+    project_id='dft-dst-prt-connectivitymetric'
+    bucket = client.get_bucket(bucket_name)
+    blob = bucket.blob(filename)
+    pickle_in = blob.download_as_string()
+    return json.loads(pickle_in)
 
 YEAR = 2022
 
@@ -15,6 +24,7 @@ os.makedirs('serialised_data', exist_ok=True)
 
 bucket_name = 'hack-bucket-8204707942'
 bucket = client.bucket(bucket_name)
+
 
 # Download files from Google Cloud Storage
 for trip_start_hour in [1, 7, 10, 16, 19]:
@@ -61,15 +71,23 @@ for mode in ['cycling', 'walk']:
         blob = bucket.blob(file)
         blob.download_to_filename(f"data/{file}")
 
-        
+
 ## These files we save directly to serialised_data, as Rust reads then directly without serialising them. 
 ## It does this because they are small files, and .dockerignore prevents files in 'data' folder
 ## from being used
-for mode_simpler in ['bus', 'walk', 'cycling', 'car']:
+for mode_simpler in ['car', 'bus', 'walk', 'cycling']:
     file = f'score_multipliers_{mode_simpler}.json'
     blob = bucket.blob(file)
     blob.download_to_filename(f"serialised_data/{file}")
     
-blob = bucket.blob('subpurpose_to_purpose_integer.json')
-blob.download_to_filename(f"serialised_data/{file}")
+    # checking all valueare above zero: ensures correct file has been moved across
+    multipliers = read_json_file(file)
+    for multiplier in multipliers:
+        if multiplier < 0.00000001:
+            print(f'multiplier: {multiplier} in {file}')
+            raise ValueError("Multiplier is a zero: shouldnt be the case")
 
+
+blob = bucket.blob('subpurpose_to_purpose_integer.json')
+blob.download_to_filename("serialised_data/subpurpose_to_purpose_integer.json")
+print('All files read in')
