@@ -3,7 +3,7 @@ use rayon::prelude::*;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-use common::structs::{Cost, NodeID, SubpurposeScore, NodeWalkCyclingCar, WalkCyclingCarUserInputJSON, FloodfillOutputOriginDestinationPair, SecondsPastMidnight};
+use common::structs::{Cost, NodeID, SubpurposeScore, NodeWalkCyclingCar, WalkCyclingCarUserInputJSON, FloodfillOutputOriginDestinationPair};
 use common::floodfill_walk_cycling_car::{floodfill_walk_cycling_car};
 use common::read_file_funcs::read_files_serial_walk_cycling_car;
 use common::floodfill_funcs::get_time_of_day_index;

@@ -93,7 +93,7 @@ async fn main() -> std::io::Result<()> {
     
 
     let year: i32 = 2022;
-    let seconds_travel_for_destination_clustering = 120;
+    //let seconds_travel_for_destination_clustering = 120;
     
     let (
         travel_time_relationships_7,
