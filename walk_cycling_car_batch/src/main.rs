@@ -35,7 +35,7 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
         start_time_group = 1;     // start_time_group of 1 refers to the distance driving graph
     }
     
-    println!("start_time_group {} for trip_start_seconds {}", start_time_group, input.trip_start_seconds.0);
+    println!("time_of_day_index {} and start_time_group {} for trip_start_seconds {}", time_of_day_index, start_time_group, input.trip_start_seconds.0);
     
     // Read in files at endpoint rather than in advance as we don't know which mode the user will request
     let (travel_time_relationships, node_values_2d, graph) =
