@@ -1,4 +1,5 @@
 
+Code for all rust-side APIs to calculate Connectivity scores and origin-destination (OD) pairs. This is to be queried from a front end or python batch processing.
 
 
 # Contents of services in this repo
