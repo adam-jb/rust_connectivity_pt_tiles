@@ -79,6 +79,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         let mut edges: SmallVec<[EdgeRoute; 4]> = SmallVec::new();
         
         // POSSIBLE IMPROVEMENT: change next_stop_node as separate payload from python code. When this is done won't want to skip first edge as we do here
+        // links to **!!&&$$ marker in connectivity/flask_app_PT/preproc_and_Functions_for_PT_app.py
+        // For now (29th June 2023, Adam) need to skip as first row is empty
         for single_time in timetable.iter().skip(1) {
             edges.push(EdgeRoute {
                 leavetime: SecondsPastMidnight(single_time[0]),
@@ -155,9 +157,19 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
             node_values_2d[NodeID(index_of_nearest_node)].push(subpurpose_value_to_add);
         }
     }
+
+
+    let mut stop_rail_statuses_input = read_stop_rail_statuses(input.year);
+
+    // takes about 8ms to extend with 20_000_000 false values
+    // It had a lenght of all route nodes (just under 2m with July 2022 timetables)
+    // We do this so that when we add new nodes, this isn't out of bounds
+    // 20m + 2m = 22m, which is much more than the current number of nodes (~12m)
+    let false_values = vec![false; 20_000_000];
+    stop_rail_statuses_input.extend(false_values);
     
-    let stop_rail_statuses_input = read_stop_rail_statuses(input.year);
     let stop_rail_statuses: TiVec<NodeID, bool> = TiVec::from(stop_rail_statuses_input);
+
     
     let now = Instant::now();
     let indices = (0..input.start_nodes.len()).collect::<Vec<_>>();
@@ -240,7 +252,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
     assert!(graph_walk_og_len == graph_walk.len());
     assert!(graph_routes_og_len == graph_routes.len());
     assert!(node_values_2d_og_len == node_values_2d.len());
-    
+        
     serde_json::to_string(&results).unwrap()
 }
 

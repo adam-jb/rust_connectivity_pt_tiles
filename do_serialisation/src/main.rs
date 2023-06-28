@@ -20,6 +20,9 @@ fn main() {
 pub fn serialise_files(year: i32) {
     let now = Instant::now();
     
+    serialise_stop_rail_statuses(year);
+    println!("Serialised car files");
+    
     serialise_graph_walk_cycling_car_vector("car_1");
     serialise_graph_walk_cycling_car_vector("car_7");
     serialise_graph_walk_cycling_car_vector("car_10");
@@ -38,8 +41,6 @@ pub fn serialise_files(year: i32) {
     serialise_list_multiplier("car_travel_time_relationships_16");
     serialise_list_multiplier("car_travel_time_relationships_19");
     println!("Serialised car files");
-
-    serialise_list_bool(year);
     
     serialise_graph_walk_and_len(year);
     serialise_graph_routes(year);
@@ -70,7 +71,7 @@ pub fn serialise_files(year: i32) {
 }
 
 
-pub fn serialise_list_bool(year: i32) {
+pub fn serialise_stop_rail_statuses(year: i32) {
         
     let inpath = format!("data/stop_rail_statuses_{}.json", year);
     let contents = fs_err::read_to_string(&inpath).unwrap();
@@ -78,6 +79,10 @@ pub fn serialise_list_bool(year: i32) {
     println!("Read from {}", inpath);
 
     let output: Vec<bool> = input.iter().map(|&num| num != 0).collect();
+    
+    // Do this on read on file rather than at point of serialisation
+    //let false_values = vec![false; 12_000_000];
+    //output.extend(false_values);
 
     let outpath = format!("serialised_data/stop_rail_statuses_{}.bin", year);
     let file = BufWriter::new(File::create(&outpath).unwrap());

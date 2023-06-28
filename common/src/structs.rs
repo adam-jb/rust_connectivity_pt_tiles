@@ -318,4 +318,5 @@ pub struct ServiceChangePayload {
     pub new_build_additions: Vec<Vec<usize>>,    // 0 is value_to_add, 1 is index_of_nearest_node, 2 is subpurpose_ix
     pub target_destinations: Vec<NodeID>,        // Not used; leaving for now as the py api is set up for this
     pub nodes_to_remove_routes_from: Vec<NodeID>,  // to make has_PT False for specified node IDs
+    pub route_nodes_rail: Vec<NodeID>,
 }
