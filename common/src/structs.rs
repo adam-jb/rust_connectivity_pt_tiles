@@ -4,7 +4,7 @@ use smallvec::SmallVec;
 use std::cmp::{Ord, PartialEq, PartialOrd};
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::ops::{Add, AddAssign, Sub, Div};
+use std::ops::{Add, AddAssign, SubAssign, Sub, Div};
 use std::fmt::{Debug};
 
 pub const TOP_CLUSTERS_COUNT: usize = 10;
@@ -133,6 +133,12 @@ impl Score {
 impl AddAssign for Score {
     fn add_assign(&mut self, other: Self) {
         self.0 += other.0;
+    }
+}
+
+impl SubAssign for Score {
+    fn sub_assign(&mut self, other: Self) {
+        self.0 -= other.0;
     }
 }
 

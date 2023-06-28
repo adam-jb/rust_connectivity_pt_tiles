@@ -51,6 +51,10 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
     let mut graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
     let mut graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);
     let mut node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
+    
+    let graph_walk_og_len = graph_walk.len();
+    let graph_routes_og_len = graph_routes.len();
+    let node_values_2d_og_len = node_values_2d.len();
 
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
     
@@ -74,7 +78,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         
         let mut edges: SmallVec<[EdgeRoute; 4]> = SmallVec::new();
         
-        // TODO: change next_stop_node as separate payload from python code. When this is done won't want to skip first edge as we do here
+        // POSSIBLE IMPROVEMENT: change next_stop_node as separate payload from python code. When this is done won't want to skip first edge as we do here
         for single_time in timetable.iter().skip(1) {
             edges.push(EdgeRoute {
                 leavetime: SecondsPastMidnight(single_time[0]),
@@ -82,7 +86,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
             });
         }
         
-        // TODO: change next_stop_node as separate payload from python code 
+        // POSSIBLE IMPROVEMENT: change next_stop_node as separate payload from python code 
         graph_routes.push(NodeRoute{
             next_stop_node: NodeID(timetable[0][0]),
             timetable: edges,
@@ -91,7 +95,11 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
     
     // easiest way to remove route links from the graph: make has_PT False for specified node IDs
     // then floodfill_public_transport_purpose_scores() will act as if those routes aren't there
+    let mut nodes_flipped_to_no_pt: Vec<NodeID> = vec![];
     for node in input.nodes_to_remove_routes_from.iter() {
+        if graph_walk[*node].has_pt == true {
+            nodes_flipped_to_no_pt.push(*node);
+        }
         graph_walk[*node].has_pt = false;
     }
     
@@ -173,6 +181,65 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         })
         .collect();
     println!("Getting destinations and scores took {:?}", now.elapsed());
+    
+    
+    // *********
+    // Reset graph_walk, graph_routes and node_values_2d 
+    // To drop effects of added or removed routes, and new builds
+    // Not needed if we load the data in on every API call, but useful
+    // if we store the data in AppState, which we may do for batch 
+    // processing of changes on a server, as part of the lowest-hanging-fruit-optimiser
+    // *********
+    
+    // pop the nodes added
+    let original_graph_walk_len = graph_walk.len() - input.graph_walk_additions.len();
+    graph_walk.truncate(original_graph_walk_len);
+    
+    let original_graph_routes_len = graph_routes.len() - input.graph_walk_additions.len();
+    graph_routes.truncate(original_graph_routes_len);
+
+    // re-adding any routes which were removed
+    for node_id in nodes_flipped_to_no_pt {
+        graph_walk[node_id].has_pt = true;
+    }
+    
+    // remove connections from existing nodes to new nodes - the same new nodes we deleted in the lines above
+    for i in 0..input.graph_walk_updates_keys.len() {
+        let node = input.graph_walk_updates_keys[i];
+
+        // Possible improvement: modify in-place without clone()
+        let mut edges: SmallVec<[EdgeWalk; 4]> = graph_walk[node].edges.clone();
+        
+        let original_edges_count = edges.len() - input.graph_walk_updates_additions[i].len();
+        edges.truncate(original_edges_count);
+        graph_walk[node].edges = edges;
+    }
+    
+    // remove new nodes from node values
+    let original_node_values_len = node_values_2d.len() - input.graph_walk_additions.len();
+    node_values_2d.truncate(original_node_values_len);
+    
+    // remove subpurpose values from new builds
+    for new_build in &input.new_build_additions {
+        let value_to_add = new_build[0] as f64;
+        let index_of_nearest_node = new_build[1];
+        let subpurpose_ix = new_build[2];
+        
+        // subtract node value from current score if one can be found for this node for the new build's subpurpose
+        let mut loop_ix = 0;
+        let values_vec_this_node = node_values_2d[NodeID(index_of_nearest_node)].to_vec();
+        for subpurpose_score_pair in values_vec_this_node.iter() {
+   
+            if subpurpose_ix == subpurpose_score_pair.subpurpose_ix {
+                node_values_2d[NodeID(index_of_nearest_node)][loop_ix].subpurpose_score -= Score(value_to_add);
+            }
+            loop_ix += 1;
+        }
+    }
+    
+    assert!(graph_walk_og_len == graph_walk.len());
+    assert!(graph_routes_og_len == graph_routes.len());
+    assert!(node_values_2d_og_len == node_values_2d.len());
     
     serde_json::to_string(&results).unwrap()
 }

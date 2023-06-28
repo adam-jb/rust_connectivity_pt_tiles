@@ -50,6 +50,14 @@ wget -O- --post-data='{"start_nodes": [4380647, 4183046, 5420336], "init_travel_
   'http://0.0.0.0:7328/floodfill_pt/'
 ```
 
+And with some new routes added:
+```
+wget -O- --post-data='{"start_nodes": [8522168, 3938703, 9643896, 9082987, 3218374, 3432456, 5085784, 1940916, 2934474, 2956552], "init_travel_times": [19, 22, 9, 18, 2, 54, 15, 18, 51, 32], "trip_start_seconds": 21600, "graph_walk_additions": [[[1, 0], [1, 2170979]], [[1, 0], [1, 2170955]], [[1, 0], [1, 2169635]], [[0, 0], [1, 2170939]]], "graph_routes_additions": [[[12065676, 0], [25200, 600], [32400, 600]], [[12065677, 0], [25800, 600], [33000, 600]], [[12065678, 0], [26400, 600], [33600, 600]], [[0, 0]]], "graph_walk_updates_keys": [2170979, 2170955, 2169635, 2170939], "graph_walk_updates_additions": [[[1, 12065675]], [[1, 12065676]], [[1, 12065677]], [[1, 12065678]]], "year": 2022, "new_build_additions": [], "target_destinations": [], "nodes_to_remove_routes_from": [1,2,3,4,5,6]}' \
+  --header='Content-Type:application/json' \
+  'http://0.0.0.0:7328/floodfill_pt/'
+```
+
+
 
 ### Deploying Service Change API with Docker
 
