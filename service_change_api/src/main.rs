@@ -89,6 +89,12 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         });
     }
     
+    // easiest way to remove route links from the graph: make has_PT False for specified node IDs
+    // then floodfill_public_transport_purpose_scores() will act as if those routes aren't there
+    for node in input.nodes_to_remove_routes_from.iter() {
+        graph_walk[*node].has_pt = false;
+    }
+    
     // Adding walking connections from existing nodes to new route nodes
     for i in 0..input.graph_walk_updates_keys.len() {
         let node = input.graph_walk_updates_keys[i];
