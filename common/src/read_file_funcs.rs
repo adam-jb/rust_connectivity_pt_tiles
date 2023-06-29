@@ -37,6 +37,12 @@ pub fn read_stop_rail_statuses(year: i32) -> Vec<bool> {
     stop_rail_statuses
 }
 
+pub fn read_car_nodes_is_closest_to_pt() -> Vec<bool> {
+    let car_nodes_is_closest_to_pt: Vec<bool> =
+        deserialize_bincoded_file(&format!("car_nodes_is_closest_to_pt"));
+    car_nodes_is_closest_to_pt
+}
+
 pub fn read_sparse_node_values_2d_serial(year: i32) -> Vec<Vec<SubpurposeScore>> {
     let now = Instant::now();
     let sparse_node_values_2d: Vec<Vec<SubpurposeScore>> =

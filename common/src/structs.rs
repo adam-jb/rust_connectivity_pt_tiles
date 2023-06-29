@@ -99,6 +99,12 @@ impl Div for Cost {
     }
 }
 
+impl SubAssign for Cost {
+    fn sub_assign(&mut self, other: Self) {
+        self.0 -= other.0;
+    }
+}
+
 // Allow Cost to be multiplied by SecondsPastMidnight, or compared against, or added
 impl SecondsPastMidnight {
     pub fn add(&self, other: &Cost) -> SecondsPastMidnight {
@@ -242,13 +248,11 @@ pub struct DestinationReached {
     pub arrived_at_node_by_pt: u8, // 0 for walk; 1 for PT
 }
 
-/*
 #[derive(Serialize, Deserialize, Clone, Copy)]
-pub struct OriginDestinationPair {
-    pub node: NodeID,
-    pub cost: Cost,
+pub struct PreviousIterAndCurrentNodeId {
+    pub previous_iter: usize,
+    pub current_node_id: NodeID,
 }
-*/
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct FloodfillOutput {
@@ -263,8 +267,9 @@ pub struct FloodfillOutputOriginDestinationPair {
     pub start_node_id: NodeID,
     pub seconds_walk_to_start_node: Cost,
     pub purpose_scores: [Score; PURPOSES_COUNT],
-    pub od_pairs_found: Vec<[usize; 2]>, // pub od_pairs_found: Vec<OriginDestinationPair>,
+    pub od_pairs_found: Vec<[usize; 2]>,
     pub iters: usize,
+    pub pt_nodes_reached_sequence: Vec<NodeID>,  // sequence of PT nodes reached en route to target_node, where specified
 }
 
 #[derive(Serialize)]
@@ -303,6 +308,10 @@ pub struct WalkCyclingCarUserInputJSON {
     pub mode: String,
     pub builds_to_remove: Vec<Vec<usize>>,    // 0 is index_of_nearest_node, 1 is subpurpose_ix
     pub time_or_distance: String,            // 'time' or 'distance'
+    // The following are for finding the optimal PT routes for the route optimisation process
+    pub track_pt_nodes_reached: usize,      // 0 for false, 1 for true
+    pub seconds_reclaimed_when_pt_stop_reached: usize,
+    pub target_node: NodeID,                            // floodfill ends early if this is reached
 }
 
 #[derive(Deserialize, Debug)]

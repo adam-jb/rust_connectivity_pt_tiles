@@ -20,8 +20,8 @@ fn main() {
 pub fn serialise_files(year: i32) {
     let now = Instant::now();
     
+    serialise_car_nodes_is_closest_to_pt();
     serialise_stop_rail_statuses(year);
-    println!("Serialised car files");
     
     serialise_graph_walk_cycling_car_vector("car_1");
     serialise_graph_walk_cycling_car_vector("car_7");
@@ -71,6 +71,21 @@ pub fn serialise_files(year: i32) {
 }
 
 
+pub fn serialise_car_nodes_is_closest_to_pt() {
+        
+    let inpath = format!("data/car_nodes_is_closest_to_pt.json");
+    let contents = fs_err::read_to_string(&inpath).unwrap();
+    let input: Vec<i32> = serde_json::from_str(&contents).unwrap();
+    println!("Read from {}", inpath);
+
+    let output: Vec<bool> = input.iter().map(|&num| num != 0).collect();
+
+    let outpath = format!("serialised_data/car_nodes_is_closest_to_pt.bin");
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised to {}", outpath);
+}
+
 pub fn serialise_stop_rail_statuses(year: i32) {
         
     let inpath = format!("data/stop_rail_statuses_{}.json", year);
@@ -79,10 +94,6 @@ pub fn serialise_stop_rail_statuses(year: i32) {
     println!("Read from {}", inpath);
 
     let output: Vec<bool> = input.iter().map(|&num| num != 0).collect();
-    
-    // Do this on read on file rather than at point of serialisation
-    //let false_values = vec![false; 12_000_000];
-    //output.extend(false_values);
 
     let outpath = format!("serialised_data/stop_rail_statuses_{}.bin", year);
     let file = BufWriter::new(File::create(&outpath).unwrap());

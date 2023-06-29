@@ -5,7 +5,7 @@ use typed_index_collections::TiVec;
 
 use common::structs::{Cost, NodeID, SubpurposeScore, NodeWalkCyclingCar, WalkCyclingCarUserInputJSON, FloodfillOutputOriginDestinationPair};
 use common::floodfill_walk_cycling_car::{floodfill_walk_cycling_car};
-use common::read_file_funcs::read_files_serial_walk_cycling_car;
+use common::read_file_funcs::{read_files_serial_walk_cycling_car, read_car_nodes_is_closest_to_pt};
 use common::floodfill_funcs::get_time_of_day_index;
 
 #[get("/")]
@@ -40,6 +40,9 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
     // Read in files at endpoint rather than in advance as we don't know which mode the user will request
     let (travel_time_relationships, node_values_2d, graph) =
         read_files_serial_walk_cycling_car(&input.mode, start_time_group);
+    
+    let car_nodes_is_closest_to_pt = read_car_nodes_is_closest_to_pt();
+    let car_nodes_is_closest_to_pt: TiVec<NodeID, bool> = TiVec::from(car_nodes_is_closest_to_pt);
     
     let graph: TiVec<NodeID, NodeWalkCyclingCar> = TiVec::from(graph);
     let mut node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
@@ -83,6 +86,12 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
     
     let now = Instant::now();
     
+    // convert 0/1 format to binary
+    let mut track_pt_nodes_reached = false;
+    if *&input.track_pt_nodes_reached == 1 {
+        track_pt_nodes_reached = true;
+    }
+    
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
     
     let results: Vec<FloodfillOutputOriginDestinationPair> = indices
@@ -98,6 +107,10 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
                 &input.destination_nodes,
                 Cost(3600),
                 &input.mode,
+                track_pt_nodes_reached,
+                *&input.seconds_reclaimed_when_pt_stop_reached,
+                *&input.target_node,
+                &car_nodes_is_closest_to_pt,
             )
         })
         .collect(); 

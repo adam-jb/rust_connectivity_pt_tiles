@@ -77,12 +77,14 @@ pub fn floodfill_public_transport_purpose_scores(
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= time_limit {
         let purpose_scores = [Score(0.0); PURPOSES_COUNT];
+        let pt_nodes_reached_sequence: Vec<NodeID> = vec![];  // used when tracing PT nodes reached via driving only
         return FloodfillOutputOriginDestinationPair {
             start_node_id,
             seconds_walk_to_start_node,
             purpose_scores,
             od_pairs_found,
             iters,
+            pt_nodes_reached_sequence,
         };
     }
 
@@ -152,12 +154,14 @@ pub fn floodfill_public_transport_purpose_scores(
         &score_multipliers,
     );
 
+    let pt_nodes_reached_sequence: Vec<NodeID> = vec![];
     FloodfillOutputOriginDestinationPair {
         start_node_id,
         seconds_walk_to_start_node,
         purpose_scores,
         od_pairs_found,
         iters,
+        pt_nodes_reached_sequence
     }
 }
 

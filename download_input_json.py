@@ -57,7 +57,8 @@ for file in [
     f"node_values_padding_row_count_6am_{YEAR}.json",
     f"routes_info_{YEAR}.json",
     f'rust_nodes_long_lat_{YEAR}.json',
-    f'stop_rail_statuses_{YEAR}.json'
+    f'stop_rail_statuses_{YEAR}.json',
+    f'car_nodes_is_closest_to_pt.json',
 ]:
     blob = bucket.blob(file)
     blob.download_to_filename(f"data/{file}")
