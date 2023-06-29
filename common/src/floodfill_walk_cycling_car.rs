@@ -85,12 +85,14 @@ pub fn floodfill_walk_cycling_car(
         current_node_id: start_node_id,
         time_travelled: Cost(0),
     });
+                
+    // These are only populated if seconds_reclaimed_when_pt_stop_reached is true; otherwise they are returned to the user as empty
+    let mut nodes_reached_sequence: Vec<NodeID> = vec![];
+    let mut nodes_reached_time_travelled: Vec<Cost> = vec![];
 
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= Cost(3600) {
         let purpose_scores = [Score(0.0); PURPOSES_COUNT];
-        let nodes_reached_sequence: Vec<NodeID> = vec![];
-        let nodes_reached_time_travelled: Vec<Cost> = vec![];
         return
             FloodfillOutputOriginDestinationPair{
                 start_node_id,
@@ -117,8 +119,6 @@ pub fn floodfill_walk_cycling_car(
             if current.node == target_node {
                 
                 // Work through the sequence of pt nodes reached, creating a vector of these
-                let mut nodes_reached_sequence: Vec<NodeID> = vec![];
-                let mut nodes_reached_time_travelled: Vec<Cost> = vec![];
                 let mut previous_iter = current.previous_node_reached_iter;
                 
                 while previous_iter > 0 {
@@ -127,6 +127,7 @@ pub fn floodfill_walk_cycling_car(
                     let next_node_time_travelled = previous_iters_and_current_node_ids[previous_iter].time_travelled;
                     nodes_reached_sequence.push(next_node_id_in_seq);
                     nodes_reached_time_travelled.push(next_node_time_travelled);
+                    previous_iter = previous_iters_and_current_node_ids[previous_iter].previous_iter;          
                     
                     //println!("previous_iter: {:?}", previous_iter);
                     //println!("next_node_id_in_seq: {:?}", next_node_id_in_seq);
@@ -185,6 +186,10 @@ pub fn floodfill_walk_cycling_car(
                     current_node_id: edge.to,
                     time_travelled: new_cost,
                 });
+                
+                //if iters % 10_000 == 0 {
+                //    println!("new_cost: {:?}", new_cost);
+                //}
             }
         }
         
@@ -216,11 +221,7 @@ pub fn floodfill_walk_cycling_car(
         &subpurpose_purpose_lookup,
         &score_multipliers,
     );
-    
-    // if target_node hasn't been found don't record the sequence
-    let nodes_reached_sequence: Vec<NodeID> = vec![];
-    let nodes_reached_time_travelled: Vec<Cost> = vec![];
-                
+                    
     FloodfillOutputOriginDestinationPair{
         start_node_id,
         seconds_walk_to_start_node,
