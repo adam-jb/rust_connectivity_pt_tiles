@@ -83,12 +83,14 @@ pub fn floodfill_walk_cycling_car(
     previous_iters_and_current_node_ids.push(PreviousIterAndCurrentNodeId{
         previous_iter: 0,
         current_node_id: start_node_id,
+        time_travelled: Cost(0),
     });
 
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= Cost(3600) {
         let purpose_scores = [Score(0.0); PURPOSES_COUNT];
-        let pt_nodes_reached_sequence: Vec<NodeID> = vec![];
+        let nodes_reached_sequence: Vec<NodeID> = vec![];
+        let nodes_reached_time_travelled: Vec<Cost> = vec![];
         return
             FloodfillOutputOriginDestinationPair{
                 start_node_id,
@@ -96,7 +98,9 @@ pub fn floodfill_walk_cycling_car(
                 purpose_scores,
                 od_pairs_found,
                 iters,
-                pt_nodes_reached_sequence,  // no pt nodes found en route as simulation never begins
+                nodes_reached_sequence, 
+                nodes_reached_time_travelled,
+                final_cost: seconds_walk_to_start_node,
         };
     }
                  
@@ -113,27 +117,22 @@ pub fn floodfill_walk_cycling_car(
             if current.node == target_node {
                 
                 // Work through the sequence of pt nodes reached, creating a vector of these
-                let mut pt_nodes_reached_sequence: Vec<NodeID> = vec![];
+                let mut nodes_reached_sequence: Vec<NodeID> = vec![];
+                let mut nodes_reached_time_travelled: Vec<Cost> = vec![];
                 let mut previous_iter = current.previous_node_reached_iter;
                 
                 while previous_iter > 0 {
-                    //println!("previous_iter: {:?}", previous_iter);
-                    
+                
                     let next_node_id_in_seq = previous_iters_and_current_node_ids[previous_iter].current_node_id;
-                    pt_nodes_reached_sequence.push(next_node_id_in_seq);
-                    previous_iter = previous_iters_and_current_node_ids[previous_iter].previous_iter;
+                    let next_node_time_travelled = previous_iters_and_current_node_ids[previous_iter].time_travelled;
+                    nodes_reached_sequence.push(next_node_id_in_seq);
+                    nodes_reached_time_travelled.push(next_node_time_travelled);
                     
-                    /*
-                    // For debug: bear in mind this is the sequence of PT stops passed through, so the nodes
-                    // are unlikely to be adjacent
-                    println!("next_node_id_in_seq: {:?}", next_node_id_in_seq);
-                    for edge in &graph_walk[next_node_id_in_seq].edges {
-                        println!("One next edge {:?}", edge.to);
-                    }
-                    */
-                    
+                    //println!("previous_iter: {:?}", previous_iter);
+                    //println!("next_node_id_in_seq: {:?}", next_node_id_in_seq);
+                    //println!("time_travelled: {:?}", previous_iters_and_current_node_ids[previous_iter].time_travelled);
                 }
-                println!("previous_iter after while loop ends: {:?}", previous_iter);
+                //println!("previous_iter after while loop ends: {:?}", previous_iter);
                 
                 let purpose_scores = calculate_purpose_scores_from_subpurpose_scores(
                     &subpurpose_scores,
@@ -147,7 +146,9 @@ pub fn floodfill_walk_cycling_car(
                     purpose_scores,
                     od_pairs_found,
                     iters,
-                    pt_nodes_reached_sequence,
+                    nodes_reached_sequence,
+                    nodes_reached_time_travelled,
+                    final_cost: current.cost,
                 }
             }
         }
@@ -182,7 +183,8 @@ pub fn floodfill_walk_cycling_car(
                 previous_iters_and_current_node_ids.push(PreviousIterAndCurrentNodeId{
                     previous_iter: iters,
                     current_node_id: edge.to,
-                })
+                    time_travelled: new_cost,
+                });
             }
         }
         
@@ -216,15 +218,18 @@ pub fn floodfill_walk_cycling_car(
     );
     
     // if target_node hasn't been found don't record the sequence
-    let pt_nodes_reached_sequence: Vec<NodeID> = vec![];
-    
+    let nodes_reached_sequence: Vec<NodeID> = vec![];
+    let nodes_reached_time_travelled: Vec<Cost> = vec![];
+                
     FloodfillOutputOriginDestinationPair{
         start_node_id,
         seconds_walk_to_start_node,
         purpose_scores,
         od_pairs_found,
         iters,
-        pt_nodes_reached_sequence,
+        nodes_reached_sequence,
+        nodes_reached_time_travelled,
+        final_cost: time_limit_seconds,
     }
 
 }

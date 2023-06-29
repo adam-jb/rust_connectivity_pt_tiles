@@ -5,16 +5,17 @@ use std::sync::Mutex;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
+use common::floodfill_funcs::get_time_of_day_index;
+use common::floodfill_public_transport_no_scores::floodfill_public_transport_no_scores;
 use common::read_file_funcs::{
     deserialize_bincoded_file, read_files_parallel_excluding_node_values,
     read_rust_node_longlat_lookup_serial, read_small_files_serial,
-    read_sparse_node_values_2d_serial, read_stop_rail_statuses, 
+    read_sparse_node_values_2d_serial, read_stop_rail_statuses,
 };
 use common::structs::{
-    Cost, Multiplier, NodeID, NodeRoute, NodeWalk, Score, SubpurposeScore, UserInputJSON, PURPOSES_COUNT,
+    Cost, Multiplier, NodeID, NodeRoute, NodeWalk, Score, SubpurposeScore, UserInputJSON,
+    PURPOSES_COUNT,
 };
-use common::floodfill_public_transport_no_scores::floodfill_public_transport_no_scores;
-use common::floodfill_funcs::get_time_of_day_index;
 use get_all_scores_links_and_key_destinations::get_all_scores_links_and_key_destinations;
 
 mod get_all_scores_links_and_key_destinations;
@@ -29,7 +30,7 @@ struct AppState {
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
     rust_node_longlat_lookup: TiVec<NodeID, [f64; 2]>,
     route_info: TiVec<NodeID, HashMap<String, String>>,
-    mutex_sparse_node_values_contributed: Mutex<TiVec<NodeID, [Score;PURPOSES_COUNT]>>,
+    mutex_sparse_node_values_contributed: Mutex<TiVec<NodeID, [Score; PURPOSES_COUNT]>>,
     stop_rail_statuses: TiVec<NodeID, bool>,
 }
 
@@ -62,7 +63,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         &data.stop_rail_statuses,
     );
     println!("Floodfill in {:?}", now.elapsed());
-    
+
     let now = Instant::now();
     let results = get_all_scores_links_and_key_destinations(
         &floodfill_output,
@@ -86,15 +87,13 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     env_logger::init();
-    
+
     let path = env::current_dir()?;
     println!("The current directory is {}", path.display());
 
-    
-
     let year: i32 = 2022;
     //let seconds_travel_for_destination_clustering = 120;
-    
+
     let (
         travel_time_relationships_7,
         travel_time_relationships_10,
@@ -115,9 +114,10 @@ async fn main() -> std::io::Result<()> {
     let (graph_walk, graph_pt) = read_files_parallel_excluding_node_values(year);
     let node_values_2d = read_sparse_node_values_2d_serial(year);
     let rust_node_longlat_lookup = read_rust_node_longlat_lookup_serial();
-    
-    let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> = deserialize_bincoded_file("nodes_to_neighbouring_nodes");
-    
+
+    let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> =
+        deserialize_bincoded_file("nodes_to_neighbouring_nodes");
+
     /*
     let nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> = deserialize_bincoded_file(
         format!(
@@ -151,7 +151,7 @@ async fn main() -> std::io::Result<()> {
 
     let stop_rail_statuses_input = read_stop_rail_statuses(year);
     let stop_rail_statuses: TiVec<NodeID, bool> = TiVec::from(stop_rail_statuses_input);
-    
+
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
         nodes_to_neighbouring_nodes,

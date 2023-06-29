@@ -1,13 +1,13 @@
 use common::structs::{
-    DestinationReached, PlanningToolOutput, FloodfillOutput, Multiplier, NodeID, NodeScore,
-    Score, SubpurposeScore, TOP_CLUSTERS_COUNT, PURPOSES_COUNT,
+    DestinationReached, FloodfillOutput, Multiplier, NodeID, NodeScore, PlanningToolOutput, Score,
+    SubpurposeScore, PURPOSES_COUNT, TOP_CLUSTERS_COUNT,
 };
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-use common::floodfill_funcs::{initialise_subpurpose_purpose_lookup, initialise_score_multiplers};
+use common::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup};
 
 pub fn get_all_scores_links_and_key_destinations(
     floodfill_output: &FloodfillOutput,
@@ -18,10 +18,9 @@ pub fn get_all_scores_links_and_key_destinations(
     route_info: &TiVec<NodeID, HashMap<String, String>>,
     mutex_sparse_node_values_contributed: &Mutex<TiVec<NodeID, [Score; PURPOSES_COUNT]>>,
 ) -> PlanningToolOutput {
-    
     let subpurpose_purpose_lookup = initialise_subpurpose_purpose_lookup();
     let score_multiplers = initialise_score_multiplers("bus");
-    
+
     let start = floodfill_output.start_node_id;
     let seconds_walk_to_start_node = floodfill_output.seconds_walk_to_start_node;
     let destinations_reached = &floodfill_output.destinations_reached;
@@ -48,11 +47,11 @@ pub fn get_all_scores_links_and_key_destinations(
             let multiplier = travel_time_relationships[vec_start_pos_this_purpose + (cost.0)];
             let score_to_add = subpurpose_score.multiply(multiplier);
             let purpose_ix = subpurpose_purpose_lookup[*subpurpose_ix];
-            
+
             // Factor in relative importance of each subpurpose
             let purpose_multiplier = score_multiplers[*subpurpose_ix];
             let purpose_score_to_add = score_to_add.multiply(purpose_multiplier);
-            
+
             purpose_scores_this_node[purpose_ix] += purpose_score_to_add;
         }
 
@@ -64,8 +63,7 @@ pub fn get_all_scores_links_and_key_destinations(
         "Getting destinations purpose_scores_this_node took {:?}",
         now.elapsed()
     );
-    
-    
+
     // ****** Overall scores obtained ******
 
     // ******* Get each link contributions to scores: tells us the relative importance of each link *******
@@ -155,7 +153,7 @@ pub fn get_all_scores_links_and_key_destinations(
     let now = Instant::now();
 
     // Vec of list of NodeIDs, for where new node is close to 1+ top nodes
-    let mut near_nodes_to_top_node: [HashMap<NodeID, Vec<NodeID>>;PURPOSES_COUNT] = [
+    let mut near_nodes_to_top_node: [HashMap<NodeID, Vec<NodeID>>; PURPOSES_COUNT] = [
         HashMap::new(),
         HashMap::new(),
         HashMap::new(),

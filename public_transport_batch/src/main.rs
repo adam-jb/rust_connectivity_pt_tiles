@@ -3,15 +3,16 @@ use rayon::prelude::*;
 use std::time::Instant;
 use typed_index_collections::TiVec;
 
-use common::read_file_funcs::{
-    read_files_parallel_excluding_node_values,
-    read_small_files_serial,
-    read_sparse_node_values_2d_serial,
-    read_stop_rail_statuses,
-};
-use common::structs::{Cost, NodeID, Multiplier, NodeWalk, NodeRoute, SubpurposeScore, FloodfillOutputOriginDestinationPair, OriginDestinationUserInputJSON};
-use common::floodfill_public_transport_purpose_scores::floodfill_public_transport_purpose_scores;
 use common::floodfill_funcs::get_time_of_day_index;
+use common::floodfill_public_transport_purpose_scores::floodfill_public_transport_purpose_scores;
+use common::read_file_funcs::{
+    read_files_parallel_excluding_node_values, read_small_files_serial,
+    read_sparse_node_values_2d_serial, read_stop_rail_statuses,
+};
+use common::structs::{
+    Cost, FloodfillOutputOriginDestinationPair, Multiplier, NodeID, NodeRoute, NodeWalk,
+    OriginDestinationUserInputJSON, SubpurposeScore,
+};
 
 struct AppState {
     travel_time_relationships_all: Vec<Vec<Multiplier>>,
@@ -27,8 +28,10 @@ async fn index() -> String {
 }
 
 #[post("/floodfill_pt/")]
-async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<OriginDestinationUserInputJSON>) -> String {
-    
+async fn floodfill_pt(
+    data: web::Data<AppState>,
+    input: web::Json<OriginDestinationUserInputJSON>,
+) -> String {
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 
     println!(
@@ -39,7 +42,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<OriginDestinat
 
     let now = Instant::now();
     let indices = (0..input.start_nodes.len()).collect::<Vec<_>>();
-    
+
     let results: Vec<FloodfillOutputOriginDestinationPair> = indices
         .par_iter()
         .map(|i| {
@@ -58,7 +61,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<OriginDestinat
             )
         })
         .collect();
-    
+
     println!("Floodfill in {:?}", now.elapsed());
     println!("results len {}", results.len());
     serde_json::to_string(&results).unwrap()
@@ -88,11 +91,11 @@ async fn main() -> std::io::Result<()> {
 
     let (graph_walk, graph_routes) = read_files_parallel_excluding_node_values(year);
     let node_values_2d = read_sparse_node_values_2d_serial(year);
-    
+
     let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
     let graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);
     let node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
-    
+
     let stop_rail_statuses_input = read_stop_rail_statuses(year);
     let stop_rail_statuses: TiVec<NodeID, bool> = TiVec::from(stop_rail_statuses_input);
 

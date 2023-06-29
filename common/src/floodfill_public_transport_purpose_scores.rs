@@ -73,18 +73,22 @@ pub fn floodfill_public_transport_purpose_scores(
     let score_multipliers = initialise_score_multiplers("bus");
     let mut nodes_visited: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();
     let mut od_pairs_found: Vec<[usize;2]> = vec![];
+    
+    let nodes_reached_sequence: Vec<NodeID> = vec![];  // used when tracing PT nodes reached via driving only
+    let nodes_reached_time_travelled: Vec<Cost> = vec![];
 
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= time_limit {
         let purpose_scores = [Score(0.0); PURPOSES_COUNT];
-        let pt_nodes_reached_sequence: Vec<NodeID> = vec![];  // used when tracing PT nodes reached via driving only
         return FloodfillOutputOriginDestinationPair {
             start_node_id,
             seconds_walk_to_start_node,
             purpose_scores,
             od_pairs_found,
             iters,
-            pt_nodes_reached_sequence,
+            nodes_reached_sequence,
+            nodes_reached_time_travelled,
+            final_cost: seconds_walk_to_start_node,
         };
     }
 
@@ -153,15 +157,16 @@ pub fn floodfill_public_transport_purpose_scores(
         &subpurpose_purpose_lookup,
         &score_multipliers,
     );
-
-    let pt_nodes_reached_sequence: Vec<NodeID> = vec![];
+    
     FloodfillOutputOriginDestinationPair {
         start_node_id,
         seconds_walk_to_start_node,
         purpose_scores,
         od_pairs_found,
         iters,
-        pt_nodes_reached_sequence
+        nodes_reached_sequence,
+        nodes_reached_time_travelled,
+        final_cost: time_limit,
     }
 }
 

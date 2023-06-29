@@ -4,20 +4,28 @@ use std::io::BufWriter;
 use typed_index_collections::TiVec;
 
 use common::floodfill_public_transport_no_scores::floodfill_public_transport_no_scores;
-use common::structs::{Cost, NodeID, NodeRoute, NodeWalk, SecondsPastMidnight, FloodfillOutput};
-use common::read_file_funcs::{read_stop_rail_statuses, read_files_parallel_excluding_node_values};
+use common::read_file_funcs::{read_files_parallel_excluding_node_values, read_stop_rail_statuses};
+use common::structs::{Cost, FloodfillOutput, NodeID, NodeRoute, NodeWalk, SecondsPastMidnight};
 
 fn main() {
-    
     let year = 2022;
     let (graph_walk, graph_routes) = read_files_parallel_excluding_node_values(year);
-    
+
     let graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
     let graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);
-    
-    for seconds_travel_time in [10] { //vec![120, 180, 240, 300] {
-        make_and_serialise_nodes_within_n_seconds(Cost(seconds_travel_time), &graph_walk, &graph_routes, year);
-        println!("Found nearby nodes within {} seconds walk", seconds_travel_time);
+
+    for seconds_travel_time in [10] {
+        //vec![120, 180, 240, 300] {
+        make_and_serialise_nodes_within_n_seconds(
+            Cost(seconds_travel_time),
+            &graph_walk,
+            &graph_routes,
+            year,
+        );
+        println!(
+            "Found nearby nodes within {} seconds walk",
+            seconds_travel_time
+        );
     }
 }
 
@@ -52,7 +60,7 @@ pub fn make_and_serialise_nodes_within_n_seconds(
         })
         .collect();
     println!("Floodfill done for all nodes in graph_walk");
-    
+
     // write the neighbouring nodes to a vector
     let mut nodes_to_neighbouring_nodes: Vec<Vec<NodeID>> = vec![vec![]; graph_walk.len()];
     for res in results {
@@ -71,5 +79,3 @@ pub fn make_and_serialise_nodes_within_n_seconds(
     bincode::serialize_into(file, &nodes_to_neighbouring_nodes).unwrap();
     println!("Serialised {}", outpath);
 }
-
-

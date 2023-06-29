@@ -231,7 +231,7 @@ wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_t
 
 With a target node. An example of the payload used to find the optimal routes:
 ```
-wget -O- --post-data='{"start_nodes_user_input": [1], "init_travel_times_user_input": [0], "mode": "car", "destination_nodes": [], "trip_start_seconds": 1, "builds_to_remove": [], "time_or_distance": "distance", "track_pt_nodes_reached":1, "seconds_reclaimed_when_pt_stop_reached": 20, "target_node": 5}' \
+wget -O- --post-data='{"start_nodes_user_input": [1], "init_travel_times_user_input": [0], "mode": "car", "destination_nodes": [], "trip_start_seconds": 1, "builds_to_remove": [], "time_or_distance": "distance", "track_pt_nodes_reached":1, "seconds_reclaimed_when_pt_stop_reached": 3, "target_node": 5}' \
   --header='Content-Type:application/json' \
   'http://0.0.0.0:7328/floodfill_endpoint/'
 ```

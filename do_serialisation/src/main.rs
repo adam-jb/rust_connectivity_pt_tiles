@@ -5,12 +5,11 @@ use std::io::{BufReader, BufWriter};
 use std::path::Path;
 use std::time::Instant;
 
-use common::structs::{
-    Cost, EdgeRoute, EdgeWalk, Multiplier, NodeID, LinkID, Angle, NodeRoute, NodeWalk,NodeWalkCyclingCar, Score, SecondsPastMidnight,
-    SubpurposeScore, EdgeWalkCyclingCar,
-};
 use common::read_file_funcs::{deserialize_bincoded_file, read_files_parallel_inc_node_values};
-
+use common::structs::{
+    Angle, Cost, EdgeRoute, EdgeWalk, EdgeWalkCyclingCar, LinkID, Multiplier, NodeID, NodeRoute,
+    NodeWalk, NodeWalkCyclingCar, Score, SecondsPastMidnight, SubpurposeScore,
+};
 
 // All serialisation you want to do should go here
 fn main() {
@@ -19,29 +18,29 @@ fn main() {
 
 pub fn serialise_files(year: i32) {
     let now = Instant::now();
-    
+
     serialise_car_nodes_is_closest_to_pt();
     serialise_stop_rail_statuses(year);
-    
+
     serialise_graph_walk_cycling_car_vector("car_1");
     serialise_graph_walk_cycling_car_vector("car_7");
     serialise_graph_walk_cycling_car_vector("car_10");
     serialise_graph_walk_cycling_car_vector("car_16");
     serialise_graph_walk_cycling_car_vector("car_19");
-    
+
     serialise_sparse_node_values_2d("sparse_node_values_car_1");
     serialise_sparse_node_values_2d("sparse_node_values_car_7");
     serialise_sparse_node_values_2d("sparse_node_values_car_10");
     serialise_sparse_node_values_2d("sparse_node_values_car_16");
     serialise_sparse_node_values_2d("sparse_node_values_car_19");
-    
+
     serialise_list_multiplier("car_travel_time_relationships_1");
     serialise_list_multiplier("car_travel_time_relationships_7");
     serialise_list_multiplier("car_travel_time_relationships_10");
     serialise_list_multiplier("car_travel_time_relationships_16");
     serialise_list_multiplier("car_travel_time_relationships_19");
     println!("Serialised car files");
-    
+
     serialise_graph_walk_and_len(year);
     serialise_graph_routes(year);
     serialise_node_values_padding_count(year);
@@ -55,24 +54,22 @@ pub fn serialise_files(year: i32) {
 
     serialise_sparse_node_values_2d(&*format!("sparse_node_values_6am_{year}_2d")); // &* converts String to &str
     serialise_rust_node_longlat_lookup(year);
-        
+
     serialise_graph_walk_cycling_car_vector("walk");
     serialise_graph_walk_cycling_car_vector("cycling");
-    
+
     serialise_sparse_node_values_2d("sparse_node_values_walk");
     serialise_sparse_node_values_2d("sparse_node_values_cycling");
-    
+
     serialise_list_multiplier("walk_travel_time_relationships_7");
     serialise_list_multiplier("cycling_travel_time_relationships_7");
-    
+
     chunk_pt_graphs(year);
-    
+
     println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
 
-
 pub fn serialise_car_nodes_is_closest_to_pt() {
-        
     let inpath = format!("data/car_nodes_is_closest_to_pt.json");
     let contents = fs_err::read_to_string(&inpath).unwrap();
     let input: Vec<i32> = serde_json::from_str(&contents).unwrap();
@@ -87,7 +84,6 @@ pub fn serialise_car_nodes_is_closest_to_pt() {
 }
 
 pub fn serialise_stop_rail_statuses(year: i32) {
-        
     let inpath = format!("data/stop_rail_statuses_{}.json", year);
     let contents = fs_err::read_to_string(&inpath).unwrap();
     let input: Vec<i32> = serde_json::from_str(&contents).unwrap();
@@ -101,39 +97,38 @@ pub fn serialise_stop_rail_statuses(year: i32) {
     println!("Serialised to {}", outpath);
 }
 
-
 pub fn chunk_pt_graphs(year: i32) {
-
     let (_node_values_2d, graph_walk, graph_routes) = read_files_parallel_inc_node_values(year);
- 
+
     let chunk_count = 3;
-    let graph_walk_chunk_size = 1 + graph_walk.len() / chunk_count; 
-    let graph_walk_in_chunks: Vec<_> = graph_walk.chunks(graph_walk_chunk_size)
-                                       .map(|chunk| chunk.to_vec())
-                                       .collect();
+    let graph_walk_chunk_size = 1 + graph_walk.len() / chunk_count;
+    let graph_walk_in_chunks: Vec<_> = graph_walk
+        .chunks(graph_walk_chunk_size)
+        .map(|chunk| chunk.to_vec())
+        .collect();
 
     for (i, chunk) in graph_walk_in_chunks.iter().enumerate() {
-        println!("Chunk {} len: {}", i+1, chunk.len());
-        let filename = format!("serialised_data/graph_pt_walk_chunk_{}.bin", i+1);
+        println!("Chunk {} len: {}", i + 1, chunk.len());
+        let filename = format!("serialised_data/graph_pt_walk_chunk_{}.bin", i + 1);
         let file = BufWriter::new(File::create(filename).unwrap());
         bincode::serialize_into(file, &chunk).unwrap();
         println!("Walk Chunk {} serialised", i + 1);
     }
-    
-    let graph_route_chunk_size = 1 + graph_routes.len() / chunk_count;  // add 1 to ensure no rounding errors cause last node on graph to be cropped out
-    let graph_route_in_chunks: Vec<_> = graph_routes.chunks(graph_route_chunk_size)
-                                       .map(|chunk| chunk.to_vec())
-                                       .collect();
+
+    let graph_route_chunk_size = 1 + graph_routes.len() / chunk_count; // add 1 to ensure no rounding errors cause last node on graph to be cropped out
+    let graph_route_in_chunks: Vec<_> = graph_routes
+        .chunks(graph_route_chunk_size)
+        .map(|chunk| chunk.to_vec())
+        .collect();
 
     for (i, chunk) in graph_route_in_chunks.iter().enumerate() {
-        println!("Chunk {} len: {}", i+1, chunk.len());
-        let filename = format!("serialised_data/graph_pt_routes_chunk_{}.bin", i+1);
+        println!("Chunk {} len: {}", i + 1, chunk.len());
+        let filename = format!("serialised_data/graph_pt_routes_chunk_{}.bin", i + 1);
         let file = BufWriter::new(File::create(filename).unwrap());
         bincode::serialize_into(file, &chunk).unwrap();
         println!("Routes Chunk {} serialised", i + 1);
     }
 }
-
 
 fn serialise_graph_walk_cycling_car_vector(mode: &str) {
     let contents_filename = format!("data/graph_{}.json", mode);
@@ -154,9 +149,7 @@ fn serialise_graph_walk_cycling_car_vector(mode: &str) {
                 link_arrived_from: LinkID(array[4] as u32),
             });
         }
-        graph_walk.push(NodeWalkCyclingCar {
-            edges
-        });
+        graph_walk.push(NodeWalkCyclingCar { edges });
     }
 
     let filename = format!("serialised_data/graph_{}.bin", mode);
@@ -164,14 +157,13 @@ fn serialise_graph_walk_cycling_car_vector(mode: &str) {
     bincode::serialize_into(file, &graph_walk).unwrap();
 }
 
-
 fn serialise_graph_routes(year: i32) {
     let contents_filename = format!("data/graph_pt_routes_6am_{}.json", year);
     let file = File::open(Path::new(&contents_filename)).unwrap();
     let reader = BufReader::new(file);
 
     let routes: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
-    
+
     let mut graph_routes: Vec<NodeRoute> = Vec::new();
 
     for item in routes.iter() {
@@ -187,13 +179,13 @@ fn serialise_graph_routes(year: i32) {
                 cost: Cost(array[1]),
             });
         }
-        
+
         graph_routes.push(NodeRoute {
             next_stop_node: next_stop_node,
             timetable: edges,
         });
     }
-    
+
     // Pad with empty values so length matches that of graph_walk
     let graph_walk: Vec<NodeWalk> = deserialize_bincoded_file(&format!("graph_pt_walk_6am_{year}"));
     for _i in routes.len()..graph_walk.len() {
@@ -293,7 +285,7 @@ fn serialise_graph_walk_and_len(year: i32) {
     let filename = format!("serialised_data/graph_pt_walk_6am_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());
     bincode::serialize_into(file, &graph_walk_vec).unwrap();
-    
+
     let filename = format!("serialised_data/graph_pt_walk_len_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());
     bincode::serialize_into(file, &graph_walk_vec.len()).unwrap();
@@ -332,4 +324,3 @@ fn serialise_list_multiplier(filename: &str) {
     bincode::serialize_into(file, &output).unwrap();
     println!("Serialised to {}", outpath);
 }
-

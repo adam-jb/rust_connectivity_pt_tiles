@@ -252,6 +252,7 @@ pub struct DestinationReached {
 pub struct PreviousIterAndCurrentNodeId {
     pub previous_iter: usize,
     pub current_node_id: NodeID,
+    pub time_travelled: Cost,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -269,7 +270,9 @@ pub struct FloodfillOutputOriginDestinationPair {
     pub purpose_scores: [Score; PURPOSES_COUNT],
     pub od_pairs_found: Vec<[usize; 2]>,
     pub iters: usize,
-    pub pt_nodes_reached_sequence: Vec<NodeID>,  // sequence of PT nodes reached en route to target_node, where specified
+    pub nodes_reached_sequence: Vec<NodeID>,  // sequence of nodes reached en route to target_node, where specified
+    pub nodes_reached_time_travelled: Vec<Cost>,
+    pub final_cost: Cost,
 }
 
 #[derive(Serialize)]
