@@ -10,22 +10,23 @@ use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_
 /// Use with `BinaryHeap`. Since it's a max-heap, reverse the comparison to get the smallest cost
 /// first.
 #[derive(PartialEq, Eq, Clone)]
-pub struct PriorityQueueItem<K, V, A, L, P> {
+pub struct PriorityQueueItem<K, V, A, L, P, N> {
     pub cost: K,
     pub node: V,
     pub angle_arrived_from: A,
     pub link_arrived_from: L,
     pub previous_node_reached_iter: P,
+    pub nodes_visited_in_sequence: N,
 }
 
-impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord> PartialOrd for PriorityQueueItem<K, V, A, L, P> {
+impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord, N> PartialOrd for PriorityQueueItem<K, V, A, L, P, N> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 // Telling rust to order the heap by cost
-impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord> Ord for PriorityQueueItem<K, V, A, L, P> {
+impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord, N> Ord for PriorityQueueItem<K, V, A, L, P, N> {
     fn cmp(&self, other: &Self) -> Ordering {
         let ord = other.cost.cmp(&self.cost);
         if ord != Ordering::Equal {
@@ -61,13 +62,17 @@ pub fn floodfill_walk_cycling_car(
     // multiplier to scale score to account for average size of destination 
     let score_multipliers = initialise_score_multiplers(&mode);
     
-    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Angle, LinkID, usize>> = BinaryHeap::new();
+    // to debug route creator for optimiser: add set of NodeIDs visited, to ensure no NodeIDs are visited more than once
+    let mut nodes_visited_in_sequence = HashSet::new();
+                
+    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Angle, LinkID, usize, HashSet<NodeID>>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
         cost: seconds_walk_to_start_node,
         node: start_node_id,
         angle_arrived_from: Angle(0),
         link_arrived_from: LinkID(99_999_999),
         previous_node_reached_iter: 0,
+        nodes_visited_in_sequence: nodes_visited_in_sequence, // to debug route creator for optimiser: add set of NodeIDs visited, to ensure no NodeIDs are visited more than once
     });
          
     // storing for outputs
@@ -94,7 +99,7 @@ pub fn floodfill_walk_cycling_car(
     // These are only populated if seconds_reclaimed_when_pt_stop_reached is true; otherwise they are returned to the user as empty
     let mut nodes_reached_sequence: Vec<NodeID> = vec![];
     let mut nodes_reached_time_travelled: Vec<Cost> = vec![];
-
+    
     // catch where start node is over an hour from centroid
     if seconds_walk_to_start_node >= Cost(3600) {
         let purpose_scores = [Score(0.0); PURPOSES_COUNT];
@@ -174,6 +179,16 @@ pub fn floodfill_walk_cycling_car(
         // so long as this is the first time a link is taken, we add the link; a node can be reached multiple times: once for each link
         for edge in graph_walk[current.node].edges.iter() {
             
+            let mut nodes_visited_in_sequence = current.nodes_visited_in_sequence;
+            if nodes_visited_in_sequence.contains(edge.to) {
+                continue
+            } {
+                nodes_visited_in_sequence.insert(current.node);
+            }
+            // // to debug route creator for optimiser: see if edge.to is in current.nodes_visited
+            // if so, continue
+            // if not, push current.node to nodes_visited_in_sequence
+            
             let time_turn_previous_node = get_cost_of_turn(
                 edge.angle_leaving_node_from,
                 current.angle_arrived_from,
@@ -200,6 +215,7 @@ pub fn floodfill_walk_cycling_car(
                     angle_arrived_from: edge.angle_arrived_from,
                     link_arrived_from: edge.link_arrived_from,
                     previous_node_reached_iter: iters,
+                    nodes_visited_in_sequence: nodes_visited_in_sequence, // to debug route creator for optimiser: add nodes_visited_in_sequence here
                 });
                 
                 //!!! iters might not align
