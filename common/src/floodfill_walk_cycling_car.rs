@@ -1,5 +1,5 @@
 use std::collections::BinaryHeap;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use std::cmp::Ordering;
 use typed_index_collections::TiVec;
 
@@ -7,26 +7,27 @@ use crate::structs::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCycl
 use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, add_to_subpurpose_scores_for_node_reached, get_cost_of_turn};
 
 
-/// Use with `BinaryHeap`. Since it's a max-heap, reverse the comparison to get the smallest cost
-/// first.
+// Use with `BinaryHeap`. Since it's a max-heap, reverse the comparison to get the smallest cost
+// first.
 #[derive(PartialEq, Eq, Clone)]
-pub struct PriorityQueueItem<K, V, A, L, P, N> {
+pub struct PriorityQueueItem<K, V, A, L, P, R, N> {
     pub cost: K,
     pub node: V,
     pub angle_arrived_from: A,
     pub link_arrived_from: L,
     pub previous_node_reached_iter: P,
+    pub previous_node_reached: R,
     pub nodes_visited_in_sequence: N,
 }
 
-impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord, N> PartialOrd for PriorityQueueItem<K, V, A, L, P, N> {
+impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord, R: Ord, N: Ord> PartialOrd for PriorityQueueItem<K, V, A, L, P, R, N> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 // Telling rust to order the heap by cost
-impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord, N> Ord for PriorityQueueItem<K, V, A, L, P, N> {
+impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord, R: Ord, N: Ord> Ord for PriorityQueueItem<K, V, A, L, P, R, N> {
     fn cmp(&self, other: &Self) -> Ordering {
         let ord = other.cost.cmp(&self.cost);
         if ord != Ordering::Equal {
@@ -63,15 +64,16 @@ pub fn floodfill_walk_cycling_car(
     let score_multipliers = initialise_score_multiplers(&mode);
     
     // to debug route creator for optimiser: add set of NodeIDs visited, to ensure no NodeIDs are visited more than once
-    let mut nodes_visited_in_sequence = HashSet::new();
+    let mut nodes_visited_in_sequence = Vec::new();
                 
-    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Angle, LinkID, usize, HashSet<NodeID>>> = BinaryHeap::new();
+    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Angle, LinkID, usize, NodeID, Vec<NodeID>>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
         cost: seconds_walk_to_start_node,
         node: start_node_id,
         angle_arrived_from: Angle(0),
         link_arrived_from: LinkID(99_999_999),
         previous_node_reached_iter: 0,
+        previous_node_reached: start_node_id,
         nodes_visited_in_sequence: nodes_visited_in_sequence, // to debug route creator for optimiser: add set of NodeIDs visited, to ensure no NodeIDs are visited more than once
     });
          
@@ -115,6 +117,8 @@ pub fn floodfill_walk_cycling_car(
                 final_cost: seconds_walk_to_start_node,
         };
     }
+    
+    let mut nodes_reached: HashMap<NodeID, NodeID> = HashMap::new();
                  
     while let Some(current) = queue.pop() {
         
@@ -128,14 +132,32 @@ pub fn floodfill_walk_cycling_car(
         if track_pt_nodes_reached {
             if current.node == target_node {
                 
+                // Using more reliable method to log distnaces between time travelled
+                let mut previous_node_id = nodes_reached[&current.previous_node_reached];
+                //println!("Printing seq of nodes reached");
+                //println!("{:?},", target_node.0);
+                                
+                while previous_node_id != start_node_id {
+                    //println!("{:?}", previous_node_id);
+                    previous_node_id = nodes_reached[&previous_node_id];
+                    nodes_reached_sequence.push(previous_node_id);
+                }
+                //println!("{:?},", previous_node_id.0);
+                //println!("End of nodes reached");
+                
+                
                 // Work through the sequence of pt nodes reached, creating a vector of these
                 let mut previous_iter = current.previous_node_reached_iter;
                 
+                
+                // TODO eliminate this
                 while previous_iter > 0 {
+                    
+                    // TODO drop previous_iters_and_current_node_ids: dont need to store it or anything
                     
                     let next_node_id_in_seq = previous_iters_and_current_node_ids[previous_iter].current_node_id;
                     let next_node_time_travelled = previous_iters_and_current_node_ids[previous_iter].time_travelled;
-                    nodes_reached_sequence.push(next_node_id_in_seq);
+                    //nodes_reached_sequence.push(next_node_id_in_seq);
                     nodes_reached_time_travelled.push(next_node_time_travelled);
                     previous_iter = previous_iters_and_current_node_ids[previous_iter].previous_iter;          
                     
@@ -179,11 +201,12 @@ pub fn floodfill_walk_cycling_car(
         // so long as this is the first time a link is taken, we add the link; a node can be reached multiple times: once for each link
         for edge in graph_walk[current.node].edges.iter() {
             
-            let mut nodes_visited_in_sequence = current.nodes_visited_in_sequence;
-            if nodes_visited_in_sequence.contains(edge.to) {
+            // nodes_visited_in_sequence is used to prevent any node from being visited more than once in a given sequence
+            let mut nodes_visited_in_sequence = current.nodes_visited_in_sequence.clone();
+            if nodes_visited_in_sequence.contains(&edge.to) {
                 continue
             } {
-                nodes_visited_in_sequence.insert(current.node);
+                nodes_visited_in_sequence.push(current.node);
             }
             // // to debug route creator for optimiser: see if edge.to is in current.nodes_visited
             // if so, continue
@@ -197,7 +220,6 @@ pub fn floodfill_walk_cycling_car(
             
             let mut new_cost = current.cost + edge.cost + time_turn_previous_node;
             
-            //!!
             if track_pt_nodes_reached {
                 // If is a PT node, take seconds_reclaimed_when_pt_stop_reached from new_cost
                 // Is this out of whack with previous_iters_and_current_node_ids ?
@@ -208,22 +230,17 @@ pub fn floodfill_walk_cycling_car(
             
             if new_cost < time_limit_seconds {
                 
-                println!("cost: {:?}", new_cost);
+                //println!("cost: {:?}", new_cost);
                 queue.push(PriorityQueueItem {
                     cost: new_cost,
                     node: edge.to,
                     angle_arrived_from: edge.angle_arrived_from,
                     link_arrived_from: edge.link_arrived_from,
                     previous_node_reached_iter: iters,
+                    previous_node_reached: current.node, //  use this to store sequence of nodes
                     nodes_visited_in_sequence: nodes_visited_in_sequence, // to debug route creator for optimiser: add nodes_visited_in_sequence here
                 });
                 
-                //!!! iters might not align
-                previous_iters_and_current_node_ids.push(PreviousIterAndCurrentNodeId{
-                    previous_iter: iters,
-                    current_node_id: edge.to,
-                    time_travelled: new_cost,
-                });
                 
                 //if iters % 10_000 == 0 {
                 //    println!("new_cost: {:?}", new_cost);
@@ -231,19 +248,22 @@ pub fn floodfill_walk_cycling_car(
             }
         }
         
-        iters += 1;
-        
         // we only add scores and od pairs if this node has not been reached before: a node may be reached via multiple links
         if nodes_visited[current.node] {
             continue;
         }
         nodes_visited[current.node] = true;
         
-        // TODO should previous_iters_and_current_node_ids be pushed to here instead?
+        // TODO fix this as the sequences arent in order
+        previous_iters_and_current_node_ids.push(PreviousIterAndCurrentNodeId{
+            previous_iter: current.previous_node_reached_iter,
+            current_node_id: current.node,
+            time_travelled: current.cost,
+        });
         
+        nodes_reached.insert(current.node, current.previous_node_reached);
         
-        
-        // Should iters be +=1 here instead?
+        iters += 1;
         
         
         
