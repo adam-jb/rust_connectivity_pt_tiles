@@ -181,7 +181,7 @@ pub struct EdgeWalk {
     pub cost: Cost,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub struct EdgeWalkCyclingCar {
     pub to: NodeID,
     pub cost: Cost,

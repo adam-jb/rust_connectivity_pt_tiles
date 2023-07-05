@@ -85,7 +85,7 @@ pub fn floodfill_walk_cycling_car(
         current_node_id: start_node_id,
         time_travelled: Cost(0),
     });
-                
+    
     // These are only populated if seconds_reclaimed_when_pt_stop_reached is true; otherwise they are returned to the user as empty
     let mut nodes_reached_sequence: Vec<NodeID> = vec![];
     let mut nodes_reached_time_travelled: Vec<Cost> = vec![];
@@ -122,15 +122,24 @@ pub fn floodfill_walk_cycling_car(
                 let mut previous_iter = current.previous_node_reached_iter;
                 
                 while previous_iter > 0 {
-                
+                    
                     let next_node_id_in_seq = previous_iters_and_current_node_ids[previous_iter].current_node_id;
                     let next_node_time_travelled = previous_iters_and_current_node_ids[previous_iter].time_travelled;
                     nodes_reached_sequence.push(next_node_id_in_seq);
                     nodes_reached_time_travelled.push(next_node_time_travelled);
                     previous_iter = previous_iters_and_current_node_ids[previous_iter].previous_iter;          
                     
-                    //println!("previous_iter: {:?}", previous_iter);
-                    //println!("next_node_id_in_seq: {:?}", next_node_id_in_seq);
+                    // All these print statements are for debug
+                    println!("previous_iter: {:?}", previous_iter);
+                    
+                    println!("edges:");
+                    for edge in graph_walk[next_node_id_in_seq].edges.iter() {
+                        println!("{:?}, {:?}", edge.to, edge.cost);
+                    }
+                        
+                    println!("next_node_id_in_seq: {:?}", next_node_id_in_seq);
+                    
+                    // 
                     //println!("time_travelled: {:?}", previous_iters_and_current_node_ids[previous_iter].time_travelled);
                 }
                 //println!("previous_iter after while loop ends: {:?}", previous_iter);
@@ -140,6 +149,9 @@ pub fn floodfill_walk_cycling_car(
                     &subpurpose_purpose_lookup,
                     &score_multipliers,
                 );
+                
+                println!("Final iters: {:?}", iters);
+                println!("Final cost: {:?}", current.cost);
 
                 return FloodfillOutputOriginDestinationPair{
                     start_node_id,

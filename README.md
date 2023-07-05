@@ -31,7 +31,6 @@ source "$HOME/.cargo/env"
 
 4. (Optional: only needed if running Planning app public transport API) Run `./target/release/find_nodes_near_each_other`. To create dataset of which nodes are near each other. Used by planning_app_public_transport_api; can skip this if using other apps. Takes 128gb RAM and ~1 day with 16cores
 
-Then build the docker container, or run with `cargo run --release`
 
 
 
