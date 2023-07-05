@@ -14,6 +14,10 @@ pub const RAIL_MULTIPLIER: Cost = Cost(2);
 
 // Serializes a `usize` as a `u32` to save space. Useful when you need `usize` for indexing, and
 // the values don't exceed 2^32.
+// Rust vectors are indexes by 'usize' types. 
+// Want your numbers to generally be usize so you can index with them without casting
+// eg: vec[our_number] rather than vec[our_number as usize]
+// And also want to save as u32 rather than usize (which will go to u64, I think, but ask chatGPT)
 pub fn serialize_usize<S: Serializer>(x: &usize, s: S) -> Result<S::Ok, S::Error> {
     if let Ok(x) = u32::try_from(*x) {
         x.serialize(s)
@@ -147,6 +151,11 @@ impl SubAssign for Score {
         self.0 -= other.0;
     }
 }
+/* the above allows '-=' operations across Score types
+s1 = Score(3)
+s2 = Score(4)
+s1 -= s2
+*/
 
 // To allow creation of empty vec of scores
 impl Default for Score {

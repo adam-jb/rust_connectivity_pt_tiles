@@ -24,6 +24,7 @@ impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord> PartialOrd for PriorityQueueItem<K,
     }
 }
 
+// Telling rust to order the heap by cost
 impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord> Ord for PriorityQueueItem<K, V, A, L, P> {
     fn cmp(&self, other: &Self) -> Ordering {
         let ord = other.cost.cmp(&self.cost);
@@ -36,16 +37,16 @@ impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord> Ord for PriorityQueueItem<K, V, A, 
 }
 
 pub fn floodfill_walk_cycling_car(
-                travel_time_relationships: &[Multiplier],  // travel_time_relationships: &[i32],
-                node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,    // sparse_node_values: &Vec<Vec<[i32;2]>>,
-                graph_walk: &TiVec<NodeID, NodeWalkCyclingCar>,  // graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
-                time_costs_turn: &[Cost; 4],    //&[u16; 4],
+                travel_time_relationships: &[Multiplier],
+                node_values_2d: &TiVec<NodeID, Vec<SubpurposeScore>>,
+                graph_walk: &TiVec<NodeID, NodeWalkCyclingCar>,
+                time_costs_turn: &[Cost; 4],
                 start_node_id: NodeID,
                 seconds_walk_to_start_node: Cost,
-                target_destinations_vector: &[NodeID], //&[u32],
+                od_pair_destinations_vector: &[NodeID],  // if you want to find OD pairs, destinations from here
                 time_limit_seconds: Cost,   
                 mode: &str,
-                track_pt_nodes_reached: bool,
+                track_pt_nodes_reached: bool,    // do we output nodes_reached_sequence and nodes_reached_time_travelled?
                 seconds_reclaimed_when_pt_stop_reached: usize,
                 target_node: NodeID,
                 car_nodes_is_closest_to_pt: &TiVec<NodeID, bool>,
@@ -53,7 +54,11 @@ pub fn floodfill_walk_cycling_car(
     
     // initialise values
     let mut subpurpose_scores = [Score(0.0); SUBPURPOSES_COUNT];
+                
+    // lookup between subpurpose idx and purpose (eg: primary school -> education)
     let subpurpose_purpose_lookup = initialise_subpurpose_purpose_lookup();
+                
+    // multiplier to scale score to account for average size of destination 
     let score_multipliers = initialise_score_multiplers(&mode);
     
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Angle, LinkID, usize>> = BinaryHeap::new();
@@ -73,9 +78,9 @@ pub fn floodfill_walk_cycling_car(
     let mut nodes_visited: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();
     
     // make boolean vec to quickly check if a node is a target node for OD pair finding
-    let mut target_destinations_binary_vec: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();                
-    for node_id in target_destinations_vector.into_iter() {
-        target_destinations_binary_vec[*node_id] = true;
+    let mut od_pair_destinations_binary_vec: TiVec<NodeID, bool> = vec![false; graph_walk.len()].into();                
+    for node_id in od_pair_destinations_vector.into_iter() {
+        od_pair_destinations_binary_vec[*node_id] = true;
     }
                 
     // vec of previous iters reached. To make sequence 
@@ -136,10 +141,10 @@ pub fn floodfill_walk_cycling_car(
                     for edge in graph_walk[next_node_id_in_seq].edges.iter() {
                         println!("{:?}, {:?}", edge.to, edge.cost);
                     }
-                        
+                    
                     println!("next_node_id_in_seq: {:?}", next_node_id_in_seq);
                     
-                    // 
+                    //
                     //println!("time_travelled: {:?}", previous_iters_and_current_node_ids[previous_iter].time_travelled);
                 }
                 //println!("previous_iter after while loop ends: {:?}", previous_iter);
@@ -177,14 +182,18 @@ pub fn floodfill_walk_cycling_car(
             
             let mut new_cost = current.cost + edge.cost + time_turn_previous_node;
             
+            //!!
             if track_pt_nodes_reached {
                 // If is a PT node, take seconds_reclaimed_when_pt_stop_reached from new_cost
+                // Is this out of whack with previous_iters_and_current_node_ids ?
                 if car_nodes_is_closest_to_pt[edge.to] {
                     new_cost -= Cost(seconds_reclaimed_when_pt_stop_reached);
                 }
             }
             
             if new_cost < time_limit_seconds {
+                
+                println!("cost: {:?}", new_cost);
                 queue.push(PriorityQueueItem {
                     cost: new_cost,
                     node: edge.to,
@@ -193,6 +202,7 @@ pub fn floodfill_walk_cycling_car(
                     previous_node_reached_iter: iters,
                 });
                 
+                //!!! iters might not align
                 previous_iters_and_current_node_ids.push(PreviousIterAndCurrentNodeId{
                     previous_iter: iters,
                     current_node_id: edge.to,
@@ -207,13 +217,21 @@ pub fn floodfill_walk_cycling_car(
         
         iters += 1;
         
-        // we only add scroes and od pairs if this node has been reached before: a node may be reached via multiple links
+        // we only add scores and od pairs if this node has not been reached before: a node may be reached via multiple links
         if nodes_visited[current.node] {
             continue;
         }
         nodes_visited[current.node] = true;
         
-        if target_destinations_binary_vec[current.node] {
+        // TODO should previous_iters_and_current_node_ids be pushed to here instead?
+        
+        
+        
+        // Should iters be +=1 here instead?
+        
+        
+        
+        if od_pair_destinations_binary_vec[current.node] {
             od_pairs_found.push([current.cost.0,current.node.0]);
         }
 
