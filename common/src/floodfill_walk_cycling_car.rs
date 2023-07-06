@@ -156,8 +156,8 @@ pub fn floodfill_walk_cycling_car(
                     &score_multipliers,
                 );
                 
-                println!("Final iters: {:?}", iters);
-                println!("Final cost: {:?}", current.cost);
+                //println!("Final iters: {:?}", iters);
+                //println!("Final cost: {:?}", current.cost);
 
                 return FloodfillOutputOriginDestinationPairWalkCyclingCar{
                     start_node_id,
@@ -195,7 +195,6 @@ pub fn floodfill_walk_cycling_car(
             
             if new_cost < time_limit_seconds {
                 
-                println!("cost: {:?}", new_cost);
                 queue.push(PriorityQueueItem {
                     cost: new_cost,
                     node: edge.to,

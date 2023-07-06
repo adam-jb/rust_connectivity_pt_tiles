@@ -350,7 +350,7 @@ pub struct WalkCyclingCarUserInputJSON {
     pub seconds_reclaimed_when_pt_stop_reached: usize,
     pub target_node: NodeID,                            // floodfill ends early if this is reached
     pub count_destinations_at_intervals: usize,   // 0 for false, 1 for true
-    pub original_time_intervals_to_store_destination_counts: Vec<usize>,
+    pub original_time_intervals_to_store_destination_counts: Vec<Cost>,
 }
 
 #[derive(Deserialize, Debug)]
