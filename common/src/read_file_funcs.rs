@@ -3,7 +3,7 @@ use serde::de::DeserializeOwned;
 use std::time::Instant;
 use std::io::BufReader;
 
-use crate::structs::{Multiplier, NodeRoute, NodeWalk, SubpurposeScore, NodeWalkCyclingCar, SUBPURPOSES_COUNT};
+use crate::structs::{Multiplier, NodeRoute, NodeWalk, SubpurposeScore, NodeWalkCyclingCar, SUBPURPOSES_COUNT, SubpurposeSmallMediumLargeCount};
 
 pub fn read_files_serial_walk_cycling_car(mode: &String, time_of_day: usize) -> (Vec<Multiplier>, Vec<Vec<SubpurposeScore>>, Vec<NodeWalkCyclingCar>) {
 
@@ -41,6 +41,14 @@ pub fn read_car_nodes_is_closest_to_pt() -> Vec<bool> {
     let car_nodes_is_closest_to_pt: Vec<bool> =
         deserialize_bincoded_file(&format!("car_nodes_is_closest_to_pt"));
     car_nodes_is_closest_to_pt
+}
+
+pub fn read_small_medium_large_subpurpose_destinations(mode_chosen: &str) -> Vec<Vec<SubpurposeSmallMediumLargeCount>> {
+    let now = Instant::now();
+    let small_medium_large_subpurpose_destinations: Vec<Vec<SubpurposeSmallMediumLargeCount>> =
+        deserialize_bincoded_file(&format!("small_medium_large_subpurpose_destinations_{}", mode_chosen));
+    println!("Serial loading took {:?}", now.elapsed());
+    small_medium_large_subpurpose_destinations
 }
 
 pub fn read_sparse_node_values_2d_serial(year: i32) -> Vec<Vec<SubpurposeScore>> {

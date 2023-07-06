@@ -19,7 +19,7 @@ fn main() {
 
 pub fn serialise_files(year: i32) {
     let now = Instant::now();
-    
+
     serialise_nodes_small_medium_large_count("small_medium_large_subpurpose_destinations_walk");
 
     serialise_car_nodes_is_closest_to_pt();
@@ -213,7 +213,7 @@ pub fn serialise_nodes_small_medium_large_count(input_str: &str) {
     for item in input.iter() {
         let sparse_subpurpose_scores_this_node: Vec<[usize; 4]> =
             serde_json::from_value(item.clone()).unwrap();
-        let mut output_this_node: Vec<SubpurposeScore> = Vec::new();
+        let mut output_this_node: Vec<SubpurposeSmallMediumLargeCount> = Vec::new();
 
         for val in sparse_subpurpose_scores_this_node.iter() {
             output_this_node.push(SubpurposeSmallMediumLargeCount {
@@ -232,7 +232,6 @@ pub fn serialise_nodes_small_medium_large_count(input_str: &str) {
     bincode::serialize_into(file, &output).unwrap();
     println!("Serialised sparse_node_values to {}", outpath);
 }
-
 
 pub fn serialise_sparse_node_values_2d(input_str: &str) {
     let inpath = format!("data/{}.json", input_str);
