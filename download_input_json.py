@@ -2,6 +2,8 @@
 
 # For use by internal devs: downloads files while keeping them internal only
 
+# Do not interrupt this script when running halfway! This will overwrite existing data with an incomplete text file
+
 import os
 from google.cloud import storage
 import json
@@ -44,6 +46,7 @@ data_files = [
     'travel_time_relationships_7.json',
     'subpurpose_purpose_lookup.json',
     'number_of_destination_categories.json',
+    'small_medium_large_subpurpose_destinations_walk.json',
 ]
 
 for file in data_files:

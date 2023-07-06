@@ -134,20 +134,7 @@ pub fn floodfill_walk_cycling_car(
                     nodes_reached_time_travelled.push(next_node_time_travelled);
                     previous_iter = previous_iters_and_current_node_ids[previous_iter].previous_iter;          
                     
-                    // All these print statements are for debug
-                    println!("previous_iter: {:?}", previous_iter);
-                    
-                    println!("edges:");
-                    for edge in graph_walk[next_node_id_in_seq].edges.iter() {
-                        println!("{:?}, {:?}", edge.to, edge.cost);
-                    }
-                    
-                    println!("next_node_id_in_seq: {:?}", next_node_id_in_seq);
-                    
-                    //
-                    //println!("time_travelled: {:?}", previous_iters_and_current_node_ids[previous_iter].time_travelled);
                 }
-                //println!("previous_iter after while loop ends: {:?}", previous_iter);
                 
                 let purpose_scores = calculate_purpose_scores_from_subpurpose_scores(
                     &subpurpose_scores,
@@ -209,9 +196,6 @@ pub fn floodfill_walk_cycling_car(
                     time_travelled: new_cost,
                 });
                 
-                //if iters % 10_000 == 0 {
-                //    println!("new_cost: {:?}", new_cost);
-                //}
             }
         }
         
@@ -222,13 +206,6 @@ pub fn floodfill_walk_cycling_car(
             continue;
         }
         nodes_visited[current.node] = true;
-        
-        // TODO should previous_iters_and_current_node_ids be pushed to here instead?
-        
-        
-        
-        // Should iters be +=1 here instead?
-        
         
         
         if od_pair_destinations_binary_vec[current.node] {
@@ -243,6 +220,11 @@ pub fn floodfill_walk_cycling_car(
               current.cost.0,
               current.node,
         )
+        
+        
+        // Add to subpurpose counters
+        
+        
         
     }
                 

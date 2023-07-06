@@ -9,6 +9,7 @@ use common::read_file_funcs::{deserialize_bincoded_file, read_files_parallel_inc
 use common::structs::{
     Angle, Cost, EdgeRoute, EdgeWalk, EdgeWalkCyclingCar, LinkID, Multiplier, NodeID, NodeRoute,
     NodeWalk, NodeWalkCyclingCar, Score, SecondsPastMidnight, SubpurposeScore,
+    SubpurposeSmallMediumLargeCount,
 };
 
 // All serialisation you want to do should go here
@@ -18,6 +19,8 @@ fn main() {
 
 pub fn serialise_files(year: i32) {
     let now = Instant::now();
+    
+    serialise_nodes_small_medium_large_count("small_medium_large_subpurpose_destinations_walk");
 
     serialise_car_nodes_is_closest_to_pt();
     serialise_stop_rail_statuses(year);
@@ -198,6 +201,38 @@ fn serialise_graph_routes(year: i32) {
     let file = BufWriter::new(File::create(filename).unwrap());
     bincode::serialize_into(file, &graph_routes).unwrap();
 }
+
+// TODO consider if should make new object type for building counts, not Score
+pub fn serialise_nodes_small_medium_large_count(input_str: &str) {
+    let inpath = format!("data/{}.json", input_str);
+    let file = File::open(Path::new(&inpath)).unwrap();
+    let reader = BufReader::new(file);
+    let input: Vec<serde_json::Value> = serde_json::from_reader(reader).unwrap();
+
+    let mut output: Vec<Vec<SubpurposeSmallMediumLargeCount>> = Vec::new();
+    for item in input.iter() {
+        let sparse_subpurpose_scores_this_node: Vec<[usize; 4]> =
+            serde_json::from_value(item.clone()).unwrap();
+        let mut output_this_node: Vec<SubpurposeScore> = Vec::new();
+
+        for val in sparse_subpurpose_scores_this_node.iter() {
+            output_this_node.push(SubpurposeSmallMediumLargeCount {
+                subpurpose_ix: val[0] as usize,
+                small_destinations_count: Score(val[1] as f64),
+                medium_destinations_count: Score(val[2] as f64),
+                large_destinations_count: Score(val[3] as f64),
+            });
+        }
+        output.push(output_this_node);
+    }
+    println!("Read and processed from from {}", inpath);
+
+    let outpath = format!("serialised_data/{}.bin", input_str);
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised sparse_node_values to {}", outpath);
+}
+
 
 pub fn serialise_sparse_node_values_2d(input_str: &str) {
     let inpath = format!("data/{}.json", input_str);

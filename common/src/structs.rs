@@ -209,6 +209,18 @@ pub struct SubpurposeScore {
     pub subpurpose_score: Score,
 }
 
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub struct SubpurposeSmallMediumLargeCount {
+    #[serde(
+        serialize_with = "serialize_usize",
+        deserialize_with = "deserialize_usize"
+    )]
+    pub subpurpose_ix: usize,
+    pub small_destinations_count: Score, // TODO should this be a Score?
+    pub medium_destinations_count: Score,
+    pub large_destinations_count: Score,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct NodeWalk {
     pub has_pt: bool,
