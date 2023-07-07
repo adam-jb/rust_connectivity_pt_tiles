@@ -89,14 +89,6 @@ pub fn floodfill_walk_cycling_car(
     for node_id in od_pair_destinations_vector.into_iter() {
         od_pair_destinations_binary_vec[*node_id] = true;
     }
-                
-    // vec of previous iters reached. To make sequence 
-    let mut previous_iters_and_current_node_ids: Vec<PreviousIterAndCurrentNodeId> = vec![];
-    previous_iters_and_current_node_ids.push(PreviousIterAndCurrentNodeId{
-        previous_iter: 0,
-        current_node_id: start_node_id,
-        time_travelled: Cost(0),
-    });
     
     // These are only populated if seconds_reclaimed_when_pt_stop_reached is true; otherwise they are returned to the user as empty
     let mut nodes_reached_sequence: Vec<NodeID> = vec![];
@@ -113,7 +105,6 @@ pub fn floodfill_walk_cycling_car(
                 od_pairs_found,
                 iters,
                 nodes_reached_sequence, 
-                nodes_reached_time_travelled,
                 final_cost: seconds_walk_to_start_node,
         };
     }
@@ -132,49 +123,12 @@ pub fn floodfill_walk_cycling_car(
         if track_pt_nodes_reached {
             if current.node == target_node {
                 
-                // Using more reliable method to log distnaces between time travelled
+                // trace sequence of nodes reached
                 let mut previous_node_id = nodes_reached[&current.previous_node_reached];
-                //println!("Printing seq of nodes reached");
-                //println!("{:?},", target_node.0);
-                                
                 while previous_node_id != start_node_id {
-                    //println!("{:?}", previous_node_id);
                     previous_node_id = nodes_reached[&previous_node_id];
                     nodes_reached_sequence.push(previous_node_id);
                 }
-                //println!("{:?},", previous_node_id.0);
-                //println!("End of nodes reached");
-                
-                
-                // Work through the sequence of pt nodes reached, creating a vector of these
-                let mut previous_iter = current.previous_node_reached_iter;
-                
-                
-                // TODO eliminate this
-                while previous_iter > 0 {
-                    
-                    // TODO drop previous_iters_and_current_node_ids: dont need to store it or anything
-                    
-                    let next_node_id_in_seq = previous_iters_and_current_node_ids[previous_iter].current_node_id;
-                    let next_node_time_travelled = previous_iters_and_current_node_ids[previous_iter].time_travelled;
-                    //nodes_reached_sequence.push(next_node_id_in_seq);
-                    nodes_reached_time_travelled.push(next_node_time_travelled);
-                    previous_iter = previous_iters_and_current_node_ids[previous_iter].previous_iter;          
-                    
-                    // All these print statements are for debug
-                    println!("previous_iter: {:?}", previous_iter);
-                    
-                    println!("edges:");
-                    for edge in graph_walk[next_node_id_in_seq].edges.iter() {
-                        println!("{:?}, {:?}", edge.to, edge.cost);
-                    }
-                    
-                    println!("next_node_id_in_seq: {:?}", next_node_id_in_seq);
-                    
-                    //
-                    //println!("time_travelled: {:?}", previous_iters_and_current_node_ids[previous_iter].time_travelled);
-                }
-                //println!("previous_iter after while loop ends: {:?}", previous_iter);
                 
                 let purpose_scores = calculate_purpose_scores_from_subpurpose_scores(
                     &subpurpose_scores,
@@ -192,7 +146,6 @@ pub fn floodfill_walk_cycling_car(
                     od_pairs_found,
                     iters,
                     nodes_reached_sequence,
-                    nodes_reached_time_travelled,
                     final_cost: current.cost,
                 }
             }
@@ -200,17 +153,6 @@ pub fn floodfill_walk_cycling_car(
         
         // so long as this is the first time a link is taken, we add the link; a node can be reached multiple times: once for each link
         for edge in graph_walk[current.node].edges.iter() {
-            
-            // nodes_visited_in_sequence is used to prevent any node from being visited more than once in a given sequence
-            let mut nodes_visited_in_sequence = current.nodes_visited_in_sequence.clone();
-            if nodes_visited_in_sequence.contains(&edge.to) {
-                continue
-            } {
-                nodes_visited_in_sequence.push(current.node);
-            }
-            // // to debug route creator for optimiser: see if edge.to is in current.nodes_visited
-            // if so, continue
-            // if not, push current.node to nodes_visited_in_sequence
             
             let time_turn_previous_node = get_cost_of_turn(
                 edge.angle_leaving_node_from,
@@ -221,6 +163,18 @@ pub fn floodfill_walk_cycling_car(
             let mut new_cost = current.cost + edge.cost + time_turn_previous_node;
             
             if track_pt_nodes_reached {
+
+                // nodes_visited_in_sequence is used to prevent any node from being visited more than once in a given sequence
+                // there is no need to run this unless is track_pt_nodes_reached is true: nodes will only be visited
+                // more than once when new_cost (below) is negative, which can only happen because of the line:
+                // "new_cost -= Cost(seconds_reclaimed_when_pt_stop_reached);"
+                let mut nodes_visited_in_sequence = current.nodes_visited_in_sequence.clone();
+                if nodes_visited_in_sequence.contains(&edge.to) {
+                    continue
+                } {
+                    nodes_visited_in_sequence.push(current.node);
+                }
+                
                 // If is a PT node, take seconds_reclaimed_when_pt_stop_reached from new_cost
                 // Is this out of whack with previous_iters_and_current_node_ids ?
                 if car_nodes_is_closest_to_pt[edge.to] {
@@ -230,7 +184,6 @@ pub fn floodfill_walk_cycling_car(
             
             if new_cost < time_limit_seconds {
                 
-                //println!("cost: {:?}", new_cost);
                 queue.push(PriorityQueueItem {
                     cost: new_cost,
                     node: edge.to,
@@ -242,9 +195,6 @@ pub fn floodfill_walk_cycling_car(
                 });
                 
                 
-                //if iters % 10_000 == 0 {
-                //    println!("new_cost: {:?}", new_cost);
-                //}
             }
         }
         
@@ -253,13 +203,6 @@ pub fn floodfill_walk_cycling_car(
             continue;
         }
         nodes_visited[current.node] = true;
-        
-        // TODO fix this as the sequences arent in order
-        previous_iters_and_current_node_ids.push(PreviousIterAndCurrentNodeId{
-            previous_iter: current.previous_node_reached_iter,
-            current_node_id: current.node,
-            time_travelled: current.cost,
-        });
         
         nodes_reached.insert(current.node, current.previous_node_reached);
         
@@ -295,7 +238,6 @@ pub fn floodfill_walk_cycling_car(
         od_pairs_found,
         iters,
         nodes_reached_sequence,
-        nodes_reached_time_travelled,
         final_cost: time_limit_seconds,
     }
 
