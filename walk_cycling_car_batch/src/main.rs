@@ -6,11 +6,12 @@ use typed_index_collections::TiVec;
 use common::floodfill_funcs::get_time_of_day_index;
 use common::floodfill_walk_cycling_car::floodfill_walk_cycling_car;
 use common::read_file_funcs::{
-    read_car_nodes_is_closest_to_pt, read_files_serial_walk_cycling_car,
+    read_car_nodes_is_closest_to_pt, read_files_serial_walk_cycling_car, 
+    read_small_medium_large_subpurpose_destinations,
 };
 use common::structs::{
-    Cost, FloodfillOutputOriginDestinationPair, NodeID, NodeWalkCyclingCar, SubpurposeScore,
-    WalkCyclingCarUserInputJSON,
+    Cost, FloodfillOutputOriginDestinationPairWalkCyclingCar, NodeID, NodeWalkCyclingCar, SubpurposeScore,
+    WalkCyclingCarUserInputJSON, SubpurposeSmallMediumLargeCount,
 };
 
 #[get("/")]
@@ -47,7 +48,11 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
     // Read in files at endpoint rather than in advance as we don't know which mode the user will request
     let (travel_time_relationships, node_values_2d, graph) =
         read_files_serial_walk_cycling_car(&input.mode, start_time_group);
-
+    
+    // Read and convert to TiVec, which allows you to index the vector with NodeID type, rather than usize type
+    let small_medium_large_subpurpose_destinations = read_small_medium_large_subpurpose_destinations(&input.mode);
+    let small_medium_large_subpurpose_destinations: TiVec<NodeID, Vec<SubpurposeSmallMediumLargeCount>> = TiVec::from(small_medium_large_subpurpose_destinations);
+    
     let car_nodes_is_closest_to_pt = read_car_nodes_is_closest_to_pt();
     let car_nodes_is_closest_to_pt: TiVec<NodeID, bool> = TiVec::from(car_nodes_is_closest_to_pt);
 
@@ -96,10 +101,21 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
     if *&input.track_pt_nodes_reached == 1 {
         track_pt_nodes_reached = true;
     }
+    
+    let mut count_destinations_at_intervals = false;
+    if *&input.count_destinations_at_intervals == 1 {
+        count_destinations_at_intervals = true;
+    }
+    
+    
+    let mut original_time_intervals_to_store_destination_counts = Vec::new();
+    original_time_intervals_to_store_destination_counts.push(Cost(600));
+    original_time_intervals_to_store_destination_counts.push(Cost(1500));
+    
 
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
 
-    let results: Vec<FloodfillOutputOriginDestinationPair> = indices
+    let results: Vec<FloodfillOutputOriginDestinationPairWalkCyclingCar> = indices
         .par_iter()
         .map(|i| {
             floodfill_walk_cycling_car(
@@ -116,6 +132,9 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
                 *&input.seconds_reclaimed_when_pt_stop_reached,
                 *&input.target_node,
                 &car_nodes_is_closest_to_pt,
+                &small_medium_large_subpurpose_destinations,
+                count_destinations_at_intervals,
+                &input.original_time_intervals_to_store_destination_counts,
             )
         })
         .collect();

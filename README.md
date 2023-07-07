@@ -214,9 +214,9 @@ To run:
 cargo run --release --bin walk_cycling_car_batch
 ```
 
-Example query:
+Example query which returns number of destinations reached, by subpurpose and size of destination (small, medium and large) both 600 and 1200 seconds into the process, and also looking for OD pairs where destination nodes are reached from the start nodes 
 ```
-wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_times_user_input": [16, 10, 10, 23, 99], "mode": "walk", "destination_nodes": [1,2,3,4,55,6,7,8,9,10], "trip_start_seconds": 28800, "builds_to_remove": [], "time_or_distance": "time"}' \
+wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_times_user_input": [16, 10, 10, 23, 99], "mode": "walk", "destination_nodes": [1,2,3,4,55,6,7,8,9,10], "trip_start_seconds": 28800, "builds_to_remove": [], "time_or_distance": "time",  "track_pt_nodes_reached": 0, "seconds_reclaimed_when_pt_stop_reached": 0, "target_node": 0, "count_destinations_at_intervals": 1, "original_time_intervals_to_store_destination_counts": [600, 1200]}' \
   --header='Content-Type:application/json' \
   'http://0.0.0.0:7328/floodfill_endpoint/'
 ```

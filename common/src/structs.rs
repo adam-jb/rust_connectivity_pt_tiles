@@ -209,6 +209,18 @@ pub struct SubpurposeScore {
     pub subpurpose_score: Score,
 }
 
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub struct SubpurposeSmallMediumLargeCount {
+    #[serde(
+        serialize_with = "serialize_usize",
+        deserialize_with = "deserialize_usize"
+    )]
+    pub subpurpose_ix: usize,
+    pub small_destinations_count: Score, // TODO should this be a Score?
+    pub medium_destinations_count: Score,
+    pub large_destinations_count: Score,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct NodeWalk {
     pub has_pt: bool,
@@ -283,6 +295,19 @@ pub struct FloodfillOutputOriginDestinationPair {
     pub final_cost: Cost,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct FloodfillOutputOriginDestinationPairWalkCyclingCar {
+    pub start_node_id: NodeID,
+    pub seconds_walk_to_start_node: Cost,
+    pub purpose_scores: [Score; PURPOSES_COUNT],
+    pub od_pairs_found: Vec<[usize; 2]>,
+    pub iters: usize,
+    pub nodes_reached_sequence: Vec<NodeID>,  // sequence of nodes reached en route to target_node, where specified
+    pub nodes_reached_time_travelled: Vec<Cost>,
+    pub final_cost: Cost,
+    pub destinations_reached_at_time_intervals: Vec<Vec<Vec<Score>>>,
+}
+
 #[derive(Serialize)]
 pub struct PlanningToolOutput {
     pub start_node: NodeID,
@@ -323,6 +348,8 @@ pub struct WalkCyclingCarUserInputJSON {
     pub track_pt_nodes_reached: usize,      // 0 for false, 1 for true
     pub seconds_reclaimed_when_pt_stop_reached: usize,
     pub target_node: NodeID,                            // floodfill ends early if this is reached
+    pub count_destinations_at_intervals: usize,   // 0 for false, 1 for true
+    pub original_time_intervals_to_store_destination_counts: Vec<Cost>,
 }
 
 #[derive(Deserialize, Debug)]
