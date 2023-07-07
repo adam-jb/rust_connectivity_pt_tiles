@@ -80,7 +80,7 @@ pub fn floodfill_walk_cycling_car(
         link_arrived_from: LinkID(99_999_999),
         previous_node_reached_iter: 0,
         previous_node_reached: start_node_id,
-        nodes_visited_in_sequence: nodes_visited_in_sequence, // to debug route creator for optimiser: add set of NodeIDs visited, to ensure no NodeIDs are visited more than once
+        nodes_visited_in_sequence: nodes_visited_in_sequence.clone(), // to debug route creator for optimiser: add set of NodeIDs visited, to ensure no NodeIDs are visited more than once
     });
          
     // storing for outputs
@@ -206,7 +206,7 @@ pub fn floodfill_walk_cycling_car(
                     link_arrived_from: edge.link_arrived_from,
                     previous_node_reached_iter: iters,
                     previous_node_reached: current.node, //  use this to store sequence of nodes
-                    nodes_visited_in_sequence: nodes_visited_in_sequence, // to debug route creator for optimiser: add nodes_visited_in_sequence here
+                    nodes_visited_in_sequence: nodes_visited_in_sequence.clone(), // to debug route creator for optimiser: will be empty unless track_pt_nodes_reached is true
                 });
                 
                 

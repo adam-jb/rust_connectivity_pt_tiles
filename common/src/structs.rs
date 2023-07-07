@@ -292,6 +292,7 @@ pub struct FloodfillOutputOriginDestinationPair {
     pub od_pairs_found: Vec<[usize; 2]>,
     pub iters: usize,
     pub nodes_reached_sequence: Vec<NodeID>,  // sequence of nodes reached en route to target_node, where specified
+    pub nodes_reached_time_travelled: Vec<Cost>,
     pub final_cost: Cost,
 }
 
@@ -303,7 +304,6 @@ pub struct FloodfillOutputOriginDestinationPairWalkCyclingCar {
     pub od_pairs_found: Vec<[usize; 2]>,
     pub iters: usize,
     pub nodes_reached_sequence: Vec<NodeID>,  // sequence of nodes reached en route to target_node, where specified
-    pub nodes_reached_time_travelled: Vec<Cost>,
     pub final_cost: Cost,
     pub destinations_reached_at_time_intervals: Vec<Vec<Vec<Score>>>,
 }
