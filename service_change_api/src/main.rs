@@ -4,6 +4,7 @@ use rayon::prelude::*;
 use smallvec::SmallVec;
 use std::time::Instant;
 use typed_index_collections::TiVec;
+use std::env;
 
 use common::floodfill_funcs::get_time_of_day_index;
 use common::floodfill_public_transport_purpose_scores::floodfill_public_transport_purpose_scores;
@@ -18,6 +19,9 @@ use common::structs::{
 
 struct AppState {
     travel_time_relationships_all: Vec<Vec<Multiplier>>,
+    node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
+    graph_walk: TiVec<NodeID, NodeWalk>,
+    graph_routes: TiVec<NodeID, NodeRoute>,
 }
 
 #[get("/")]
@@ -32,6 +36,10 @@ async fn get_node_id_count() -> String {
     return serde_json::to_string(&graph_walk_len).unwrap();
 }
 
+// TODO functionalise most of the code
+// TODO split endpoints to serverless and server, where serverless is as this version is, and
+// 'server' reads more data from app state rather than reading it
+// both apps can call the same functions, so endpoints themselves needn't be too verbose  
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangePayload>) -> String {
     info!("Received payload:\n{:?}", input);
@@ -47,11 +55,18 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
     // Further tests show read_files_parallel_inc_node_values may be marginally faster in all cases (adam 19th May)
     let (node_values_2d, graph_walk, graph_routes) =
         read_files_extra_parallel_inc_node_values(input.year);
-
+    
     let mut graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
     let mut graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);
     let mut node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
-
+    
+    
+    // TODO Main functionalising could start here: now files are here
+    // For server side, might have to do something difficult with mutexes in order to edit 
+    // the graphs, etc, and then all them to be borrowed by floodfill
+    // In funcs allow graph_walk, etc, to be mutably borrowed: so long as that's allowed from AppData
+    // might be able to avoid mutexes
+    
     let graph_walk_og_len = graph_walk.len();
     let graph_routes_og_len = graph_routes.len();
     let node_values_2d_og_len = node_values_2d.len();
@@ -254,6 +269,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    
     env_logger::builder()
         .filter_level(LevelFilter::Debug)
         .init();
@@ -272,9 +288,55 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_16,
         travel_time_relationships_19,
     ];
+    
+    // Write empty vectors to AppState for the serverless endpoint
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
     });
+    
+    let mut mode_of_running = "serverless";
+    
+    // Retrieve command-line arguments
+    let args: Vec<String> = env::args().collect();
+    
+    // Check if the 'server' parameter was provided
+    if let Some(index) = args.iter().position(|arg| arg == "server") {
+        // The 'server' parameter exists in the arguments
+        if let Some(server_value) = args.get(index + 1) {
+            // Use the 'server' value to impact the behavior of your program
+            println!("Server value: {}", server_value);
+            mode_of_running = server_value;
+        } else {
+            // No value provided after the 'server' parameter
+            println!("No value specified after 'server'.");
+        }
+    } else {
+        // The 'server' parameter was not provided
+        println!("'server' parameter not found.");
+    }
+    
+    println!("mode_of_running: {:?}", mode_of_running);
+    
+    // Read large files and put them in AppState, for the server to use
+    if mode_of_running == "server" {
+        
+        let (node_values_2d, graph_walk, graph_routes) =
+            read_files_extra_parallel_inc_node_values(input.year);
+        
+        let mut graph_walk: TiVec<NodeID, NodeWalk> = TiVec::from(graph_walk);
+        let mut graph_routes: TiVec<NodeID, NodeRoute> = TiVec::from(graph_routes);
+        let mut node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>> = TiVec::from(node_values_2d);
+
+        app_state = web::Data::new(AppState {
+            travel_time_relationships_all,
+            node_values_2d, 
+            graph_walk, 
+            graph_routes,
+        });
+    }
 
     // The 500MB warning is wrong, the decorator on line below silences it
     #[allow(deprecated)]
