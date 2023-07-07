@@ -1,5 +1,5 @@
 use std::collections::BinaryHeap;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use std::cmp::Ordering;
 use typed_index_collections::TiVec;
 
@@ -7,25 +7,27 @@ use crate::structs::{Cost, NodeID, Angle, LinkID,Score, Multiplier, NodeWalkCycl
 use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, add_to_subpurpose_scores_for_node_reached, get_cost_of_turn};
 
 
-/// Use with `BinaryHeap`. Since it's a max-heap, reverse the comparison to get the smallest cost
-/// first.
+// Use with `BinaryHeap`. Since it's a max-heap, reverse the comparison to get the smallest cost
+// first.
 #[derive(PartialEq, Eq, Clone)]
-pub struct PriorityQueueItem<K, V, A, L, P> {
+pub struct PriorityQueueItem<K, V, A, L, P, R, N> {
     pub cost: K,
     pub node: V,
     pub angle_arrived_from: A,
     pub link_arrived_from: L,
     pub previous_node_reached_iter: P,
+    pub previous_node_reached: R,
+    pub nodes_visited_in_sequence: N,
 }
 
-impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord> PartialOrd for PriorityQueueItem<K, V, A, L, P> {
+impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord, R: Ord, N: Ord> PartialOrd for PriorityQueueItem<K, V, A, L, P, R, N> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 // Telling rust to order the heap by cost
-impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord> Ord for PriorityQueueItem<K, V, A, L, P> {
+impl<K: Ord, V: Ord, A: Ord, L: Ord, P: Ord, R: Ord, N: Ord> Ord for PriorityQueueItem<K, V, A, L, P, R, N> {
     fn cmp(&self, other: &Self) -> Ordering {
         let ord = other.cost.cmp(&self.cost);
         if ord != Ordering::Equal {
@@ -67,13 +69,18 @@ pub fn floodfill_walk_cycling_car(
     // multiplier to scale score to account for average size of destination 
     let score_multipliers = initialise_score_multiplers(&mode);
     
-    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Angle, LinkID, usize>> = BinaryHeap::new();
+    // to debug route creator for optimiser: add set of NodeIDs visited, to ensure no NodeIDs are visited more than once
+    let mut nodes_visited_in_sequence = Vec::new();
+                
+    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID, Angle, LinkID, usize, NodeID, Vec<NodeID>>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
         cost: seconds_walk_to_start_node,
         node: start_node_id,
         angle_arrived_from: Angle(0),
         link_arrived_from: LinkID(99_999_999),
         previous_node_reached_iter: 0,
+        previous_node_reached: start_node_id,
+        nodes_visited_in_sequence: nodes_visited_in_sequence, // to debug route creator for optimiser: add set of NodeIDs visited, to ensure no NodeIDs are visited more than once
     });
          
     // storing for outputs
@@ -88,15 +95,7 @@ pub fn floodfill_walk_cycling_car(
     for node_id in od_pair_destinations_vector.into_iter() {
         od_pair_destinations_binary_vec[*node_id] = true;
     }
-                
-    // vec of previous iters reached. To make sequence 
-    let mut previous_iters_and_current_node_ids: Vec<PreviousIterAndCurrentNodeId> = vec![];
-    previous_iters_and_current_node_ids.push(PreviousIterAndCurrentNodeId{
-        previous_iter: 0,
-        current_node_id: start_node_id,
-        time_travelled: Cost(0),
-    });
-                
+     
     // Make empty vector to store destination counts at the intervals specified in time_intervals_to_store_destination_counts
     let mut destinations_reached_at_time_intervals = Vec::new();
     
@@ -119,11 +118,12 @@ pub fn floodfill_walk_cycling_car(
                 od_pairs_found,
                 iters,
                 nodes_reached_sequence, 
-                nodes_reached_time_travelled,
                 final_cost: seconds_walk_to_start_node,
                 destinations_reached_at_time_intervals,
         };
     }
+    
+    let mut nodes_reached: HashMap<NodeID, NodeID> = HashMap::new();
                  
     while let Some(current) = queue.pop() {
         
@@ -137,17 +137,11 @@ pub fn floodfill_walk_cycling_car(
         if track_pt_nodes_reached {
             if current.node == target_node {
                 
-                // Work through the sequence of pt nodes reached, creating a vector of these
-                let mut previous_iter = current.previous_node_reached_iter;
-                
-                while previous_iter > 0 {
-                    
-                    let next_node_id_in_seq = previous_iters_and_current_node_ids[previous_iter].current_node_id;
-                    let next_node_time_travelled = previous_iters_and_current_node_ids[previous_iter].time_travelled;
-                    nodes_reached_sequence.push(next_node_id_in_seq);
-                    nodes_reached_time_travelled.push(next_node_time_travelled);
-                    previous_iter = previous_iters_and_current_node_ids[previous_iter].previous_iter;          
-                    
+                // trace sequence of nodes reached
+                let mut previous_node_id = nodes_reached[&current.previous_node_reached];
+                while previous_node_id != start_node_id {
+                    previous_node_id = nodes_reached[&previous_node_id];
+                    nodes_reached_sequence.push(previous_node_id);
                 }
                 
                 let purpose_scores = calculate_purpose_scores_from_subpurpose_scores(
@@ -166,7 +160,6 @@ pub fn floodfill_walk_cycling_car(
                     od_pairs_found,
                     iters,
                     nodes_reached_sequence,
-                    nodes_reached_time_travelled,
                     final_cost: current.cost,
                     destinations_reached_at_time_intervals,
                 }
@@ -184,8 +177,19 @@ pub fn floodfill_walk_cycling_car(
             
             let mut new_cost = current.cost + edge.cost + time_turn_previous_node;
             
-            // TODO drop maybe
             if track_pt_nodes_reached {
+
+                // nodes_visited_in_sequence is used to prevent any node from being visited more than once in a given sequence
+                // there is no need to run this unless is track_pt_nodes_reached is true: nodes will only be visited
+                // more than once when new_cost (below) is negative, which can only happen because of the line:
+                // "new_cost -= Cost(seconds_reclaimed_when_pt_stop_reached);"
+                let mut nodes_visited_in_sequence = current.nodes_visited_in_sequence.clone();
+                if nodes_visited_in_sequence.contains(&edge.to) {
+                    continue
+                } {
+                    nodes_visited_in_sequence.push(current.node);
+                }
+                
                 // If is a PT node, take seconds_reclaimed_when_pt_stop_reached from new_cost
                 // Is this out of whack with previous_iters_and_current_node_ids ?
                 if car_nodes_is_closest_to_pt[edge.to] {
@@ -201,25 +205,22 @@ pub fn floodfill_walk_cycling_car(
                     angle_arrived_from: edge.angle_arrived_from,
                     link_arrived_from: edge.link_arrived_from,
                     previous_node_reached_iter: iters,
+                    previous_node_reached: current.node, //  use this to store sequence of nodes
+                    nodes_visited_in_sequence: nodes_visited_in_sequence, // to debug route creator for optimiser: add nodes_visited_in_sequence here
                 });
                 
-                // !! iters might not align
-                previous_iters_and_current_node_ids.push(PreviousIterAndCurrentNodeId{
-                    previous_iter: iters,
-                    current_node_id: edge.to,
-                    time_travelled: new_cost,
-                });
                 
             }
         }
-        
-        iters += 1;
         
         // we only add scores and od pairs if this node has not been reached before: a node may be reached via multiple links
         if nodes_visited[current.node] {
             continue;
         }
         nodes_visited[current.node] = true;
+        
+        nodes_reached.insert(current.node, current.previous_node_reached);
+        iters += 1;
         
         
         if od_pair_destinations_binary_vec[current.node] {
@@ -252,7 +253,6 @@ pub fn floodfill_walk_cycling_car(
 
                     destinations_reached_at_time_intervals.push(destination_counts_small_medium_large.to_vec());
                     time_intervals_to_store_destination_counts.remove(0);
-
                 }
             }
         }
@@ -274,7 +274,6 @@ pub fn floodfill_walk_cycling_car(
         od_pairs_found,
         iters,
         nodes_reached_sequence,
-        nodes_reached_time_travelled,
         final_cost: time_limit_seconds,
         destinations_reached_at_time_intervals,
     }
