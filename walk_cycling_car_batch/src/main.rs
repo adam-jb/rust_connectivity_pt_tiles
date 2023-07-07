@@ -22,8 +22,19 @@ async fn index() -> String {
 
 #[post("/floodfill_endpoint/")]
 async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> String {
-    let time_of_day_index = get_time_of_day_index(input.trip_start_seconds);
+    
+    // convert 0/1 format to binary
+    let mut track_pt_nodes_reached = false;
+    if *&input.track_pt_nodes_reached == 1 {
+        track_pt_nodes_reached = true;
+    }
+    
+    let mut count_destinations_at_intervals = false;
+    if *&input.count_destinations_at_intervals == 1 {
+        count_destinations_at_intervals = true;
+    }
 
+    let time_of_day_index = get_time_of_day_index(input.trip_start_seconds);
     let mut start_time_group: usize = 7;
     if time_of_day_index == 1 {
         start_time_group = 10;
@@ -95,17 +106,6 @@ async fn floodfill_endpoint(input: web::Json<WalkCyclingCarUserInputJSON>) -> St
     }
 
     let now = Instant::now();
-
-    // convert 0/1 format to binary
-    let mut track_pt_nodes_reached = false;
-    if *&input.track_pt_nodes_reached == 1 {
-        track_pt_nodes_reached = true;
-    }
-    
-    let mut count_destinations_at_intervals = false;
-    if *&input.count_destinations_at_intervals == 1 {
-        count_destinations_at_intervals = true;
-    }
     
     
     let mut original_time_intervals_to_store_destination_counts = Vec::new();

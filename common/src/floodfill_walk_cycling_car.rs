@@ -56,6 +56,10 @@ pub fn floodfill_walk_cycling_car(
                 count_destinations_at_intervals: bool,
                 original_time_intervals_to_store_destination_counts: &Vec<Cost>,
             ) -> FloodfillOutputOriginDestinationPairWalkCyclingCar {
+                
+    if target_node == start_node_id {
+        println!("target_node is the same as start_node_id: this will generate an error! Change your input")
+    }
     
     // making a copy we can edit            
     let mut time_intervals_to_store_destination_counts = original_time_intervals_to_store_destination_counts.to_vec();
@@ -95,7 +99,7 @@ pub fn floodfill_walk_cycling_car(
     for node_id in od_pair_destinations_vector.into_iter() {
         od_pair_destinations_binary_vec[*node_id] = true;
     }
-     
+    
     // Make empty vector to store destination counts at the intervals specified in time_intervals_to_store_destination_counts
     let mut destinations_reached_at_time_intervals = Vec::new();
     
@@ -137,9 +141,22 @@ pub fn floodfill_walk_cycling_car(
         if track_pt_nodes_reached {
             if current.node == target_node {
                 
+                //println!("Final iters: {:?}", iters);
+                //println!("Final cost: {:?}", current.cost);
+                
+                // printing for debug
+                // the error may be due to no iters to add to node reached - if start node is the target node
+                //println!("current.previous_node_reached:\t{:?}", current.previous_node_reached.0);
+                //println!("nodes_reached len:\t{:?}", nodes_reached.keys().len());
+                
                 // trace sequence of nodes reached
+                // if target_node == start_node_id, then this will get an error, as nodes_reached will be empty
                 let mut previous_node_id = nodes_reached[&current.previous_node_reached];
+                nodes_reached_sequence.push(previous_node_id);
+                
                 while previous_node_id != start_node_id {
+                    
+                    println!("previous_node_id:\t{:?}", previous_node_id.0);
                     previous_node_id = nodes_reached[&previous_node_id];
                     nodes_reached_sequence.push(previous_node_id);
                 }
@@ -150,8 +167,6 @@ pub fn floodfill_walk_cycling_car(
                     &score_multipliers,
                 );
                 
-                //println!("Final iters: {:?}", iters);
-                //println!("Final cost: {:?}", current.cost);
 
                 return FloodfillOutputOriginDestinationPairWalkCyclingCar{
                     start_node_id,

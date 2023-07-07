@@ -47,6 +47,8 @@ data_files = [
     'subpurpose_purpose_lookup.json',
     'number_of_destination_categories.json',
     'small_medium_large_subpurpose_destinations_walk.json',
+    'small_medium_large_subpurpose_destinations_cycling.json',
+    'small_medium_large_subpurpose_destinations_car.json',
 ]
 
 for file in data_files:

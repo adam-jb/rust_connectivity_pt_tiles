@@ -21,6 +21,8 @@ pub fn serialise_files(year: i32) {
     let now = Instant::now();
 
     serialise_nodes_small_medium_large_count("small_medium_large_subpurpose_destinations_walk");
+    serialise_nodes_small_medium_large_count("small_medium_large_subpurpose_destinations_cycling");
+    serialise_nodes_small_medium_large_count("small_medium_large_subpurpose_destinations_car");
 
     serialise_car_nodes_is_closest_to_pt();
     serialise_stop_rail_statuses(year);
