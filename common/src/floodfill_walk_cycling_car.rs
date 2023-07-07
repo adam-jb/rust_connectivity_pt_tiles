@@ -152,8 +152,14 @@ pub fn floodfill_walk_cycling_car(
                 // trace sequence of nodes reached
                 // if target_node == start_node_id, then this will get an error, as nodes_reached will be empty
                 let mut previous_node_id = nodes_reached[&current.previous_node_reached];
-                nodes_reached_sequence.push(previous_node_id);
                 
+                // store final 3 nodes reached. Use an 'if' to ensure no errors if sequence is only 2 nodes long
+                nodes_reached_sequence.push(target_node);
+                nodes_reached_sequence.push(*&current.previous_node_reached);
+                if previous_node_id != *&current.previous_node_reached {
+                    nodes_reached_sequence.push(previous_node_id);
+                }
+                    
                 while previous_node_id != start_node_id {
                     
                     println!("previous_node_id:\t{:?}", previous_node_id.0);
