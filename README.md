@@ -210,7 +210,7 @@ wget -O- --post-data='{"start_nodes": [9380647, 9183046, 2420336], "init_travel_
 
 # Walk cycling car batch
 
-To run: `cargo run --release --bin walk_cycling_car_batch` or `./target/release/walk_car_cycling_batch` if you've already built (ie compiled) the script
+To run: `cargo run --release --bin walk_cycling_car_batch` or `./target/release/walk_cycling_car_batch` if you've already built (ie compiled) the script
 
 Example query which returns number of destinations reached, by subpurpose and size of destination (small, medium and large) both 600 and 1200 seconds into the process, and also looking for OD pairs where destination nodes are reached from the start nodes:
 ```
