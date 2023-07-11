@@ -31,7 +31,7 @@ source "$HOME/.cargo/env"
 
 4. (Optional: only needed if running Planning app public transport API) Run `./target/release/find_nodes_near_each_other`. To create dataset of which nodes are near each other. Used by planning_app_public_transport_api; can skip this if using other apps. Takes 128gb RAM and ~1 day with 16cores
 
-Now your code is ready to run! To run an API call it's name, eg `./target/release/walk_car_cycling_batch` or `./target/release/service_change_api`
+Now your code is ready to run! To run an API call it's name, eg `./target/release/walk_cycling_car_batch` or `./target/release/service_change_api`
 
 
 
