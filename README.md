@@ -25,12 +25,13 @@ source "$HOME/.cargo/env"
 
 1. Run `python3 download_input_json.py` once to download input data
 
-2. Build all services `cargo run --build`
+2. Build all services `cargo build --release`
 
 3. Run `./target/release/do_serialisation`. Then all data will be ready for each service
 
 4. (Optional: only needed if running Planning app public transport API) Run `./target/release/find_nodes_near_each_other`. To create dataset of which nodes are near each other. Used by planning_app_public_transport_api; can skip this if using other apps. Takes 128gb RAM and ~1 day with 16cores
 
+Now your code is ready to run! To run an API call it's name, eg `./target/release/walk_car_cycling_batch` or `./target/release/service_change_api`
 
 
 
@@ -209,12 +210,9 @@ wget -O- --post-data='{"start_nodes": [9380647, 9183046, 2420336], "init_travel_
 
 # Walk cycling car batch
 
-To run:
-```
-cargo run --release --bin walk_cycling_car_batch
-```
+To run: `cargo run --release --bin walk_cycling_car_batch` or `./target/release/walk_car_cycling_batch` if you've already built (ie compiled) the script
 
-Example query which returns number of destinations reached, by subpurpose and size of destination (small, medium and large) both 600 and 1200 seconds into the process, and also looking for OD pairs where destination nodes are reached from the start nodes 
+Example query which returns number of destinations reached, by subpurpose and size of destination (small, medium and large) both 600 and 1200 seconds into the process, and also looking for OD pairs where destination nodes are reached from the start nodes:
 ```
 wget -O- --post-data='{"start_nodes_user_input": [1, 2, 3, 4, 5], "init_travel_times_user_input": [16, 10, 10, 23, 99], "mode": "walk", "destination_nodes": [1,2,3,4,55,6,7,8,9,10], "trip_start_seconds": 28800, "builds_to_remove": [], "time_or_distance": "time",  "track_pt_nodes_reached": 0, "seconds_reclaimed_when_pt_stop_reached": 0, "target_node": 0, "count_destinations_at_intervals": 1, "original_time_intervals_to_store_destination_counts": [600, 1200]}' \
   --header='Content-Type:application/json' \
