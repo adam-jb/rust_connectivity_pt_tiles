@@ -45,9 +45,7 @@ async fn floodfill_pt(
     if *&input.count_destinations_at_intervals == 1 {
         count_destinations_at_intervals = true;
     }
-    
-    let small_medium_large_subpurpose_destinations_input = read_small_medium_large_subpurpose_destinations("PT");
-    let small_medium_large_subpurpose_destinations: TiVec<NodeID, Vec<SubpurposeSmallMediumLargeCount>> = TiVec::from(small_medium_large_subpurpose_destinations_input);
+
 
     let now = Instant::now();
     let indices = (0..input.start_nodes.len()).collect::<Vec<_>>();
@@ -67,7 +65,7 @@ async fn floodfill_pt(
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &input.destination_nodes,
                 &data.stop_rail_statuses,
-                &small_medium_large_subpurpose_destinations,
+                &data.small_medium_large_subpurpose_destinations,
                 count_destinations_at_intervals,
                 &input.original_time_intervals_to_store_destination_counts,
             )

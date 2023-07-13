@@ -47,9 +47,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
     if *&input.count_destinations_at_intervals == 1 {
         count_destinations_at_intervals = true;
     }
-    
-    let small_medium_large_subpurpose_destinations_input = read_small_medium_large_subpurpose_destinations("PT");
-    let small_medium_large_subpurpose_destinations: TiVec<NodeID, Vec<SubpurposeSmallMediumLargeCount>> = TiVec::from(small_medium_large_subpurpose_destinations_input);
 
     // could use read_files_parallel_inc_node_values to do fewer parallel read gymnastics
     // Tests originally showed read_files_extra_parallel_inc_node_values as faster in cloud run but slower on server; (adam 18th may)
@@ -195,7 +192,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &input.target_destinations,
                 &stop_rail_statuses,
-                &small_medium_large_subpurpose_destinations,
+                &data.small_medium_large_subpurpose_destinations,
                 count_destinations_at_intervals,
                 &input.original_time_intervals_to_store_destination_counts,
             )
