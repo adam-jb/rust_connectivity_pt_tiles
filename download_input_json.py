@@ -49,6 +49,7 @@ data_files = [
     'small_medium_large_subpurpose_destinations_walk.json',
     'small_medium_large_subpurpose_destinations_cycling.json',
     'small_medium_large_subpurpose_destinations_car.json',
+    'small_medium_large_subpurpose_destinations_PT.json',
 ]
 
 for file in data_files:
