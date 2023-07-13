@@ -333,6 +333,8 @@ pub struct OriginDestinationUserInputJSON {
     pub destination_nodes: Vec<NodeID>,
     pub init_travel_times: Vec<Cost>,
     pub trip_start_seconds: SecondsPastMidnight,
+    pub count_destinations_at_intervals: usize,
+    pub original_time_intervals_to_store_destination_counts: Vec<Cost>,
 }
 
 #[derive(Deserialize)]
