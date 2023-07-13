@@ -294,6 +294,7 @@ pub struct FloodfillOutputOriginDestinationPair {
     pub nodes_reached_sequence: Vec<NodeID>,  // sequence of nodes reached en route to target_node, where specified
     pub nodes_reached_time_travelled: Vec<Cost>,
     pub final_cost: Cost,
+    pub destinations_reached_at_time_intervals: Vec<Vec<Vec<Score>>>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -368,4 +369,6 @@ pub struct ServiceChangePayload {
     pub target_destinations: Vec<NodeID>,        // Not used; leaving for now as the py api is set up for this
     pub nodes_to_remove_routes_from: Vec<NodeID>,  // to make has_PT False for specified node IDs
     pub route_nodes_rail: Vec<NodeID>,
+    pub count_destinations_at_intervals: usize,
+    pub original_time_intervals_to_store_destination_counts: Vec<Cost>,
 }

@@ -1,7 +1,7 @@
 use crate::structs::{
     Cost, FloodfillOutputOriginDestinationPair, Multiplier, NodeID, NodeRoute,
     NodeWalk, Score, SecondsPastMidnight, SubpurposeScore, PURPOSES_COUNT, SUBPURPOSES_COUNT,
-    RAIL_MULTIPLIER,
+    RAIL_MULTIPLIER, SubpurposeSmallMediumLargeCount,
 };
 use crate::floodfill_funcs::{initialise_score_multiplers, initialise_subpurpose_purpose_lookup, calculate_purpose_scores_from_subpurpose_scores, 
     add_to_subpurpose_scores_for_node_reached};
@@ -51,6 +51,9 @@ pub fn floodfill_public_transport_purpose_scores(
     travel_time_relationships: &[Multiplier],
     destination_nodes: &Vec<NodeID>,
     stop_rail_statuses: &TiVec<NodeID, bool>,
+    small_medium_large_subpurpose_destinations: &TiVec<NodeID, Vec<SubpurposeSmallMediumLargeCount>>,
+    count_destinations_at_intervals: bool,
+    original_time_intervals_to_store_destination_counts: &Vec<Cost>,
 ) -> FloodfillOutputOriginDestinationPair {
     
     let mut iters: usize = 0;
@@ -67,6 +70,15 @@ pub fn floodfill_public_transport_purpose_scores(
     for node_id in destination_nodes.into_iter() {
         target_destinations[*node_id] = true;
     }
+    // making a copy we can edit            
+    let mut time_intervals_to_store_destination_counts = original_time_intervals_to_store_destination_counts.to_vec();
+    
+    // Make empty vector to store destination counts at the intervals specified in time_intervals_to_store_destination_counts
+    let mut destinations_reached_at_time_intervals = Vec::new();
+    
+    // This stores the total destinations reached, of each subpurpose and size banding
+    let number_of_size_bands = 3; // set to 3 because 3 size bands: small, medium, large
+    let mut destination_counts_small_medium_large: Vec<Vec<Score>> = vec![vec![Score(0.0); number_of_size_bands]; SUBPURPOSES_COUNT];
     
     let mut subpurpose_scores = [Score(0.0); SUBPURPOSES_COUNT];
     let subpurpose_purpose_lookup = initialise_subpurpose_purpose_lookup();
@@ -89,6 +101,7 @@ pub fn floodfill_public_transport_purpose_scores(
             nodes_reached_sequence,
             nodes_reached_time_travelled,
             final_cost: seconds_walk_to_start_node,
+            destinations_reached_at_time_intervals,
         };
     }
 
@@ -112,6 +125,26 @@ pub fn floodfill_public_transport_purpose_scores(
             current.rail_adjusted_cost.0,
             current.node,
         );
+        // Only bother counting destinations if the API payload requested it
+        if count_destinations_at_intervals {
+        
+            // add to our destinations counter for each subpurpose        
+            for destination in &small_medium_large_subpurpose_destinations[current.node] {
+                destination_counts_small_medium_large[destination.subpurpose_ix][0] += destination.small_destinations_count;
+                destination_counts_small_medium_large[destination.subpurpose_ix][1] += destination.medium_destinations_count;
+                destination_counts_small_medium_large[destination.subpurpose_ix][2] += destination.large_destinations_count;
+            }
+
+            // Push when a threshold is crossed in distance travelled, based on current.cost
+            // And remove the threshold from time_intervals_to_store_destination_counts, as we have reached it
+            if time_intervals_to_store_destination_counts.len() > 0 {
+                if current.cost >= time_intervals_to_store_destination_counts[0] {
+
+                    destinations_reached_at_time_intervals.push(destination_counts_small_medium_large.to_vec());
+                    time_intervals_to_store_destination_counts.remove(0);
+                }
+            }
+        }
 
         // Finding adjacent walk nodes
         for edge in &graph_walk[current.node].edges {
@@ -167,6 +200,7 @@ pub fn floodfill_public_transport_purpose_scores(
         nodes_reached_sequence,
         nodes_reached_time_travelled,
         final_cost: time_limit,
+        destinations_reached_at_time_intervals,
     }
 }
 

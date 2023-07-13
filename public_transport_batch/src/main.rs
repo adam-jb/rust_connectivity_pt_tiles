@@ -7,11 +7,11 @@ use common::floodfill_funcs::get_time_of_day_index;
 use common::floodfill_public_transport_purpose_scores::floodfill_public_transport_purpose_scores;
 use common::read_file_funcs::{
     read_files_parallel_excluding_node_values, read_small_files_serial,
-    read_sparse_node_values_2d_serial, read_stop_rail_statuses,
+    read_sparse_node_values_2d_serial, read_stop_rail_statuses, read_small_medium_large_subpurpose_destinations, 
 };
 use common::structs::{
     Cost, FloodfillOutputOriginDestinationPair, Multiplier, NodeID, NodeRoute, NodeWalk,
-    OriginDestinationUserInputJSON, SubpurposeScore,
+    OriginDestinationUserInputJSON, SubpurposeScore, SubpurposeSmallMediumLargeCount,
 };
 
 struct AppState {
@@ -20,6 +20,7 @@ struct AppState {
     graph_routes: TiVec<NodeID, NodeRoute>,
     node_values_2d: TiVec<NodeID, Vec<SubpurposeScore>>,
     stop_rail_statuses: TiVec<NodeID, bool>,
+    small_medium_large_subpurpose_destinations: TiVec<NodeID, Vec<SubpurposeSmallMediumLargeCount>>,
 }
 
 #[get("/")]
@@ -39,6 +40,14 @@ async fn floodfill_pt(
         time_of_day_ix,
         input.start_nodes.len()
     );
+    
+    let mut count_destinations_at_intervals = false;
+    if *&input.count_destinations_at_intervals == 1 {
+        count_destinations_at_intervals = true;
+    }
+    
+    let small_medium_large_subpurpose_destinations_input = read_small_medium_large_subpurpose_destinations("PT");
+    let small_medium_large_subpurpose_destinations: TiVec<NodeID, Vec<SubpurposeSmallMediumLargeCount>> = TiVec::from(small_medium_large_subpurpose_destinations_input);
 
     let now = Instant::now();
     let indices = (0..input.start_nodes.len()).collect::<Vec<_>>();
@@ -58,6 +67,9 @@ async fn floodfill_pt(
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &input.destination_nodes,
                 &data.stop_rail_statuses,
+                &small_medium_large_subpurpose_destinations,
+                count_destinations_at_intervals,
+                &input.original_time_intervals_to_store_destination_counts,
             )
         })
         .collect();
@@ -98,13 +110,17 @@ async fn main() -> std::io::Result<()> {
 
     let stop_rail_statuses_input = read_stop_rail_statuses(year);
     let stop_rail_statuses: TiVec<NodeID, bool> = TiVec::from(stop_rail_statuses_input);
-
+    
+    let small_medium_large_subpurpose_destinations_input = read_small_medium_large_subpurpose_destinations("PT");
+    let small_medium_large_subpurpose_destinations: TiVec<NodeID, Vec<SubpurposeSmallMediumLargeCount>> = TiVec::from(small_medium_large_subpurpose_destinations_input);
+    
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
         graph_walk,
         graph_routes,
         node_values_2d,
         stop_rail_statuses,
+        small_medium_large_subpurpose_destinations,
     });
     println!("Starting server");
     // The 500MB warning is wrong, so we 'allow deprecated' to hide it

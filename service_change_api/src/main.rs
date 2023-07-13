@@ -9,15 +9,16 @@ use common::floodfill_funcs::get_time_of_day_index;
 use common::floodfill_public_transport_purpose_scores::floodfill_public_transport_purpose_scores;
 use common::read_file_funcs::{
     deserialize_bincoded_file, read_files_extra_parallel_inc_node_values, read_small_files_serial,
-    read_stop_rail_statuses,
+    read_stop_rail_statuses, read_small_medium_large_subpurpose_destinations, 
 };
 use common::structs::{
     Cost, EdgeRoute, EdgeWalk, FloodfillOutputOriginDestinationPair, Multiplier, NodeID, NodeRoute,
-    NodeWalk, Score, SecondsPastMidnight, ServiceChangePayload, SubpurposeScore,
+    NodeWalk, Score, SecondsPastMidnight, ServiceChangePayload, SubpurposeScore, SubpurposeSmallMediumLargeCount, 
 };
 
 struct AppState {
     travel_time_relationships_all: Vec<Vec<Multiplier>>,
+    small_medium_large_subpurpose_destinations: TiVec<NodeID, Vec<SubpurposeSmallMediumLargeCount>>,
 }
 
 #[get("/")]
@@ -41,6 +42,14 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
         input.year,
         input.new_build_additions.len()
     );
+    
+    let mut count_destinations_at_intervals = false;
+    if *&input.count_destinations_at_intervals == 1 {
+        count_destinations_at_intervals = true;
+    }
+    
+    let small_medium_large_subpurpose_destinations_input = read_small_medium_large_subpurpose_destinations("PT");
+    let small_medium_large_subpurpose_destinations: TiVec<NodeID, Vec<SubpurposeSmallMediumLargeCount>> = TiVec::from(small_medium_large_subpurpose_destinations_input);
 
     // could use read_files_parallel_inc_node_values to do fewer parallel read gymnastics
     // Tests originally showed read_files_extra_parallel_inc_node_values as faster in cloud run but slower on server; (adam 18th may)
@@ -186,6 +195,9 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<ServiceChangeP
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &input.target_destinations,
                 &stop_rail_statuses,
+                &small_medium_large_subpurpose_destinations,
+                count_destinations_at_intervals,
+                &input.original_time_intervals_to_store_destination_counts,
             )
         })
         .collect();
@@ -272,8 +284,12 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_16,
         travel_time_relationships_19,
     ];
+    let small_medium_large_subpurpose_destinations_input = read_small_medium_large_subpurpose_destinations("PT");
+    let small_medium_large_subpurpose_destinations: TiVec<NodeID, Vec<SubpurposeSmallMediumLargeCount>> = TiVec::from(small_medium_large_subpurpose_destinations_input);
+    
     let app_state = web::Data::new(AppState {
         travel_time_relationships_all,
+        small_medium_large_subpurpose_destinations,
     });
 
     // The 500MB warning is wrong, the decorator on line below silences it
